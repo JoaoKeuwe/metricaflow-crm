@@ -9,42 +9,42 @@ All colors MUST be HSL.
 @layer base {
   :root {
     --background: 0 0% 100%;
-    --foreground: 222 47% 11%;
+    --foreground: 0 0% 0%;
 
     --card: 0 0% 100%;
-    --card-foreground: 222 47% 11%;
+    --card-foreground: 0 0% 0%;
 
     --popover: 0 0% 100%;
-    --popover-foreground: 222 47% 11%;
+    --popover-foreground: 0 0% 0%;
 
-    --primary: 221 83% 53%;
-    --primary-foreground: 210 40% 98%;
+    --primary: 347 100% 56%; /* #ff1f4e - Rosa vibrante da marca */
+    --primary-foreground: 0 0% 100%;
 
-    --secondary: 210 40% 96%;
-    --secondary-foreground: 222 47% 11%;
+    --secondary: 0 0% 84%; /* #d6d6d6 - Cinza claro da marca */
+    --secondary-foreground: 0 0% 0%;
 
-    --muted: 220 14% 96%;
-    --muted-foreground: 220 9% 46%;
+    --muted: 0 0% 90%;
+    --muted-foreground: 0 0% 40%;
 
-    --accent: 142 76% 36%;
+    --accent: 280 80% 60%; /* Roxo complementar */
     --accent-foreground: 0 0% 100%;
 
     --destructive: 0 84% 60%;
-    --destructive-foreground: 210 40% 98%;
+    --destructive-foreground: 0 0% 100%;
 
-    --border: 220 13% 91%;
-    --input: 220 13% 91%;
-    --ring: 221 83% 53%;
+    --border: 0 0% 84%;
+    --input: 0 0% 84%;
+    --ring: 347 100% 56%;
 
     --success: 142 76% 36%;
     --success-foreground: 0 0% 100%;
 
     --warning: 38 92% 50%;
-    --warning-foreground: 0 0% 100%;
+    --warning-foreground: 0 0% 0%;
 
     --radius: 0.75rem;
     
-    --gradient-primary: linear-gradient(135deg, hsl(221 83% 53%), hsl(238 88% 62%));
+    --gradient-primary: linear-gradient(135deg, hsl(347 100% 56%), hsl(280 80% 60%));
     --gradient-success: linear-gradient(135deg, hsl(142 76% 36%), hsl(158 64% 52%));
     --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.05);
     --shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
@@ -66,57 +66,57 @@ All colors MUST be HSL.
 
     --sidebar-ring: 217.2 91.2% 59.8%;
 
-    /* Neon gradients */
-    --gradient-neon-primary: linear-gradient(135deg, hsl(221 83% 53%), hsl(280 100% 70%));
+    /* Gradientes com cores da marca */
+    --gradient-neon-primary: linear-gradient(135deg, hsl(347 100% 56%), hsl(280 80% 60%));
     --gradient-neon-success: linear-gradient(135deg, hsl(142 76% 36%), hsl(158 100% 60%));
-    --gradient-neon-accent: linear-gradient(135deg, hsl(330 100% 60%), hsl(38 100% 60%));
-    --gradient-neon-warning: linear-gradient(135deg, hsl(38 92% 50%), hsl(45 100% 60%));
+    --gradient-neon-accent: linear-gradient(135deg, hsl(347 100% 56%), hsl(15 100% 65%));
+    --gradient-neon-warning: linear-gradient(135deg, hsl(38 92% 50%), hsl(347 100% 70%));
     
-    /* Chart colors - vibrant neon palette */
-    --chart-1: 221 83% 53%; /* Electric Blue */
-    --chart-2: 142 76% 36%; /* Neon Green */
-    --chart-3: 280 100% 70%; /* Purple */
-    --chart-4: 38 92% 50%; /* Orange */
-    --chart-5: 158 100% 60%; /* Cyan */
-    --chart-6: 0 84% 60%; /* Red */
+    /* Chart colors - paleta baseada na marca */
+    --chart-1: 347 100% 56%; /* Rosa vibrante principal */
+    --chart-2: 280 80% 60%; /* Roxo complementar */
+    --chart-3: 15 100% 65%; /* Coral/Laranja */
+    --chart-4: 0 0% 40%; /* Cinza escuro */
+    --chart-5: 347 100% 70%; /* Rosa claro */
+    --chart-6: 347 100% 40%; /* Rosa escuro */
     --chart-7: 330 100% 60%; /* Magenta */
-    --chart-8: 45 100% 60%; /* Yellow */
+    --chart-8: 0 0% 60%; /* Cinza médio */
   }
 
   .dark {
-    --background: 222 47% 11%;
-    --foreground: 210 40% 98%;
+    --background: 0 0% 0%; /* Preto da marca */
+    --foreground: 0 0% 100%;
 
-    --card: 217 33% 17%;
-    --card-foreground: 210 40% 98%;
+    --card: 0 0% 8%;
+    --card-foreground: 0 0% 100%;
 
-    --popover: 217 33% 17%;
-    --popover-foreground: 210 40% 98%;
+    --popover: 0 0% 8%;
+    --popover-foreground: 0 0% 100%;
 
-    --primary: 221 83% 53%;
-    --primary-foreground: 210 40% 98%;
+    --primary: 347 100% 56%; /* Rosa vibrante da marca */
+    --primary-foreground: 0 0% 100%;
 
-    --secondary: 217 33% 17%;
-    --secondary-foreground: 210 40% 98%;
+    --secondary: 0 0% 20%;
+    --secondary-foreground: 0 0% 100%;
 
-    --muted: 215 20% 24%;
-    --muted-foreground: 217 11% 65%;
+    --muted: 0 0% 15%;
+    --muted-foreground: 0 0% 70%;
 
-    --accent: 142 76% 36%;
+    --accent: 280 80% 60%; /* Roxo complementar */
     --accent-foreground: 0 0% 100%;
 
-    --destructive: 0 63% 31%;
-    --destructive-foreground: 210 40% 98%;
+    --destructive: 0 84% 60%;
+    --destructive-foreground: 0 0% 100%;
 
-    --border: 217 33% 17%;
-    --input: 217 33% 17%;
-    --ring: 221 83% 53%;
+    --border: 0 0% 20%;
+    --input: 0 0% 20%;
+    --ring: 347 100% 56%;
 
     --success: 142 76% 36%;
     --success-foreground: 0 0% 100%;
 
     --warning: 38 92% 50%;
-    --warning-foreground: 0 0% 100%;
+    --warning-foreground: 0 0% 0%;
     --sidebar-background: 240 5.9% 10%;
     --sidebar-foreground: 240 4.8% 95.9%;
     --sidebar-primary: 224.3 76.3% 48%;
@@ -126,21 +126,21 @@ All colors MUST be HSL.
     --sidebar-border: 240 3.7% 15.9%;
     --sidebar-ring: 217.2 91.2% 59.8%;
 
-    /* Neon gradients */
-    --gradient-neon-primary: linear-gradient(135deg, hsl(221 83% 53%), hsl(280 100% 70%));
+    /* Gradientes com cores da marca - dark mode */
+    --gradient-neon-primary: linear-gradient(135deg, hsl(347 100% 56%), hsl(280 80% 60%));
     --gradient-neon-success: linear-gradient(135deg, hsl(142 76% 36%), hsl(158 100% 60%));
-    --gradient-neon-accent: linear-gradient(135deg, hsl(330 100% 60%), hsl(38 100% 60%));
-    --gradient-neon-warning: linear-gradient(135deg, hsl(38 92% 50%), hsl(45 100% 60%));
+    --gradient-neon-accent: linear-gradient(135deg, hsl(347 100% 56%), hsl(15 100% 65%));
+    --gradient-neon-warning: linear-gradient(135deg, hsl(38 92% 50%), hsl(347 100% 70%));
     
-    /* Chart colors - vibrant neon palette */
-    --chart-1: 221 83% 53%; /* Electric Blue */
-    --chart-2: 142 76% 36%; /* Neon Green */
-    --chart-3: 280 100% 70%; /* Purple */
-    --chart-4: 38 92% 50%; /* Orange */
-    --chart-5: 158 100% 60%; /* Cyan */
-    --chart-6: 0 84% 60%; /* Red */
+    /* Chart colors - paleta baseada na marca */
+    --chart-1: 347 100% 56%; /* Rosa vibrante principal */
+    --chart-2: 280 80% 60%; /* Roxo complementar */
+    --chart-3: 15 100% 65%; /* Coral/Laranja */
+    --chart-4: 0 0% 60%; /* Cinza médio */
+    --chart-5: 347 100% 70%; /* Rosa claro */
+    --chart-6: 347 100% 40%; /* Rosa escuro */
     --chart-7: 330 100% 60%; /* Magenta */
-    --chart-8: 45 100% 60%; /* Yellow */
+    --chart-8: 0 0% 80%; /* Cinza claro */
   }
 }
 
@@ -157,10 +157,10 @@ All colors MUST be HSL.
 /* Keyframes for modern animations */
 @keyframes glow-pulse {
   0%, 100% {
-    box-shadow: 0 0 20px rgba(59, 130, 246, 0.4), 0 0 40px rgba(59, 130, 246, 0.2);
+    box-shadow: 0 0 20px rgba(255, 31, 78, 0.4), 0 0 40px rgba(255, 31, 78, 0.2);
   }
   50% {
-    box-shadow: 0 0 30px rgba(59, 130, 246, 0.6), 0 0 60px rgba(59, 130, 246, 0.3);
+    box-shadow: 0 0 30px rgba(255, 31, 78, 0.6), 0 0 60px rgba(255, 31, 78, 0.3);
   }
 }
 
@@ -240,7 +240,7 @@ All colors MUST be HSL.
   }
   
   .gradient-bg-animated {
-    background: linear-gradient(135deg, hsl(221 83% 53%), hsl(280 100% 70%), hsl(221 83% 53%));
+    background: linear-gradient(135deg, hsl(347 100% 56%), hsl(280 80% 60%), hsl(347 100% 56%));
     background-size: 200% 200%;
     animation: gradient-shift 8s ease infinite;
   }
