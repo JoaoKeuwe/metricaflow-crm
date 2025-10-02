@@ -38,6 +38,7 @@ export type Database = {
           created_at: string
           id: string
           lead_id: string
+          note_type: string
           user_id: string
         }
         Insert: {
@@ -45,6 +46,7 @@ export type Database = {
           created_at?: string
           id?: string
           lead_id: string
+          note_type?: string
           user_id: string
         }
         Update: {
@@ -52,6 +54,7 @@ export type Database = {
           created_at?: string
           id?: string
           lead_id?: string
+          note_type?: string
           user_id?: string
         }
         Relationships: [
@@ -74,34 +77,43 @@ export type Database = {
       leads: {
         Row: {
           assigned_to: string | null
+          company: string | null
           company_id: string
           created_at: string
           email: string | null
+          estimated_value: number | null
           id: string
           name: string
           phone: string | null
+          source: string | null
           status: string
           updated_at: string
         }
         Insert: {
           assigned_to?: string | null
+          company?: string | null
           company_id: string
           created_at?: string
           email?: string | null
+          estimated_value?: number | null
           id?: string
           name: string
           phone?: string | null
+          source?: string | null
           status?: string
           updated_at?: string
         }
         Update: {
           assigned_to?: string | null
+          company?: string | null
           company_id?: string
           created_at?: string
           email?: string | null
+          estimated_value?: number | null
           id?: string
           name?: string
           phone?: string | null
+          source?: string | null
           status?: string
           updated_at?: string
         }
