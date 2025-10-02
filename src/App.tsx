@@ -10,6 +10,7 @@ import LeadDetail from "./pages/LeadDetail";
 import Kanban from "./pages/Kanban";
 import Users from "./pages/Users";
 import UserManagement from "./pages/UserManagement";
+import AcceptInvite from "./pages/AcceptInvite";
 import NotFound from "./pages/NotFound";
 import Sidebar from "./components/layout/Sidebar";
 import Header from "./components/layout/Header";
@@ -35,6 +36,7 @@ const App = () => {
         <BrowserRouter>
           <Routes>
             <Route path="/auth" element={<Auth />} />
+            <Route path="/accept-invite" element={<AcceptInvite />} />
             <Route
               path="/"
               element={

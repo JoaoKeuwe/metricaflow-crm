@@ -27,8 +27,14 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import {
+  Tabs,
+  TabsContent,
+  TabsList,
+  TabsTrigger,
+} from "@/components/ui/tabs";
 import { useToast } from "@/hooks/use-toast";
-import { UserPlus, Crown, Trash2 } from "lucide-react";
+import { UserPlus, Crown, Trash2, Mail, Clock, CheckCircle, XCircle } from "lucide-react";
 
 const Users = () => {
   const { toast } = useToast();
@@ -116,11 +122,29 @@ const Users = () => {
   const userLimit = profile?.companies?.user_limit_adicionais || 10;
   const canInvite = additionalUsers < userLimit;
 
+  const { data: invites } = useQuery({
+    queryKey: ["invites", profile?.company_id],
+    queryFn: async () => {
+      if (!profile?.company_id) return [];
+      
+      const { data, error } = await supabase
+        .from("invites")
+        .select("*")
+        .eq("company_id", profile.company_id)
+        .order("created_at", { ascending: false });
+
+      if (error) throw error;
+      return data || [];
+    },
+    enabled: !!profile?.company_id && canManageUsers,
+  });
+
   const createInviteMutation = useMutation({
     mutationFn: async ({ email, role }: { email: string; role: string }) => {
       if (!profile?.company_id || !session?.user?.id) throw new Error("Not authenticated");
       
-      const { data, error } = await supabase
+      // Create invite in database
+      const { data: invite, error } = await supabase
         .from("invites")
         .insert([{
           email,
@@ -132,13 +156,54 @@ const Users = () => {
         .single();
 
       if (error) throw error;
-      return data;
+
+      // Send invite email via edge function
+      const { error: emailError } = await supabase.functions.invoke("send-invite", {
+        body: {
+          inviteId: invite.id,
+          email: invite.email,
+          role: invite.role,
+          companyName: profile.companies?.name || "sua empresa",
+        },
+      });
+
+      if (emailError) {
+        console.error("Error sending invite email:", emailError);
+        throw new Error("Convite criado mas erro ao enviar e-mail");
+      }
+
+      return invite;
     },
     onSuccess: () => {
-      toast({ title: "Convite enviado!" });
+      toast({ 
+        title: "Convite enviado!", 
+        description: "Um e-mail foi enviado para o usuário convidado." 
+      });
       queryClient.invalidateQueries({ queryKey: ["invites"] });
       setIsInviteOpen(false);
       setInviteEmail("");
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Erro ao enviar convite",
+        description: error.message,
+        variant: "destructive",
+      });
+    },
+  });
+
+  const deleteInviteMutation = useMutation({
+    mutationFn: async (inviteId: string) => {
+      const { error } = await supabase
+        .from("invites")
+        .delete()
+        .eq("id", inviteId);
+
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      toast({ title: "Convite cancelado" });
+      queryClient.invalidateQueries({ queryKey: ["invites"] });
     },
   });
 
@@ -165,11 +230,29 @@ const Users = () => {
     );
   }
 
+  const getInviteStatusBadge = (status: string, expiresAt: string) => {
+    const expired = new Date(expiresAt) < new Date();
+    
+    if (expired) {
+      return <Badge variant="destructive"><XCircle className="h-3 w-3 mr-1" />Expirado</Badge>;
+    }
+    
+    const statusMap: Record<string, { label: string; icon: any; variant: "default" | "secondary" | "outline" }> = {
+      pending: { label: "Pendente", icon: Clock, variant: "secondary" },
+      accepted: { label: "Aceito", icon: CheckCircle, variant: "default" },
+    };
+    
+    const config = statusMap[status] || { label: status, icon: Mail, variant: "outline" as const };
+    const Icon = config.icon;
+    
+    return <Badge variant={config.variant}><Icon className="h-3 w-3 mr-1" />{config.label}</Badge>;
+  };
+
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h2 className="text-3xl font-bold">Usuários</h2>
+          <h2 className="text-3xl font-bold">Gestão de Usuários</h2>
           <p className="text-muted-foreground">
             {additionalUsers}/{userLimit} usuários adicionais
           </p>
@@ -212,37 +295,100 @@ const Users = () => {
         </Dialog>
       </div>
 
-      <Table>
-        <TableHeader>
-          <TableRow>
-            <TableHead>Nome</TableHead>
-            <TableHead>Perfil</TableHead>
-            <TableHead>Ações</TableHead>
-          </TableRow>
-        </TableHeader>
-        <TableBody>
-          {users?.map((user) => {
-            const role = user.user_roles?.[0]?.role || "vendedor";
-            const isUserOwner = role === "gestor_owner";
-            return (
-              <TableRow key={user.id}>
-                <TableCell className="font-medium">
-                  {user.name}
-                  {isUserOwner && <Crown className="inline ml-2 h-4 w-4 text-yellow-500" />}
-                </TableCell>
-                <TableCell>{getRoleBadge(role)}</TableCell>
-                <TableCell>
-                  {!isUserOwner && isOwner && (
-                    <Button size="sm" variant="ghost" disabled>
-                      <Trash2 className="h-4 w-4" />
-                    </Button>
-                  )}
-                </TableCell>
+      <Tabs defaultValue="users" className="w-full">
+        <TabsList>
+          <TabsTrigger value="users">Usuários Ativos</TabsTrigger>
+          <TabsTrigger value="invites">
+            Convites 
+            {invites && invites.length > 0 && (
+              <Badge variant="secondary" className="ml-2">{invites.length}</Badge>
+            )}
+          </TabsTrigger>
+        </TabsList>
+
+        <TabsContent value="users" className="space-y-4">
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>Nome</TableHead>
+                <TableHead>Perfil</TableHead>
+                <TableHead>Ações</TableHead>
               </TableRow>
-            );
-          })}
-        </TableBody>
-      </Table>
+            </TableHeader>
+            <TableBody>
+              {users?.map((user) => {
+                const role = user.user_roles?.[0]?.role || "vendedor";
+                const isUserOwner = role === "gestor_owner";
+                return (
+                  <TableRow key={user.id}>
+                    <TableCell className="font-medium">
+                      {user.name}
+                      {isUserOwner && <Crown className="inline ml-2 h-4 w-4 text-yellow-500" />}
+                    </TableCell>
+                    <TableCell>{getRoleBadge(role)}</TableCell>
+                    <TableCell>
+                      {!isUserOwner && isOwner && (
+                        <Button size="sm" variant="ghost" disabled>
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      )}
+                    </TableCell>
+                  </TableRow>
+                );
+              })}
+            </TableBody>
+          </Table>
+        </TabsContent>
+
+        <TabsContent value="invites" className="space-y-4">
+          {invites && invites.length > 0 ? (
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>E-mail</TableHead>
+                  <TableHead>Perfil</TableHead>
+                  <TableHead>Status</TableHead>
+                  <TableHead>Enviado em</TableHead>
+                  <TableHead>Ações</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {invites.map((invite) => (
+                  <TableRow key={invite.id}>
+                    <TableCell className="font-medium">
+                      <div className="flex items-center">
+                        <Mail className="h-4 w-4 mr-2 text-muted-foreground" />
+                        {invite.email}
+                      </div>
+                    </TableCell>
+                    <TableCell>{getRoleBadge(invite.role)}</TableCell>
+                    <TableCell>{getInviteStatusBadge(invite.status, invite.expires_at)}</TableCell>
+                    <TableCell>
+                      {new Date(invite.created_at).toLocaleDateString("pt-BR")}
+                    </TableCell>
+                    <TableCell>
+                      {invite.status === "pending" && isOwner && (
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          onClick={() => deleteInviteMutation.mutate(invite.id)}
+                        >
+                          <XCircle className="h-4 w-4" />
+                        </Button>
+                      )}
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          ) : (
+            <div className="text-center py-12 text-muted-foreground">
+              <Mail className="h-12 w-12 mx-auto mb-4 opacity-50" />
+              <p>Nenhum convite pendente</p>
+            </div>
+          )}
+        </TabsContent>
+      </Tabs>
     </div>
   );
 };
