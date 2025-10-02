@@ -173,6 +173,16 @@ const UserManagement = () => {
       // Validate with zod
       const validated = createUserSchema.parse(data);
 
+      // Verificar se o e-mail já existe na empresa antes de criar
+      const { data: emailIsUnique } = await supabase.rpc('is_email_unique_in_company', {
+        _email: validated.email,
+        _company_id: profile?.company_id,
+      });
+
+      if (emailIsUnique === false) {
+        throw new Error('EMAIL_EXISTS');
+      }
+
       const { data: { session } } = await supabase.auth.getSession();
       if (!session) throw new Error("Not authenticated");
 
@@ -207,9 +217,24 @@ const UserManagement = () => {
       });
     },
     onError: (error: Error) => {
+      let errorMessage = error.message;
+      
+      // Traduzir mensagens de erro comuns
+      if (error.message === 'EMAIL_EXISTS' || error.message.includes('already been registered')) {
+        errorMessage = 'Este e-mail já está cadastrado. Por favor, use outro e-mail.';
+      } else if (error.message.includes('User already exists')) {
+        errorMessage = 'Este e-mail já está em uso. Por favor, use outro e-mail.';
+      } else if (error.message.includes('limit') || error.message.includes('reached')) {
+        errorMessage = 'Limite de usuários atingido. Aumente o limite para adicionar mais usuários.';
+      } else if (error.message.includes('Invalid role')) {
+        errorMessage = 'Função inválida. Selecione Gestor ou Vendedor.';
+      } else if (error.message === 'Not authenticated') {
+        errorMessage = 'Sessão expirada. Por favor, faça login novamente.';
+      }
+
       toast({
         title: "Erro ao criar usuário",
-        description: error.message,
+        description: errorMessage,
         variant: "destructive",
       });
     },
