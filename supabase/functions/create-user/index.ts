@@ -69,18 +69,20 @@ serve(async (req) => {
     }
 
     // Check email uniqueness in company
-    const { data: existingUser } = await supabaseAdmin
-      .from("profiles")
-      .select("id")
-      .eq("company_id", profile.company_id)
-      .limit(1);
-
-    const emailExists = await supabaseAdmin.rpc("is_email_unique_in_company", {
+    const { data: emailIsUnique, error: rpcError } = await supabaseAdmin.rpc("is_email_unique_in_company", {
       _email: email,
       _company_id: profile.company_id,
     });
 
-    if (!emailExists) {
+    console.log('Email uniqueness check:', { email, emailIsUnique, rpcError });
+
+    if (rpcError) {
+      console.error('RPC error checking email:', rpcError);
+      throw new Error("Error checking email availability");
+    }
+
+    if (emailIsUnique === false) {
+      console.log('Email already exists:', email);
       throw new Error("Email already exists in this company");
     }
 
