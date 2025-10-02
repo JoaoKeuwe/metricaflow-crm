@@ -13,13 +13,6 @@ import {
 } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useToast } from "@/hooks/use-toast";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 
 const Auth = () => {
   const navigate = useNavigate();
@@ -35,7 +28,6 @@ const Auth = () => {
   const [signupPassword, setSignupPassword] = useState("");
   const [signupName, setSignupName] = useState("");
   const [signupCompanyName, setSignupCompanyName] = useState("");
-  const [signupRole, setSignupRole] = useState<"gestor" | "vendedor">("gestor");
 
   useEffect(() => {
     // Check if user is already logged in
@@ -188,23 +180,9 @@ const Auth = () => {
                     onChange={(e) => setSignupCompanyName(e.target.value)}
                     required
                   />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="signup-role">Perfil</Label>
-                  <Select
-                    value={signupRole}
-                    onValueChange={(value: "gestor" | "vendedor") =>
-                      setSignupRole(value)
-                    }
-                  >
-                    <SelectTrigger>
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="gestor">Gestor</SelectItem>
-                      <SelectItem value="vendedor">Vendedor</SelectItem>
-                    </SelectContent>
-                  </Select>
+                  <p className="text-xs text-muted-foreground">
+                    Primeiro cadastro cria automaticamente a empresa e você será o proprietário.
+                  </p>
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="signup-email">Email</Label>

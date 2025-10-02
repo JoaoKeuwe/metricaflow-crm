@@ -77,15 +77,28 @@ const Leads = () => {
   const { data: users } = useQuery({
     queryKey: ["company-users"],
     queryFn: async () => {
+      // Get vendedores using the secure user_roles table
+      const { data: vendedores, error: rolesError } = await supabase
+        .from("user_roles")
+        .select("user_id")
+        .eq("role", "vendedor");
+
+      if (rolesError) throw rolesError;
+      
+      const vendedorIds = vendedores?.map(v => v.user_id) || [];
+      
+      if (vendedorIds.length === 0) return [];
+
       const { data, error } = await supabase
         .from("profiles")
         .select("id, name")
-        .eq("role", "vendedor");
+        .in("id", vendedorIds)
+        .eq("company_id", profile?.company_id);
 
       if (error) throw error;
       return data;
     },
-    enabled: profile?.role === "gestor",
+    enabled: profile?.role === "gestor" && !!profile?.company_id,
   });
 
   const { data: leads } = useQuery({

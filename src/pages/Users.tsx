@@ -75,33 +75,39 @@ const Users = () => {
     enabled: !!session?.user?.id,
   });
 
+  const isOwner = userRole === "gestor_owner";
+  const canManageUsers = isOwner || userRole === "gestor";
+
   const { data: users } = useQuery({
     queryKey: ["company-users", profile?.company_id],
     queryFn: async () => {
       if (!profile?.company_id) return [];
       
-      const { data: profiles } = await supabase
+      const { data: profiles, error: profilesError } = await supabase
         .from("profiles")
-        .select("*")
-        .eq("company_id", profile.company_id);
-      
-      const profilesWithRoles = await Promise.all(
-        (profiles || []).map(async (profile) => {
-          const { data: roles } = await supabase
-            .from("user_roles")
-            .select("role")
-            .eq("user_id", profile.id);
-          return { ...profile, user_roles: roles || [] };
-        })
-      );
-      
-      return profilesWithRoles;
-    },
-    enabled: !!profile?.company_id,
-  });
+        .select("id, name, created_at, company_id")
+        .eq("company_id", profile.company_id)
+        .order("created_at", { ascending: true });
 
-  const isOwner = userRole === "gestor_owner";
-  const canManageUsers = isOwner || userRole === "gestor";
+      if (profilesError) throw profilesError;
+
+      // Get roles from user_roles table
+      const userIds = profiles?.map(p => p.id) || [];
+      const { data: roles, error: rolesError } = await supabase
+        .from("user_roles")
+        .select("user_id, role")
+        .in("user_id", userIds);
+
+      if (rolesError) throw rolesError;
+
+      // Combine profiles with their roles
+      return profiles?.map(profile => ({
+        ...profile,
+        user_roles: roles?.filter(r => r.user_id === profile.id) || []
+      })) || [];
+    },
+    enabled: !!profile?.company_id && canManageUsers,
+  });
 
   const ownerCount = users?.filter(u => 
     u.user_roles?.some((r: any) => r.role === "gestor_owner")
