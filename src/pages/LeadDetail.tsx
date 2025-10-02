@@ -16,9 +16,17 @@ import {
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { ArrowLeft, Plus } from "lucide-react";
+import { ArrowLeft, Plus, FileDown, Brain, Loader2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { format } from "date-fns";
+import jsPDF from "jspdf";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 
 const NOTE_TYPES = [
   "Contato feito",
@@ -45,6 +53,9 @@ const LeadDetail = () => {
   const [noteContent, setNoteContent] = useState("");
   const [noteType, setNoteType] = useState("Contato feito");
   const [customNoteType, setCustomNoteType] = useState("");
+  const [isAnalyzing, setIsAnalyzing] = useState(false);
+  const [analysis, setAnalysis] = useState("");
+  const [showAnalysisDialog, setShowAnalysisDialog] = useState(false);
 
   const { data: lead, isLoading } = useQuery({
     queryKey: ["lead", id],
@@ -127,6 +138,120 @@ const LeadDetail = () => {
       return;
     }
     addNoteMutation.mutate({ content: noteContent, note_type: finalNoteType });
+  };
+
+  const handleExportPDF = () => {
+    if (!lead || !notes) return;
+
+    const doc = new jsPDF();
+    const pageWidth = doc.internal.pageSize.getWidth();
+    let yPosition = 20;
+
+    // Título
+    doc.setFontSize(18);
+    doc.setFont("helvetica", "bold");
+    doc.text("Histórico de Conversas - CRM", pageWidth / 2, yPosition, { align: "center" });
+    yPosition += 15;
+
+    // Informações do Lead
+    doc.setFontSize(12);
+    doc.setFont("helvetica", "bold");
+    doc.text("Informações do Lead:", 20, yPosition);
+    yPosition += 8;
+
+    doc.setFontSize(10);
+    doc.setFont("helvetica", "normal");
+    doc.text(`Nome: ${lead.name}`, 20, yPosition);
+    yPosition += 6;
+    if (lead.company) {
+      doc.text(`Empresa: ${lead.company}`, 20, yPosition);
+      yPosition += 6;
+    }
+    if (lead.email) {
+      doc.text(`Email: ${lead.email}`, 20, yPosition);
+      yPosition += 6;
+    }
+    if (lead.phone) {
+      doc.text(`Telefone: ${lead.phone}`, 20, yPosition);
+      yPosition += 6;
+    }
+    doc.text(`Status: ${lead.status}`, 20, yPosition);
+    yPosition += 6;
+    if (lead.profiles?.name) {
+      doc.text(`Vendedor: ${lead.profiles.name}`, 20, yPosition);
+      yPosition += 10;
+    }
+
+    // Notas
+    doc.setFontSize(12);
+    doc.setFont("helvetica", "bold");
+    doc.text("Histórico de Interações:", 20, yPosition);
+    yPosition += 10;
+
+    notes.forEach((note: any, index) => {
+      // Verificar se precisa de nova página
+      if (yPosition > 270) {
+        doc.addPage();
+        yPosition = 20;
+      }
+
+      doc.setFontSize(9);
+      doc.setFont("helvetica", "bold");
+      const dateStr = format(new Date(note.created_at), "dd/MM/yyyy HH:mm");
+      doc.text(`[${dateStr}] ${note.profiles?.name || "Usuário"} - ${note.note_type}`, 20, yPosition);
+      yPosition += 6;
+
+      doc.setFont("helvetica", "normal");
+      const splitContent = doc.splitTextToSize(note.content, pageWidth - 40);
+      splitContent.forEach((line: string) => {
+        if (yPosition > 280) {
+          doc.addPage();
+          yPosition = 20;
+        }
+        doc.text(line, 20, yPosition);
+        yPosition += 5;
+      });
+      yPosition += 8;
+    });
+
+    // Salvar PDF
+    doc.save(`lead-${lead.name.replace(/\s+/g, "-")}-${Date.now()}.pdf`);
+    
+    toast({
+      title: "PDF exportado com sucesso!",
+      description: "O arquivo foi baixado para seu dispositivo",
+    });
+  };
+
+  const handleAnalyzeConversation = async () => {
+    if (!id) return;
+
+    setIsAnalyzing(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("analyze-lead-conversation", {
+        body: { leadId: id },
+      });
+
+      if (error) throw error;
+
+      if (data?.analysis) {
+        setAnalysis(data.analysis);
+        setShowAnalysisDialog(true);
+        toast({
+          title: "Análise gerada com sucesso!",
+          description: "Confira as recomendações da IA",
+        });
+      }
+    } catch (error: any) {
+      console.error("Erro ao gerar análise:", error);
+      toast({
+        title: "Erro ao gerar análise",
+        description: error.message || "Tente novamente em alguns instantes",
+        variant: "destructive",
+      });
+    } finally {
+      setIsAnalyzing(false);
+    }
   };
 
   if (isLoading) {
@@ -213,6 +338,29 @@ const LeadDetail = () => {
         </TabsList>
 
         <TabsContent value="notes" className="space-y-4">
+          <div className="flex gap-3 mb-4">
+            <Button 
+              onClick={handleExportPDF} 
+              variant="outline"
+              disabled={!notes || notes.length === 0}
+            >
+              <FileDown className="h-4 w-4 mr-2" />
+              Exportar PDF
+            </Button>
+            <Button 
+              onClick={handleAnalyzeConversation}
+              variant="outline"
+              disabled={isAnalyzing || !notes || notes.length === 0}
+            >
+              {isAnalyzing ? (
+                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+              ) : (
+                <Brain className="h-4 w-4 mr-2" />
+              )}
+              Analisar com IA
+            </Button>
+          </div>
+
           <Card>
             <CardHeader>
               <CardTitle>Adicionar Nova Nota</CardTitle>
@@ -314,6 +462,22 @@ const LeadDetail = () => {
           </Card>
         </TabsContent>
       </Tabs>
+
+      <Dialog open={showAnalysisDialog} onOpenChange={setShowAnalysisDialog}>
+        <DialogContent className="max-w-3xl max-h-[80vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Análise de IA - Atendimento ao Cliente</DialogTitle>
+            <DialogDescription>
+              Análise detalhada sobre o atendimento e recomendações de melhoria
+            </DialogDescription>
+          </DialogHeader>
+          <div className="prose prose-sm max-w-none">
+            <div className="whitespace-pre-wrap text-sm leading-relaxed">
+              {analysis}
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
