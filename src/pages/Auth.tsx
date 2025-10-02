@@ -88,24 +88,14 @@ const Auth = () => {
     setLoading(true);
 
     try {
-      // Create company first
-      const { data: companyData, error: companyError } = await supabase
-        .from("companies")
-        .insert({ name: signupCompanyName })
-        .select()
-        .single();
-
-      if (companyError) throw companyError;
-
-      // Create user with metadata
+      // Create user with metadata - company will be created by trigger
       const { error: signupError } = await supabase.auth.signUp({
         email: signupEmail,
         password: signupPassword,
         options: {
           data: {
             name: signupName,
-            company_id: companyData.id,
-            role: signupRole,
+            company_name: signupCompanyName,
           },
           emailRedirectTo: `${window.location.origin}/`,
         },
@@ -115,7 +105,7 @@ const Auth = () => {
 
       toast({
         title: "Conta criada com sucesso!",
-        description: "Você já pode fazer login.",
+        description: "Sua empresa foi criada e você é o proprietário.",
       });
     } catch (error: any) {
       toast({

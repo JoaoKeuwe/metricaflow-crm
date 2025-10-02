@@ -8,6 +8,7 @@ import Auth from "./pages/Auth";
 import Leads from "./pages/Leads";
 import LeadDetail from "./pages/LeadDetail";
 import Kanban from "./pages/Kanban";
+import Users from "./pages/Users";
 import NotFound from "./pages/NotFound";
 import Sidebar from "./components/layout/Sidebar";
 import Header from "./components/layout/Header";
@@ -61,6 +62,14 @@ const App = () => (
             element={
               <DemoLayout>
                 <Kanban />
+              </DemoLayout>
+            }
+          />
+          <Route
+            path="/users"
+            element={
+              <DemoLayout>
+                <Users />
               </DemoLayout>
             }
           />
