@@ -31,6 +31,30 @@ const handler = async (req: Request): Promise<Response> => {
 
     const { token, name, password }: AcceptInviteRequest = await req.json();
 
+    // Input validation
+    if (!token || !name || !password) {
+      return new Response(
+        JSON.stringify({ error: "Dados obrigatórios não fornecidos" }),
+        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    // Validate password strength (min 12 chars)
+    if (password.length < 12) {
+      return new Response(
+        JSON.stringify({ error: "Senha deve ter no mínimo 12 caracteres" }),
+        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    // Validate name length
+    if (name.trim().length < 1 || name.trim().length > 100) {
+      return new Response(
+        JSON.stringify({ error: "Nome deve ter entre 1 e 100 caracteres" }),
+        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
     console.log('Processing invite acceptance:', { token, name });
 
     // Validate invite
@@ -43,7 +67,20 @@ const handler = async (req: Request): Promise<Response> => {
 
     if (inviteError || !invite) {
       console.error('Invite not found or invalid:', inviteError);
-      throw new Error("Convite inválido ou já utilizado");
+      return new Response(
+        JSON.stringify({ error: "Convite inválido ou expirado" }),
+        { status: 404, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    // Validate email format from invite
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(invite.email)) {
+      console.error('Invalid email format in invite');
+      return new Response(
+        JSON.stringify({ error: "Formato de email inválido" }),
+        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
     }
 
     // Check if invite is expired

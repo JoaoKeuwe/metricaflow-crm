@@ -19,6 +19,31 @@ const handler = async (req: Request): Promise<Response> => {
 
   try {
     const { inviteId, email, role, companyName }: SendInviteRequest = await req.json();
+    
+    // Input validation
+    if (!inviteId || !email || !role || !companyName) {
+      return new Response(
+        JSON.stringify({ error: "Dados obrigatórios não fornecidos" }),
+        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    // Validate email format
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(email)) {
+      return new Response(
+        JSON.stringify({ error: "Formato de email inválido" }),
+        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    // Validate role
+    if (!["gestor", "vendedor"].includes(role)) {
+      return new Response(
+        JSON.stringify({ error: "Função inválida" }),
+        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
 
     console.log('Sending invite email:', { inviteId, email, role, companyName });
 

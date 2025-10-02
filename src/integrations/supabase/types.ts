@@ -79,6 +79,47 @@ export type Database = {
           },
         ]
       }
+      lead_access_log: {
+        Row: {
+          accessed_at: string
+          action: string
+          id: string
+          ip_address: unknown | null
+          lead_id: string
+          metadata: Json | null
+          user_agent: string | null
+          user_id: string
+        }
+        Insert: {
+          accessed_at?: string
+          action: string
+          id?: string
+          ip_address?: unknown | null
+          lead_id: string
+          metadata?: Json | null
+          user_agent?: string | null
+          user_id: string
+        }
+        Update: {
+          accessed_at?: string
+          action?: string
+          id?: string
+          ip_address?: unknown | null
+          lead_id?: string
+          metadata?: Json | null
+          user_agent?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "lead_access_log_lead_id_fkey"
+            columns: ["lead_id"]
+            isOneToOne: false
+            referencedRelation: "leads"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       lead_observations: {
         Row: {
           content: string
