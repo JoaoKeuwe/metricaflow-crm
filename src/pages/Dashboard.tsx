@@ -564,12 +564,35 @@ const Dashboard = () => {
         );
       }
 
-      // Salvar o PDF
+      // Salvar o PDF (com fallback para ambientes em iframe)
       const fileName = `relatorio-dashboard-${new Date().toISOString().split('T')[0]}.pdf`;
-      console.log("Salvando PDF com nome:", fileName);
-      doc.save(fileName);
-      console.log("PDF gerado com sucesso!");
-      toast.success("Relatório exportado com sucesso!");
+      const isIframe = window.top !== window.self;
+
+      try {
+        if (isIframe) {
+          // Em iframes, abrir em nova aba aumenta a compatibilidade
+          const blobUrl = doc.output('bloburl');
+          window.open(blobUrl, '_blank');
+          console.log('PDF aberto em nova aba (iframe mode)');
+          toast.success('Relatório aberto em nova aba como PDF');
+        } else {
+          doc.save(fileName);
+          console.log('PDF baixado:', fileName);
+          toast.success('Relatório exportado com sucesso!');
+        }
+      } catch (e) {
+        console.warn('Falha no método principal, aplicando fallback de download...', e);
+        const blob = doc.output('blob');
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement('a');
+        link.href = url;
+        link.download = fileName;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        URL.revokeObjectURL(url);
+        toast.success('Relatório exportado (fallback)!');
+      }
     } catch (error) {
       console.error("Erro ao gerar PDF:", error);
       toast.error(`Erro ao gerar PDF: ${error instanceof Error ? error.message : 'Erro desconhecido'}`);
