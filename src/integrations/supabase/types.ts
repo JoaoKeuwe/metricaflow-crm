@@ -14,6 +14,44 @@ export type Database = {
   }
   public: {
     Tables: {
+      api_tokens: {
+        Row: {
+          active: boolean
+          company_id: string
+          created_at: string
+          id: string
+          last_used_at: string | null
+          name: string
+          token: string
+        }
+        Insert: {
+          active?: boolean
+          company_id: string
+          created_at?: string
+          id?: string
+          last_used_at?: string | null
+          name: string
+          token: string
+        }
+        Update: {
+          active?: boolean
+          company_id?: string
+          created_at?: string
+          id?: string
+          last_used_at?: string | null
+          name?: string
+          token?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "api_tokens_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       companies: {
         Row: {
           created_at: string
@@ -37,6 +75,64 @@ export type Database = {
           user_limit_adicionais?: number | null
         }
         Relationships: []
+      }
+      integration_logs: {
+        Row: {
+          api_token_id: string | null
+          company_id: string
+          created_at: string
+          error_message: string | null
+          id: string
+          lead_id: string | null
+          payload: Json | null
+          source: string
+          status: string
+        }
+        Insert: {
+          api_token_id?: string | null
+          company_id: string
+          created_at?: string
+          error_message?: string | null
+          id?: string
+          lead_id?: string | null
+          payload?: Json | null
+          source?: string
+          status: string
+        }
+        Update: {
+          api_token_id?: string | null
+          company_id?: string
+          created_at?: string
+          error_message?: string | null
+          id?: string
+          lead_id?: string | null
+          payload?: Json | null
+          source?: string
+          status?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "integration_logs_api_token_id_fkey"
+            columns: ["api_token_id"]
+            isOneToOne: false
+            referencedRelation: "api_tokens"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "integration_logs_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "integration_logs_lead_id_fkey"
+            columns: ["lead_id"]
+            isOneToOne: false
+            referencedRelation: "leads"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       invites: {
         Row: {
@@ -431,9 +527,17 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      cleanup_old_integration_logs: {
+        Args: Record<PropertyKey, never>
+        Returns: undefined
+      }
       count_additional_users: {
         Args: { _company_id: string }
         Returns: number
+      }
+      generate_api_token: {
+        Args: Record<PropertyKey, never>
+        Returns: string
       }
       get_user_company_id: {
         Args: Record<PropertyKey, never>

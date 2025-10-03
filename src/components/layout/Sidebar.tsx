@@ -1,4 +1,4 @@
-import { LayoutDashboard, Users, KanbanSquare, UserCog, Settings, LogOut } from "lucide-react";
+import { LayoutDashboard, Users, KanbanSquare, UserCog, Settings, LogOut, Plug } from "lucide-react";
 import { NavLink, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
@@ -35,6 +35,10 @@ const Sidebar = () => {
     to: "/user-management",
     icon: Settings,
     label: "Gestão de Usuários"
+  }, {
+    to: "/integrations",
+    icon: Plug,
+    label: "Integrações"
   }];
   return <aside className="w-64 bg-card border-r border-border flex flex-col">
       <div className="p-6 border-b border-border">
