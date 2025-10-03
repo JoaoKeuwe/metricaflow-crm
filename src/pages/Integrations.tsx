@@ -98,36 +98,60 @@ export default function Integrations() {
 
     setIsCreating(true);
     try {
-      // Obter company_id do usuário atual
-      const { data: profile } = await supabase
-        .from("profiles")
-        .select("company_id")
-        .eq("id", (await supabase.auth.getUser()).data.user?.id)
-        .single();
-
-      if (!profile) {
-        toast({ title: "Erro ao obter dados do usuário", variant: "destructive" });
+      // Obter usuário autenticado
+      const { data: authData, error: authError } = await supabase.auth.getUser();
+      if (authError || !authData?.user) {
+        toast({ title: "Sessão inválida. Faça login novamente.", variant: "destructive" });
         return;
       }
 
-      // Gerar token usando função do banco
-      const { data: tokenData, error: tokenError } = await supabase.rpc(
-        "generate_api_token"
-      );
+      // Obter company_id do usuário atual com segurança
+      const { data: profile, error: profileError } = await supabase
+        .from("profiles")
+        .select("company_id")
+        .eq("id", authData.user.id)
+        .maybeSingle();
 
-      if (tokenError) {
-        throw tokenError;
+      if (profileError || !profile?.company_id) {
+        console.error("Erro perfil:", profileError);
+        toast({ title: "Não foi possível identificar sua empresa.", variant: "destructive" });
+        return;
       }
 
-      // Inserir token no banco
+      // Tenta gerar token via função do banco (seguro e preferível)
+      let tokenValue: string | null = null;
+      const { data: tokenData, error: tokenError } = await supabase.rpc("generate_api_token");
+
+      if (tokenError) {
+        // Fallback seguro usando Web Crypto caso a função não exista/esteja indisponível
+        console.warn("RPC generate_api_token falhou, usando fallback:", tokenError);
+        const bytes = new Uint8Array(32);
+        crypto.getRandomValues(bytes);
+        const hex = Array.from(bytes)
+          .map((b) => b.toString(16).padStart(2, "0"))
+          .join("");
+        tokenValue = `tok_${hex}`;
+      } else {
+        tokenValue = tokenData as string;
+      }
+
+      if (!tokenValue) {
+        toast({ title: "Falha ao gerar token", variant: "destructive" });
+        return;
+      }
+
+      // Inserir token no banco respeitando RLS
       const { error: insertError } = await supabase.from("api_tokens").insert({
         company_id: profile.company_id,
-        token: tokenData,
+        token: tokenValue,
         name: newTokenName.trim(),
       });
 
       if (insertError) {
-        throw insertError;
+        console.error("Erro insert token:", insertError);
+        const msg = (insertError as any)?.message || "Erro ao criar token";
+        toast({ title: msg.includes("row-level security") ? "Permissão negada" : "Erro ao criar token", description: msg, variant: "destructive" });
+        return;
       }
 
       toast({ title: "Token criado com sucesso!" });
@@ -136,7 +160,8 @@ export default function Integrations() {
       loadTokens();
     } catch (error) {
       console.error("Erro ao criar token:", error);
-      toast({ title: "Erro ao criar token", variant: "destructive" });
+      const msg = (error as any)?.message || "Erro ao criar token";
+      toast({ title: "Erro ao criar token", description: msg, variant: "destructive" });
     } finally {
       setIsCreating(false);
     }
@@ -176,29 +201,31 @@ export default function Integrations() {
 
     setTestLoading(true);
     try {
-      const response = await fetch(endpointUrl, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${activeToken.token}`,
-        },
-        body: JSON.stringify({
-          name: "Lead de Teste",
-          email: `teste-${Date.now()}@example.com`,
-          phone: "11999999999",
-          company: "Empresa Teste",
-          source: "Teste de Integração",
-          estimated_value: 1000,
-        }),
-      });
+      const { data, error } = await supabase.functions.invoke(
+        "create-lead-from-external",
+        {
+          body: {
+            name: "Lead de Teste",
+            email: `teste-${Date.now()}@example.com`,
+            phone: "11999999999",
+            company: "Empresa Teste",
+            source: "Teste de Integração",
+            estimated_value: 1000,
+          },
+          headers: {
+            Authorization: `Bearer ${activeToken.token}`,
+          },
+        }
+      );
 
-      const result = await response.json();
+      const result = data as any;
 
-      if (result.success) {
+      if (error || !result?.success) {
+        const message = (error as any)?.message || result?.error || "Erro desconhecido";
+        toast({ title: "❌ Erro na integração", description: message, variant: "destructive" });
+      } else {
         toast({ title: "✅ Integração funcionando!", description: `Lead criado: ${result.lead_id}` });
         loadLogs();
-      } else {
-        toast({ title: "❌ Erro na integração", description: result.error, variant: "destructive" });
       }
     } catch (error) {
       console.error("Erro ao testar:", error);
