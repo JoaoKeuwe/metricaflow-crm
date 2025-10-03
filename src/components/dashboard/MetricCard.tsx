@@ -50,7 +50,7 @@ const MetricCard = ({
     : value;
 
   return (
-    <Card className="relative overflow-hidden group hover:shadow-2xl transition-all duration-300 glow-border glassmorphism-dark border-primary/20">
+    <Card className="relative overflow-hidden group hover:shadow-2xl transition-all duration-300 glow-border border-primary/20 bg-card">
       {/* Animated gradient background */}
       <div className="absolute inset-0 bg-gradient-to-br from-primary/5 via-transparent to-accent/5 opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
       
