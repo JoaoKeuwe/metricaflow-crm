@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import MetricCard from "@/components/dashboard/MetricCard";
@@ -5,14 +6,50 @@ import LeadsStatusChart from "@/components/dashboard/LeadsStatusChart";
 import LeadsTimelineChart from "@/components/dashboard/LeadsTimelineChart";
 import FinancialMetricsChart from "@/components/dashboard/FinancialMetricsChart";
 import SalesPerformanceChart from "@/components/dashboard/SalesPerformanceChart";
+import SalesPerformanceDetailedChart from "@/components/dashboard/SalesPerformanceDetailedChart";
 import LeadsSourceChart from "@/components/dashboard/LeadsSourceChart";
 import ConversionFunnelChart from "@/components/dashboard/ConversionFunnelChart";
+import DashboardFilters from "@/components/dashboard/DashboardFilters";
+import { useDetailedPerformanceData } from "@/hooks/useDetailedPerformanceData";
 import { Users, CheckCircle, Clock, TrendingUp, DollarSign, Target, FileDown } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 import jsPDF from "jspdf";
 
 const Dashboard = () => {
+  const currentYear = new Date().getFullYear();
+  const currentMonth = String(new Date().getMonth() + 1);
+  
+  const [selectedMonth, setSelectedMonth] = useState("all");
+  const [selectedYear, setSelectedYear] = useState(String(currentYear));
+  const [compareMode, setCompareMode] = useState(false);
+  const [compareMonth, setCompareMonth] = useState(String(new Date().getMonth()));
+  const [compareYear, setCompareYear] = useState(String(currentYear - 1));
+
+  const getDateRange = () => {
+    if (selectedMonth === "all") {
+      return {
+        start: new Date(Number(selectedYear), 0, 1).toISOString(),
+        end: new Date(Number(selectedYear), 11, 31, 23, 59, 59).toISOString(),
+      };
+    }
+    const monthNum = Number(selectedMonth) - 1;
+    const year = Number(selectedYear);
+    return {
+      start: new Date(year, monthNum, 1).toISOString(),
+      end: new Date(year, monthNum + 1, 0, 23, 59, 59).toISOString(),
+    };
+  };
+
+  const getCompareDateRange = () => {
+    const monthNum = Number(compareMonth) - 1;
+    const year = Number(compareYear);
+    return {
+      start: new Date(year, monthNum, 1).toISOString(),
+      end: new Date(year, monthNum + 1, 0, 23, 59, 59).toISOString(),
+    };
+  };
+
   const { data: profile } = useQuery({
     queryKey: ["profile"],
     queryFn: async () => {
@@ -33,14 +70,19 @@ const Dashboard = () => {
   });
 
   const { data: stats } = useQuery({
-    queryKey: ["dashboard-stats", profile?.role],
+    queryKey: ["dashboard-stats", profile?.role, selectedMonth, selectedYear],
     queryFn: async () => {
+      const dateRange = getDateRange();
       const {
         data: { session },
       } = await supabase.auth.getSession();
       if (!session?.user) throw new Error("Sessão expirada. Por favor, faça login novamente.");
 
-      let leadsQuery = supabase.from("leads").select("*", { count: "exact" });
+      let leadsQuery = supabase
+        .from("leads")
+        .select("*", { count: "exact" })
+        .gte("created_at", dateRange.start)
+        .lte("created_at", dateRange.end);
 
       if (profile?.role === "vendedor") {
         leadsQuery = leadsQuery.eq("assigned_to", session.user.id);
@@ -51,7 +93,9 @@ const Dashboard = () => {
       let wonQuery = supabase
         .from("leads")
         .select("*", { count: "exact" })
-        .eq("status", "ganho");
+        .eq("status", "ganho")
+        .gte("created_at", dateRange.start)
+        .lte("created_at", dateRange.end);
 
       if (profile?.role === "vendedor") {
         wonQuery = wonQuery.eq("assigned_to", session.user.id);
@@ -62,7 +106,9 @@ const Dashboard = () => {
       let pendingQuery = supabase
         .from("leads")
         .select("*", { count: "exact" })
-        .in("status", ["novo", "contato_feito", "proposta", "negociacao"]);
+        .in("status", ["novo", "contato_feito", "proposta", "negociacao"])
+        .gte("created_at", dateRange.start)
+        .lte("created_at", dateRange.end);
 
       if (profile?.role === "vendedor") {
         pendingQuery = pendingQuery.eq("assigned_to", session.user.id);
@@ -78,7 +124,9 @@ const Dashboard = () => {
       // Valor total estimado
       let estimatedValueQuery = supabase
         .from("leads")
-        .select("estimated_value");
+        .select("estimated_value")
+        .gte("created_at", dateRange.start)
+        .lte("created_at", dateRange.end);
       
       if (profile?.role === "vendedor") {
         estimatedValueQuery = estimatedValueQuery.eq("assigned_to", session.user.id);
@@ -92,7 +140,9 @@ const Dashboard = () => {
       let convertedValueQuery = supabase
         .from("leads")
         .select("estimated_value")
-        .eq("status", "ganho");
+        .eq("status", "ganho")
+        .gte("created_at", dateRange.start)
+        .lte("created_at", dateRange.end);
       
       if (profile?.role === "vendedor") {
         convertedValueQuery = convertedValueQuery.eq("assigned_to", session.user.id);
@@ -241,8 +291,9 @@ const Dashboard = () => {
   });
 
   const { data: performanceData } = useQuery({
-    queryKey: ["sales-performance", profile?.role],
+    queryKey: ["sales-performance", profile?.role, selectedMonth, selectedYear],
     queryFn: async () => {
+      const dateRange = getDateRange();
       const {
         data: { session },
       } = await supabase.auth.getSession();
@@ -254,7 +305,9 @@ const Dashboard = () => {
 
       const { data: leads } = await supabase
         .from("leads")
-        .select("assigned_to, status, profiles(name)");
+        .select("assigned_to, status, profiles(name), created_at")
+        .gte("created_at", dateRange.start)
+        .lte("created_at", dateRange.end);
 
       const salesStats: Record<string, { leads: number; convertidos: number; name: string }> = {};
 
@@ -284,6 +337,12 @@ const Dashboard = () => {
     },
     enabled: !!profile && profile?.role !== "vendedor",
   });
+
+  // Buscar dados detalhados para gestores
+  const { data: detailedPerformanceData } = useDetailedPerformanceData(
+    getDateRange(),
+    profile?.role
+  );
 
   const { data: sourceData } = useQuery({
     queryKey: ["leads-source", profile?.role],
@@ -614,6 +673,20 @@ const Dashboard = () => {
       </div>
 
       <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-700">
+        {/* Filtros de Período */}
+        <DashboardFilters
+          selectedMonth={selectedMonth}
+          selectedYear={selectedYear}
+          compareMode={compareMode}
+          compareMonth={compareMonth}
+          compareYear={compareYear}
+          onMonthChange={setSelectedMonth}
+          onYearChange={setSelectedYear}
+          onCompareModeChange={setCompareMode}
+          onCompareMonthChange={setCompareMonth}
+          onCompareYearChange={setCompareYear}
+        />
+
         <div className="relative flex items-start justify-between">
           <div>
             <h1 className="text-5xl font-bold bg-gradient-to-r from-primary via-accent to-primary bg-clip-text text-transparent bg-[length:200%_auto] animate-in slide-in-from-left duration-500" style={{ animation: 'gradient-shift 6s ease infinite' }}>
@@ -693,6 +766,12 @@ const Dashboard = () => {
       {profile?.role !== "vendedor" && performanceData && performanceData.length > 0 && (
         <div className="grid grid-cols-1 gap-8 animate-in fade-in slide-in-from-bottom-4 duration-700 delay-800">
           <SalesPerformanceChart data={performanceData} />
+        </div>
+      )}
+
+      {profile?.role !== "vendedor" && detailedPerformanceData && detailedPerformanceData.length > 0 && (
+        <div className="grid grid-cols-1 gap-8 animate-in fade-in slide-in-from-bottom-4 duration-700 delay-900">
+          <SalesPerformanceDetailedChart data={detailedPerformanceData} />
         </div>
       )}
       </div>
