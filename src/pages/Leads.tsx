@@ -74,31 +74,35 @@ const Leads = () => {
     },
   });
 
+  // Buscar todos vendedores e gestores da empresa para o Select de atribuição
   const { data: users } = useQuery({
     queryKey: ["company-users"],
     queryFn: async () => {
-      // Get vendedores using the secure user_roles table
-      const { data: vendedores, error: rolesError } = await supabase
+      if (!profile?.company_id) return [];
+
+      // Get vendedores AND gestores using the secure user_roles table
+      const { data: userRoles, error: rolesError } = await supabase
         .from("user_roles")
-        .select("user_id")
-        .eq("role", "vendedor");
+        .select("user_id, role")
+        .in("role", ["vendedor", "gestor", "gestor_owner"]);
 
       if (rolesError) throw rolesError;
       
-      const vendedorIds = vendedores?.map(v => v.user_id) || [];
+      const userIds = userRoles?.map(r => r.user_id) || [];
       
-      if (vendedorIds.length === 0) return [];
+      if (userIds.length === 0) return [];
 
       const { data, error } = await supabase
         .from("profiles")
-        .select("id, name")
-        .in("id", vendedorIds)
-        .eq("company_id", profile?.company_id);
+        .select("id, name, role")
+        .in("id", userIds)
+        .eq("company_id", profile.company_id)
+        .eq("active", true);
 
       if (error) throw error;
       return data;
     },
-    enabled: profile?.role === "gestor" && !!profile?.company_id,
+    enabled: !!profile?.company_id,
   });
 
   const { data: leads } = useQuery({
@@ -200,7 +204,35 @@ const Leads = () => {
     createLeadMutation.mutate(formData);
   };
 
-  const isGestor = profile?.role === "gestor";
+  // Mutation para atualizar responsável do lead
+  const updateLeadAssignment = useMutation({
+    mutationFn: async ({ leadId, assignedTo }: { leadId: string; assignedTo: string | null }) => {
+      const { error } = await supabase
+        .from("leads")
+        .update({ 
+          assigned_to: assignedTo,
+          updated_at: new Date().toISOString()
+        })
+        .eq("id", leadId);
+
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["leads"] });
+      queryClient.invalidateQueries({ queryKey: ["kanban-leads"] });
+      toast({ title: "Responsável atualizado com sucesso!" });
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Erro ao atualizar responsável",
+        description: error.message,
+        variant: "destructive",
+      });
+    },
+  });
+
+  const isGestor = profile?.role === "gestor" || profile?.role === "gestor_owner";
+  const canEditAssignment = isGestor;
 
   return (
     <div className="space-y-6">
@@ -342,7 +374,35 @@ const Leads = () => {
                 <TableCell>{lead.email || "—"}</TableCell>
                 <TableCell>{lead.phone || "—"}</TableCell>
                 <TableCell>{lead.company || "—"}</TableCell>
-                <TableCell>{lead.profiles?.name}</TableCell>
+                <TableCell>
+                  {canEditAssignment ? (
+                    <Select
+                      value={lead.assigned_to || "unassigned"}
+                      onValueChange={(value) => {
+                        const newAssignedTo = value === "unassigned" ? null : value;
+                        updateLeadAssignment.mutate({ 
+                          leadId: lead.id, 
+                          assignedTo: newAssignedTo 
+                        });
+                      }}
+                      disabled={updateLeadAssignment.isPending}
+                    >
+                      <SelectTrigger className="w-[180px]">
+                        <SelectValue placeholder="Não atribuído" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="unassigned">Não atribuído</SelectItem>
+                        {users?.map((user) => (
+                          <SelectItem key={user.id} value={user.id}>
+                            {user.name}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  ) : (
+                    <span>{lead.profiles?.name || "Não atribuído"}</span>
+                  )}
+                </TableCell>
                 <TableCell>
                   <Badge className={statusColors[lead.status]}>
                     {lead.status}
