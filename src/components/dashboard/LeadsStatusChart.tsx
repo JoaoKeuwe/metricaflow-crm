@@ -1,6 +1,6 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { ChartContainer, ChartTooltip, ChartTooltipContent } from "@/components/ui/chart";
-import { PieChart, Pie, Cell, ResponsiveContainer, BarChart, Bar, XAxis, YAxis } from "recharts";
+import { PieChart, Pie, Cell, ResponsiveContainer, BarChart, Bar, XAxis, YAxis, Legend, Tooltip } from "recharts";
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { PieChartIcon, BarChart3 } from "lucide-react";
@@ -45,19 +45,40 @@ const LeadsStatusChart = ({ data }: LeadsStatusChartProps) => {
         </div>
       </CardHeader>
       <CardContent>
-        <ChartContainer config={chartConfig} className="h-[300px]">
+        <ChartContainer config={chartConfig} className="h-[350px]">
           {chartType === "pie" ? (
             <ResponsiveContainer width="100%" height="100%">
               <PieChart>
-                <ChartTooltip content={<ChartTooltipContent />} />
+                <Tooltip 
+                  content={({ payload }) => {
+                    if (!payload?.length) return null;
+                    const data = payload[0];
+                    return (
+                      <div className="bg-card border border-border rounded-lg p-3 shadow-lg">
+                        <p className="font-semibold text-sm mb-1">{data.name}</p>
+                        <p className="text-lg font-bold text-primary">{data.value} leads</p>
+                        <p className="text-xs text-muted-foreground mt-1">
+                          {((data.value as number / data.payload.total) * 100).toFixed(1)}% do total
+                        </p>
+                      </div>
+                    );
+                  }}
+                />
+                <Legend 
+                  verticalAlign="bottom" 
+                  height={36}
+                  iconType="circle"
+                  wrapperStyle={{ fontSize: '13px', fontWeight: 500 }}
+                />
                 <Pie
-                  data={data}
+                  data={data.map(item => ({ ...item, total: data.reduce((sum, d) => sum + d.count, 0) }))}
                   dataKey="count"
                   nameKey="status"
                   cx="50%"
-                  cy="50%"
-                  outerRadius={80}
-                  label
+                  cy="45%"
+                  outerRadius={90}
+                  label={({ count, percent }) => `${count} (${(percent * 100).toFixed(0)}%)`}
+                  labelLine={{ stroke: 'hsl(var(--foreground))', strokeWidth: 1 }}
                 >
                   {data.map((entry, index) => (
                     <Cell key={`cell-${index}`} fill={entry.color} />
@@ -67,11 +88,39 @@ const LeadsStatusChart = ({ data }: LeadsStatusChartProps) => {
             </ResponsiveContainer>
           ) : (
             <ResponsiveContainer width="100%" height="100%">
-              <BarChart data={data}>
-                <XAxis dataKey="status" />
-                <YAxis />
-                <ChartTooltip content={<ChartTooltipContent />} />
-                <Bar dataKey="count" radius={[8, 8, 0, 0]}>
+              <BarChart data={data} margin={{ top: 20, right: 30, left: 20, bottom: 20 }}>
+                <XAxis 
+                  dataKey="status" 
+                  tick={{ fontSize: 12, fontWeight: 500 }}
+                  tickLine={{ stroke: 'hsl(var(--border))' }}
+                />
+                <YAxis 
+                  tick={{ fontSize: 12 }}
+                  tickLine={{ stroke: 'hsl(var(--border))' }}
+                />
+                <Tooltip 
+                  content={({ payload }) => {
+                    if (!payload?.length) return null;
+                    const data = payload[0];
+                    return (
+                      <div className="bg-card border border-border rounded-lg p-3 shadow-lg">
+                        <p className="font-semibold text-sm mb-1">{data.payload.status}</p>
+                        <p className="text-lg font-bold text-primary">{data.value} leads</p>
+                      </div>
+                    );
+                  }}
+                />
+                <Legend 
+                  verticalAlign="bottom" 
+                  height={36}
+                  iconType="circle"
+                  wrapperStyle={{ fontSize: '13px', fontWeight: 500 }}
+                />
+                <Bar 
+                  dataKey="count" 
+                  radius={[8, 8, 0, 0]}
+                  label={{ position: 'top', fontSize: 12, fontWeight: 600, fill: 'hsl(var(--foreground))' }}
+                >
                   {data.map((entry, index) => (
                     <Cell key={`cell-${index}`} fill={entry.color} />
                   ))}
