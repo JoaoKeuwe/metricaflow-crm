@@ -69,8 +69,28 @@ const Dashboard = () => {
     },
   });
 
+  const { data: userRole } = useQuery({
+    queryKey: ["user-role"],
+    queryFn: async () => {
+      const {
+        data: { session },
+      } = await supabase.auth.getSession();
+      if (!session?.user) return null;
+
+      const { data } = await supabase
+        .from("user_roles")
+        .select("role")
+        .eq("user_id", session.user.id)
+        .order("role")
+        .limit(1)
+        .single();
+
+      return data?.role;
+    },
+  });
+
   const { data: stats } = useQuery({
-    queryKey: ["dashboard-stats", profile?.role, selectedMonth, selectedYear],
+    queryKey: ["dashboard-stats", userRole, selectedMonth, selectedYear],
     queryFn: async () => {
       const dateRange = getDateRange();
       const {
@@ -84,7 +104,7 @@ const Dashboard = () => {
         .gte("created_at", dateRange.start)
         .lte("created_at", dateRange.end);
 
-      if (profile?.role === "vendedor") {
+      if (userRole === "vendedor") {
         leadsQuery = leadsQuery.eq("assigned_to", session.user.id);
       }
 
@@ -97,7 +117,7 @@ const Dashboard = () => {
         .gte("created_at", dateRange.start)
         .lte("created_at", dateRange.end);
 
-      if (profile?.role === "vendedor") {
+      if (userRole === "vendedor") {
         wonQuery = wonQuery.eq("assigned_to", session.user.id);
       }
 
@@ -110,7 +130,7 @@ const Dashboard = () => {
         .gte("created_at", dateRange.start)
         .lte("created_at", dateRange.end);
 
-      if (profile?.role === "vendedor") {
+      if (userRole === "vendedor") {
         pendingQuery = pendingQuery.eq("assigned_to", session.user.id);
       }
 
@@ -128,7 +148,7 @@ const Dashboard = () => {
         .gte("created_at", dateRange.start)
         .lte("created_at", dateRange.end);
       
-      if (profile?.role === "vendedor") {
+      if (userRole === "vendedor") {
         estimatedValueQuery = estimatedValueQuery.eq("assigned_to", session.user.id);
       }
 
@@ -144,7 +164,7 @@ const Dashboard = () => {
         .gte("created_at", dateRange.start)
         .lte("created_at", dateRange.end);
       
-      if (profile?.role === "vendedor") {
+      if (userRole === "vendedor") {
         convertedValueQuery = convertedValueQuery.eq("assigned_to", session.user.id);
       }
 
@@ -171,7 +191,7 @@ const Dashboard = () => {
   });
 
   const { data: statusData } = useQuery({
-    queryKey: ["leads-status", profile?.role, selectedMonth, selectedYear],
+    queryKey: ["leads-status", userRole, selectedMonth, selectedYear],
     queryFn: async () => {
       const {
         data: { session },
@@ -186,7 +206,7 @@ const Dashboard = () => {
         .gte("created_at", dateRange.start)
         .lte("created_at", dateRange.end);
       
-      if (profile?.role === "vendedor") {
+      if (userRole === "vendedor") {
         query = query.eq("assigned_to", session.user.id);
       }
 
@@ -216,7 +236,7 @@ const Dashboard = () => {
   });
 
   const { data: monthlyClosedData } = useQuery({
-    queryKey: ["monthly-closed-leads", profile?.role, selectedMonth, selectedYear],
+    queryKey: ["monthly-closed-leads", userRole, selectedMonth, selectedYear],
     queryFn: async () => {
       const {
         data: { session },
@@ -244,7 +264,7 @@ const Dashboard = () => {
         .gte("created_at", startDate)
         .lte("created_at", endDate);
       
-      if (profile?.role === "vendedor") {
+      if (userRole === "vendedor") {
         query = query.eq("assigned_to", session.user.id);
       }
 
@@ -281,7 +301,7 @@ const Dashboard = () => {
   });
 
   const { data: financialData } = useQuery({
-    queryKey: ["financial-metrics", profile?.role, selectedMonth, selectedYear],
+    queryKey: ["financial-metrics", userRole, selectedMonth, selectedYear],
     queryFn: async () => {
       const {
         data: { session },
@@ -296,7 +316,7 @@ const Dashboard = () => {
         .gte("created_at", dateRange.start)
         .lte("created_at", dateRange.end);
       
-      if (profile?.role === "vendedor") {
+      if (userRole === "vendedor") {
         query = query.eq("assigned_to", session.user.id);
       }
 
@@ -324,11 +344,11 @@ const Dashboard = () => {
   // Buscar dados detalhados para gestores
   const { data: detailedPerformanceData } = useDetailedPerformanceData(
     getDateRange(),
-    profile?.role
+    userRole
   );
 
   const { data: sourceData } = useQuery({
-    queryKey: ["leads-source", profile?.role, selectedMonth, selectedYear],
+    queryKey: ["leads-source", userRole, selectedMonth, selectedYear],
     queryFn: async () => {
       const {
         data: { session },
@@ -342,7 +362,7 @@ const Dashboard = () => {
         .gte("created_at", dateRange.start)
         .lte("created_at", dateRange.end);
       
-      if (profile?.role === "vendedor") {
+      if (userRole === "vendedor") {
         query = query.eq("assigned_to", session.user.id);
       }
 
@@ -372,7 +392,7 @@ const Dashboard = () => {
   });
 
   const { data: funnelData } = useQuery({
-    queryKey: ["conversion-funnel", profile?.role, selectedMonth, selectedYear],
+    queryKey: ["conversion-funnel", userRole, selectedMonth, selectedYear],
     queryFn: async () => {
       const {
         data: { session },
@@ -386,7 +406,7 @@ const Dashboard = () => {
         .gte("created_at", dateRange.start)
         .lte("created_at", dateRange.end);
       
-      if (profile?.role === "vendedor") {
+      if (userRole === "vendedor") {
         query = query.eq("assigned_to", session.user.id);
       }
 

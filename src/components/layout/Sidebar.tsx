@@ -30,6 +30,22 @@ const Sidebar = () => {
     enabled: !!session?.user?.id,
   });
 
+  const { data: userRole } = useQuery({
+    queryKey: ["user-role", session?.user?.id],
+    queryFn: async () => {
+      if (!session?.user?.id) return null;
+      const { data } = await supabase
+        .from("user_roles")
+        .select("role")
+        .eq("user_id", session.user.id)
+        .order("role")
+        .limit(1)
+        .single();
+      return data?.role;
+    },
+    enabled: !!session?.user?.id,
+  });
+
   const handleLogout = async () => {
     await supabase.auth.signOut();
     toast({
@@ -38,7 +54,7 @@ const Sidebar = () => {
     navigate("/auth");
   };
 
-  const isOwnerOrGestor = profile?.role === 'gestor_owner' || profile?.role === 'gestor';
+  const isOwnerOrGestor = userRole === 'gestor_owner' || userRole === 'gestor';
 
   const allNavItems = [{
     to: "/",
