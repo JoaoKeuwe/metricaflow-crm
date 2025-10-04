@@ -15,6 +15,7 @@ import { Users, CheckCircle, Clock, TrendingUp, DollarSign, Target, FileDown } f
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 import jsPDF from "jspdf";
+import html2canvas from "html2canvas";
 
 const Dashboard = () => {
   const currentYear = new Date().getFullYear();
@@ -430,39 +431,36 @@ const Dashboard = () => {
     enabled: !!profile,
   });
 
-  const handleExportPDF = () => {
+  const handleExportPDF = async () => {
     console.log("Botão de exportar PDF clicado");
-    console.log("Stats:", stats);
-    console.log("Profile:", profile);
 
     if (!stats || !profile) {
-      console.error("Dados não disponíveis - Stats:", stats, "Profile:", profile);
       toast.error("Aguarde o carregamento dos dados");
       return;
     }
 
+    const loadingToast = toast.loading("Gerando PDF com gráficos...");
+
     try {
-      console.log("Iniciando geração do PDF...");
       const doc = new jsPDF();
       const pageWidth = doc.internal.pageSize.width;
+      const pageHeight = doc.internal.pageSize.height;
       let yPosition = 20;
 
-      // Header com gradiente simulado
-      doc.setFillColor(255, 31, 78); // Rosa da marca
+      // Header
+      doc.setFillColor(255, 31, 78);
       doc.rect(0, 0, pageWidth, 40, 'F');
-      
       doc.setTextColor(255, 255, 255);
       doc.setFontSize(24);
       doc.setFont("helvetica", "bold");
       doc.text("Relatório do Dashboard CRM", pageWidth / 2, 20, { align: "center" });
-      
       doc.setFontSize(12);
       doc.setFont("helvetica", "normal");
       doc.text(`Gerado em: ${new Date().toLocaleDateString('pt-BR')} às ${new Date().toLocaleTimeString('pt-BR')}`, pageWidth / 2, 30, { align: "center" });
 
       yPosition = 50;
 
-      // Informações da empresa
+      // Informações
       doc.setTextColor(0, 0, 0);
       doc.setFontSize(14);
       doc.setFont("helvetica", "bold");
@@ -475,152 +473,69 @@ const Dashboard = () => {
       doc.text(`Usuário: ${profile.name}`, 20, yPosition);
       yPosition += 15;
 
-      // Linha separadora
-      doc.setDrawColor(255, 31, 78);
-      doc.setLineWidth(0.5);
-      doc.line(20, yPosition, pageWidth - 20, yPosition);
-      yPosition += 15;
-
-      // Título das métricas principais
+      // Métricas principais
       doc.setFontSize(16);
       doc.setFont("helvetica", "bold");
       doc.setTextColor(255, 31, 78);
       doc.text("📊 Métricas Principais", 20, yPosition);
       yPosition += 10;
 
-      // Box com métricas
-      doc.setDrawColor(200, 200, 200);
-      doc.setLineWidth(0.3);
-      doc.setFillColor(250, 250, 250);
-      doc.roundedRect(20, yPosition, pageWidth - 40, 70, 3, 3, 'FD');
-
-      doc.setTextColor(0, 0, 0);
       doc.setFontSize(11);
-      doc.setFont("helvetica", "bold");
+      doc.setTextColor(0, 0, 0);
+      doc.setFont("helvetica", "normal");
       
+      const metrics = [
+        `Total de Leads: ${stats.totalLeads || 0}`,
+        `Vendas Fechadas: ${stats.wonLeads || 0}`,
+        `Em Andamento: ${stats.pendingLeads || 0}`,
+        `Taxa de Conversão: ${stats.conversionRate || 0}%`,
+        `Valor Estimado: R$ ${(stats.totalEstimatedValue || 0).toLocaleString('pt-BR')}`,
+        `Ticket Médio: R$ ${(stats.averageTicket || 0).toLocaleString('pt-BR')}`
+      ];
+
+      metrics.forEach((metric) => {
+        doc.text(`• ${metric}`, 30, yPosition);
+        yPosition += 7;
+      });
+
       yPosition += 10;
-      const col1X = 30;
-      const col2X = pageWidth / 2 + 10;
 
-      // Coluna 1
-      doc.text("Total de Leads:", col1X, yPosition);
-      doc.setFont("helvetica", "normal");
-      doc.text(String(stats.totalLeads || 0), col1X + 50, yPosition);
-      
-      yPosition += 10;
-      doc.setFont("helvetica", "bold");
-      doc.text("Vendas Fechadas:", col1X, yPosition);
-      doc.setFont("helvetica", "normal");
-      doc.text(String(stats.wonLeads || 0), col1X + 50, yPosition);
-      
-      yPosition += 10;
-      doc.setFont("helvetica", "bold");
-      doc.text("Em Andamento:", col1X, yPosition);
-      doc.setFont("helvetica", "normal");
-      doc.text(String(stats.pendingLeads || 0), col1X + 50, yPosition);
+      // Capturar e adicionar gráficos
+      const chartIds = [
+        'metrics-cards',
+        'status-source-charts',
+        'timeline-chart',
+        'financial-funnel-charts',
+        'performance-chart',
+        'detailed-performance-chart'
+      ];
 
-      // Coluna 2
-      yPosition -= 20;
-      doc.setFont("helvetica", "bold");
-      doc.text("Taxa de Conversão:", col2X, yPosition);
-      doc.setFont("helvetica", "normal");
-      doc.text(`${stats.conversionRate || 0}%`, col2X + 60, yPosition);
-      
-      yPosition += 10;
-      doc.setFont("helvetica", "bold");
-      doc.text("Valor Estimado:", col2X, yPosition);
-      doc.setFont("helvetica", "normal");
-      doc.text(`R$ ${(stats.totalEstimatedValue || 0).toLocaleString('pt-BR')}`, col2X + 60, yPosition);
-      
-      yPosition += 10;
-      doc.setFont("helvetica", "bold");
-      doc.text("Ticket Médio:", col2X, yPosition);
-      doc.setFont("helvetica", "normal");
-      doc.text(`R$ ${(stats.averageTicket || 0).toLocaleString('pt-BR')}`, col2X + 60, yPosition);
+      for (const chartId of chartIds) {
+        const chartElement = document.getElementById(chartId);
+        if (!chartElement) continue;
 
-      yPosition += 20;
+        try {
+          const canvas = await html2canvas(chartElement, {
+            backgroundColor: '#ffffff',
+            scale: 2,
+            logging: false,
+            useCORS: true
+          });
 
-      // Leads por Status
-      if (statusData && statusData.length > 0) {
-        yPosition += 10;
-        doc.setFontSize(16);
-        doc.setFont("helvetica", "bold");
-        doc.setTextColor(255, 31, 78);
-        doc.text("📈 Leads por Status", 20, yPosition);
-        yPosition += 10;
+          const imgData = canvas.toDataURL('image/png');
+          const imgWidth = pageWidth - 40;
+          const imgHeight = (canvas.height * imgWidth) / canvas.width;
 
-        doc.setFontSize(11);
-        doc.setTextColor(0, 0, 0);
-        doc.setFont("helvetica", "normal");
-
-        statusData.forEach((item) => {
-          if (yPosition > 270) {
+          if (yPosition + imgHeight > pageHeight - 20) {
             doc.addPage();
             yPosition = 20;
           }
-          doc.text(`• ${item.status}: ${item.count}`, 30, yPosition);
-          yPosition += 8;
-        });
-      }
 
-      // Leads por Origem
-      if (sourceData && sourceData.length > 0) {
-        yPosition += 10;
-        
-        if (yPosition > 250) {
-          doc.addPage();
-          yPosition = 20;
+          doc.addImage(imgData, 'PNG', 20, yPosition, imgWidth, imgHeight);
+          yPosition += imgHeight + 15;
+        } catch (error) {
+          console.error(`Erro ao capturar gráfico ${chartId}:`, error);
         }
-
-        doc.setFontSize(16);
-        doc.setFont("helvetica", "bold");
-        doc.setTextColor(255, 31, 78);
-        doc.text("🎯 Leads por Origem", 20, yPosition);
-        yPosition += 10;
-
-        doc.setFontSize(11);
-        doc.setTextColor(0, 0, 0);
-        doc.setFont("helvetica", "normal");
-
-        sourceData.forEach((item) => {
-          if (yPosition > 270) {
-            doc.addPage();
-            yPosition = 20;
-          }
-          doc.text(`• ${item.source}: ${item.count}`, 30, yPosition);
-          yPosition += 8;
-        });
-      }
-
-      // Desempenho por Vendedor (apenas se não for vendedor)
-      if (performanceData && performanceData.length > 0 && profile.role !== "vendedor") {
-        yPosition += 10;
-        
-        if (yPosition > 200) {
-          doc.addPage();
-          yPosition = 20;
-        }
-
-        doc.setFontSize(16);
-        doc.setFont("helvetica", "bold");
-        doc.setTextColor(255, 31, 78);
-        doc.text("👥 Desempenho por Vendedor", 20, yPosition);
-        yPosition += 10;
-
-        doc.setFontSize(11);
-        doc.setTextColor(0, 0, 0);
-
-        performanceData.forEach((item) => {
-          if (yPosition > 270) {
-            doc.addPage();
-            yPosition = 20;
-          }
-          doc.setFont("helvetica", "bold");
-          doc.text(`${item.vendedor}:`, 30, yPosition);
-          doc.setFont("helvetica", "normal");
-          doc.text(`${item.leads} leads | ${item.convertidos} convertidos | ${item.taxa}% taxa`, 80, yPosition);
-          yPosition += 8;
-        });
       }
 
       // Footer
@@ -632,41 +547,27 @@ const Dashboard = () => {
         doc.text(
           `Página ${i} de ${pageCount} | Gerado pelo CRM - ${new Date().toLocaleDateString('pt-BR')}`,
           pageWidth / 2,
-          doc.internal.pageSize.height - 10,
+          pageHeight - 10,
           { align: "center" }
         );
       }
 
-      // Salvar o PDF (com fallback para ambientes em iframe)
+      // Salvar
       const fileName = `relatorio-dashboard-${new Date().toISOString().split('T')[0]}.pdf`;
       const isIframe = window.top !== window.self;
 
-      try {
-        if (isIframe) {
-          // Em iframes, abrir em nova aba aumenta a compatibilidade
-          const blobUrl = doc.output('bloburl');
-          window.open(blobUrl, '_blank');
-          console.log('PDF aberto em nova aba (iframe mode)');
-          toast.success('Relatório aberto em nova aba como PDF');
-        } else {
-          doc.save(fileName);
-          console.log('PDF baixado:', fileName);
-          toast.success('Relatório exportado com sucesso!');
-        }
-      } catch (e) {
-        console.warn('Falha no método principal, aplicando fallback de download...', e);
-        const blob = doc.output('blob');
-        const url = URL.createObjectURL(blob);
-        const link = document.createElement('a');
-        link.href = url;
-        link.download = fileName;
-        document.body.appendChild(link);
-        link.click();
-        document.body.removeChild(link);
-        URL.revokeObjectURL(url);
-        toast.success('Relatório exportado (fallback)!');
+      toast.dismiss(loadingToast);
+
+      if (isIframe) {
+        const blobUrl = doc.output('bloburl');
+        window.open(blobUrl, '_blank');
+        toast.success('Relatório aberto em nova aba');
+      } else {
+        doc.save(fileName);
+        toast.success('Relatório exportado com sucesso!');
       }
     } catch (error) {
+      toast.dismiss(loadingToast);
       console.error("Erro ao gerar PDF:", error);
       toast.error(`Erro ao gerar PDF: ${error instanceof Error ? error.message : 'Erro desconhecido'}`);
     }
@@ -724,7 +625,7 @@ const Dashboard = () => {
           </Button>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-6 animate-in fade-in slide-in-from-bottom-4 duration-700 delay-300">
+        <div id="metrics-cards" className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-6 animate-in fade-in slide-in-from-bottom-4 duration-700 delay-300">
         <MetricCard
           title="Total de Leads"
           value={stats?.totalLeads || 0}
@@ -763,28 +664,28 @@ const Dashboard = () => {
         />
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 animate-in fade-in slide-in-from-bottom-4 duration-700 delay-500">
+      <div id="status-source-charts" className="grid grid-cols-1 lg:grid-cols-2 gap-8 animate-in fade-in slide-in-from-bottom-4 duration-700 delay-500">
         {statusData && <LeadsStatusChart data={statusData} />}
         {sourceData && <LeadsSourceChart data={sourceData} />}
       </div>
 
-      <div className="grid grid-cols-1 gap-8 animate-in fade-in slide-in-from-bottom-4 duration-700 delay-600">
+      <div id="timeline-chart" className="grid grid-cols-1 gap-8 animate-in fade-in slide-in-from-bottom-4 duration-700 delay-600">
         {timelineData && <LeadsTimelineChart data={timelineData} />}
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 animate-in fade-in slide-in-from-bottom-4 duration-700 delay-700">
+      <div id="financial-funnel-charts" className="grid grid-cols-1 lg:grid-cols-2 gap-8 animate-in fade-in slide-in-from-bottom-4 duration-700 delay-700">
         {financialData && <FinancialMetricsChart data={financialData} />}
         {funnelData && <ConversionFunnelChart data={funnelData} />}
       </div>
 
       {profile?.role !== "vendedor" && performanceData && performanceData.length > 0 && (
-        <div className="grid grid-cols-1 gap-8 animate-in fade-in slide-in-from-bottom-4 duration-700 delay-800">
+        <div id="performance-chart" className="grid grid-cols-1 gap-8 animate-in fade-in slide-in-from-bottom-4 duration-700 delay-800">
           <SalesPerformanceChart data={performanceData} />
         </div>
       )}
 
       {profile?.role !== "vendedor" && detailedPerformanceData && detailedPerformanceData.length > 0 && (
-        <div className="grid grid-cols-1 gap-8 animate-in fade-in slide-in-from-bottom-4 duration-700 delay-900">
+        <div id="detailed-performance-chart" className="grid grid-cols-1 gap-8 animate-in fade-in slide-in-from-bottom-4 duration-700 delay-900">
           <SalesPerformanceDetailedChart data={detailedPerformanceData} />
         </div>
       )}
