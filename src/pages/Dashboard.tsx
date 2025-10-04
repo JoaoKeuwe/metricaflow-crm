@@ -5,7 +5,6 @@ import MetricCard from "@/components/dashboard/MetricCard";
 import LeadsStatusChart from "@/components/dashboard/LeadsStatusChart";
 import LeadsTimelineChart from "@/components/dashboard/LeadsTimelineChart";
 import FinancialMetricsChart from "@/components/dashboard/FinancialMetricsChart";
-import SalesPerformanceChart from "@/components/dashboard/SalesPerformanceChart";
 import SalesPerformanceDetailedChart from "@/components/dashboard/SalesPerformanceDetailedChart";
 import LeadsSourceChart from "@/components/dashboard/LeadsSourceChart";
 import ConversionFunnelChart from "@/components/dashboard/ConversionFunnelChart";
@@ -295,53 +294,6 @@ const Dashboard = () => {
     enabled: !!profile,
   });
 
-  const { data: performanceData } = useQuery({
-    queryKey: ["sales-performance", profile?.role, selectedMonth, selectedYear],
-    queryFn: async () => {
-      const dateRange = getDateRange();
-      const {
-        data: { session },
-      } = await supabase.auth.getSession();
-      if (!session?.user) throw new Error("Sessão expirada.");
-
-      if (profile?.role === "vendedor") {
-        return [];
-      }
-
-      const { data: leads } = await supabase
-        .from("leads")
-        .select("assigned_to, status, profiles(name), created_at")
-        .gte("created_at", dateRange.start)
-        .lte("created_at", dateRange.end);
-
-      const salesStats: Record<string, { leads: number; convertidos: number; name: string }> = {};
-
-      leads?.forEach((lead: any) => {
-        const vendedorId = lead.assigned_to;
-        if (!vendedorId) return;
-
-        if (!salesStats[vendedorId]) {
-          salesStats[vendedorId] = {
-            leads: 0,
-            convertidos: 0,
-            name: lead.profiles?.name || "Sem vendedor",
-          };
-        }
-        salesStats[vendedorId].leads += 1;
-        if (lead.status === "ganho") {
-          salesStats[vendedorId].convertidos += 1;
-        }
-      });
-
-      return Object.values(salesStats).map((stats) => ({
-        vendedor: stats.name,
-        leads: stats.leads,
-        convertidos: stats.convertidos,
-        taxa: stats.leads > 0 ? Number(((stats.convertidos / stats.leads) * 100).toFixed(1)) : 0,
-      }));
-    },
-    enabled: !!profile && profile?.role !== "vendedor",
-  });
 
   // Buscar dados detalhados para gestores
   const { data: detailedPerformanceData } = useDetailedPerformanceData(
@@ -506,7 +458,6 @@ const Dashboard = () => {
         'status-source-charts',
         'timeline-chart',
         'financial-funnel-charts',
-        'performance-chart',
         'detailed-performance-chart'
       ];
 
@@ -677,12 +628,6 @@ const Dashboard = () => {
         {financialData && <FinancialMetricsChart data={financialData} />}
         {funnelData && <ConversionFunnelChart data={funnelData} />}
       </div>
-
-      {profile?.role !== "vendedor" && performanceData && performanceData.length > 0 && (
-        <div id="performance-chart" className="grid grid-cols-1 gap-8 animate-in fade-in slide-in-from-bottom-4 duration-700 delay-800">
-          <SalesPerformanceChart data={performanceData} />
-        </div>
-      )}
 
       {profile?.role !== "vendedor" && detailedPerformanceData && detailedPerformanceData.length > 0 && (
         <div id="detailed-performance-chart" className="grid grid-cols-1 gap-8 animate-in fade-in slide-in-from-bottom-4 duration-700 delay-900">
