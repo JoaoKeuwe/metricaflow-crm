@@ -223,14 +223,26 @@ const Dashboard = () => {
       } = await supabase.auth.getSession();
       if (!session?.user) throw new Error("Sessão expirada.");
 
-      const dateRange = getDateRange();
+      const year = Number(selectedYear);
+      const currentDate = new Date();
+      const currentYear = currentDate.getFullYear();
+      const currentMonth = currentDate.getMonth(); // 0-11
+      
+      // Determine the last month to show
+      const lastMonth = year === currentYear ? currentMonth : 11;
+
+      // Query for the entire year up to current month
+      const startDate = new Date(year, 0, 1).toISOString();
+      const endDate = year === currentYear 
+        ? new Date(year, currentMonth + 1, 0, 23, 59, 59).toISOString()
+        : new Date(year, 11, 31, 23, 59, 59).toISOString();
 
       let query = supabase
         .from("leads")
         .select("created_at, status, estimated_value")
         .eq("status", "ganho")
-        .gte("created_at", dateRange.start)
-        .lte("created_at", dateRange.end);
+        .gte("created_at", startDate)
+        .lte("created_at", endDate);
       
       if (profile?.role === "vendedor") {
         query = query.eq("assigned_to", session.user.id);
@@ -238,29 +250,32 @@ const Dashboard = () => {
 
       const { data } = await query;
 
-      const monthlyStats: Record<string, { count: number; value: number }> = {};
+      // Initialize all months from January to current/December
+      const monthNames = ['Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho', 
+                          'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro'];
+      
+      const monthlyStats: Array<{ month: string; count: number; value: number }> = [];
+      
+      for (let i = 0; i <= lastMonth; i++) {
+        monthlyStats.push({
+          month: monthNames[i],
+          count: 0,
+          value: 0
+        });
+      }
 
+      // Populate with actual data
       data?.forEach((lead) => {
-        const month = new Date(lead.created_at).toLocaleDateString("pt-BR", { month: "short", year: "2-digit" });
-        if (!monthlyStats[month]) {
-          monthlyStats[month] = { count: 0, value: 0 };
+        const leadDate = new Date(lead.created_at);
+        const monthIndex = leadDate.getMonth();
+        
+        if (monthIndex <= lastMonth) {
+          monthlyStats[monthIndex].count += 1;
+          monthlyStats[monthIndex].value += Number(lead.estimated_value) || 0;
         }
-        monthlyStats[month].count += 1;
-        monthlyStats[month].value += Number(lead.estimated_value) || 0;
       });
 
-      // Sort by date
-      const sortedEntries = Object.entries(monthlyStats).sort((a, b) => {
-        const [monthA] = a[0].split('/');
-        const [monthB] = b[0].split('/');
-        const monthOrder: Record<string, number> = {
-          'jan': 1, 'fev': 2, 'mar': 3, 'abr': 4, 'mai': 5, 'jun': 6,
-          'jul': 7, 'ago': 8, 'set': 9, 'out': 10, 'nov': 11, 'dez': 12
-        };
-        return (monthOrder[monthA] || 0) - (monthOrder[monthB] || 0);
-      });
-
-      return sortedEntries.map(([month, stats]) => ({ month, ...stats }));
+      return monthlyStats;
     },
     enabled: !!profile,
   });

@@ -1,5 +1,5 @@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from "recharts";
+import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, Label } from "recharts";
 
 interface MonthlyClosedLeadsChartProps {
   data?: Array<{
@@ -12,6 +12,40 @@ interface MonthlyClosedLeadsChartProps {
 const MonthlyClosedLeadsChart = ({ data = [] }: MonthlyClosedLeadsChartProps) => {
   const totalCount = data.reduce((sum, item) => sum + item.count, 0);
   const totalValue = data.reduce((sum, item) => sum + item.value, 0);
+
+  const renderCustomLabel = (props: any) => {
+    const { x, y, value } = props;
+    return (
+      <text
+        x={x}
+        y={y - 10}
+        fill="hsl(var(--chart-2))"
+        textAnchor="middle"
+        dominantBaseline="middle"
+        fontSize="11"
+        fontWeight="600"
+      >
+        R$ {(value / 1000).toFixed(1)}k
+      </text>
+    );
+  };
+
+  const renderCountLabel = (props: any) => {
+    const { x, y, value } = props;
+    return (
+      <text
+        x={x}
+        y={y + 20}
+        fill="hsl(var(--chart-1))"
+        textAnchor="middle"
+        dominantBaseline="middle"
+        fontSize="10"
+        fontWeight="500"
+      >
+        {value}
+      </text>
+    );
+  };
 
   const CustomTooltip = ({ active, payload }: any) => {
     if (active && payload && payload.length) {
@@ -35,9 +69,9 @@ const MonthlyClosedLeadsChart = ({ data = [] }: MonthlyClosedLeadsChartProps) =>
   return (
     <Card>
       <CardHeader>
-        <CardTitle>Leads Fechados por Mês</CardTitle>
+        <CardTitle>Recorrência de Vendas Fechadas {new Date().getFullYear()}</CardTitle>
         <CardDescription>
-          Acompanhamento mensal de leads fechados e valores convertidos
+          Histórico mensal até o período atual - Quantidade e Valores
         </CardDescription>
       </CardHeader>
       <CardContent>
@@ -48,7 +82,10 @@ const MonthlyClosedLeadsChart = ({ data = [] }: MonthlyClosedLeadsChartProps) =>
               <XAxis 
                 dataKey="month" 
                 stroke="hsl(var(--muted-foreground))"
-                style={{ fontSize: '13px', fontWeight: 500 }}
+                style={{ fontSize: '12px', fontWeight: 500 }}
+                angle={-45}
+                textAnchor="end"
+                height={80}
               />
               <YAxis 
                 yAxisId="left"
@@ -79,9 +116,10 @@ const MonthlyClosedLeadsChart = ({ data = [] }: MonthlyClosedLeadsChartProps) =>
                 type="monotone" 
                 dataKey="count" 
                 stroke="hsl(var(--chart-1))" 
-                strokeWidth={3}
-                dot={{ fill: 'hsl(var(--chart-1))', r: 5 }}
-                activeDot={{ r: 7 }}
+                strokeWidth={2.5}
+                dot={{ fill: 'hsl(var(--chart-1))', r: 6, strokeWidth: 2, stroke: '#fff' }}
+                activeDot={{ r: 8 }}
+                label={renderCountLabel}
               />
               <Line 
                 yAxisId="right"
@@ -89,8 +127,9 @@ const MonthlyClosedLeadsChart = ({ data = [] }: MonthlyClosedLeadsChartProps) =>
                 dataKey="value" 
                 stroke="hsl(var(--chart-2))" 
                 strokeWidth={3}
-                dot={{ fill: 'hsl(var(--chart-2))', r: 5 }}
-                activeDot={{ r: 7 }}
+                dot={{ fill: 'hsl(var(--chart-2))', r: 7, strokeWidth: 2, stroke: '#fff' }}
+                activeDot={{ r: 9 }}
+                label={renderCustomLabel}
               />
             </LineChart>
           </ResponsiveContainer>
