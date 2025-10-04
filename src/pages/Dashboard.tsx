@@ -701,7 +701,7 @@ const Dashboard = () => {
           onCompareYearChange={setCompareYear}
         />
 
-        <div className="relative flex items-start justify-between">
+        <div className="relative z-20 pointer-events-auto flex items-start justify-between">
           <div>
             <h1 className="text-5xl font-bold bg-gradient-to-r from-primary via-accent to-primary bg-clip-text text-transparent bg-[length:200%_auto] animate-in slide-in-from-left duration-500" style={{ animation: 'gradient-shift 6s ease infinite' }}>
               Dashboard Analítico
@@ -716,7 +716,7 @@ const Dashboard = () => {
           {/* Botão de Exportar PDF */}
           <Button
             onClick={handleExportPDF}
-            className="bg-gradient-to-r from-primary to-accent hover:from-primary/90 hover:to-accent/90 text-white shadow-lg hover:shadow-xl transition-all duration-300 group"
+            className="relative z-30 pointer-events-auto bg-gradient-to-r from-primary to-accent hover:from-primary/90 hover:to-accent/90 text-white shadow-lg hover:shadow-xl transition-all duration-300 group"
             size="lg"
           >
             <FileDown className="mr-2 h-5 w-5 group-hover:animate-bounce" />
