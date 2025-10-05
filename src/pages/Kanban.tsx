@@ -1,9 +1,14 @@
 import { useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Separator } from "@/components/ui/separator";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { useToast } from "@/hooks/use-toast";
+import { Eye, MessageCircle } from "lucide-react";
 
 const columns = [
   { id: "novo", title: "Novo", color: "bg-blue-500" },
@@ -14,9 +19,18 @@ const columns = [
   { id: "perdido", title: "Perdido", color: "bg-red-500" },
 ];
 
+const formatPhoneForWhatsApp = (phone: string): string => {
+  const cleanPhone = phone.replace(/\D/g, "");
+  if (cleanPhone.startsWith("55")) {
+    return cleanPhone;
+  }
+  return `55${cleanPhone}`;
+};
+
 const Kanban = () => {
   const { toast } = useToast();
   const queryClient = useQueryClient();
+  const navigate = useNavigate();
 
   const { data: leads } = useQuery({
     queryKey: ["kanban-leads"],
@@ -123,22 +137,78 @@ const Kanban = () => {
                     <CardHeader className="p-4">
                       <CardTitle className="text-sm">{lead.name}</CardTitle>
                     </CardHeader>
-                    <CardContent className="p-4 pt-0 space-y-1">
-                      {lead.email && (
-                        <p className="text-xs text-muted-foreground">
-                          {lead.email}
-                        </p>
-                      )}
-                      {lead.phone && (
-                        <p className="text-xs text-muted-foreground">
-                          {lead.phone}
-                        </p>
-                      )}
-                      {lead.profiles && (
-                        <Badge variant="outline" className="text-xs">
-                          {lead.profiles.name}
-                        </Badge>
-                      )}
+                    <CardContent className="p-4 pt-0 space-y-2">
+                      <div className="space-y-1">
+                        {lead.email && (
+                          <p className="text-xs text-muted-foreground">
+                            {lead.email}
+                          </p>
+                        )}
+                        {lead.phone && (
+                          <p className="text-xs text-muted-foreground">
+                            {lead.phone}
+                          </p>
+                        )}
+                        {lead.profiles && (
+                          <Badge variant="outline" className="text-xs">
+                            {lead.profiles.name}
+                          </Badge>
+                        )}
+                      </div>
+                      
+                      <Separator />
+                      
+                      <TooltipProvider>
+                        <div className="flex items-center gap-1">
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                className="h-8 w-8"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  navigate(`/leads/${lead.id}`);
+                                }}
+                              >
+                                <Eye className="h-4 w-4" />
+                              </Button>
+                            </TooltipTrigger>
+                            <TooltipContent>
+                              <p>Ver detalhes</p>
+                            </TooltipContent>
+                          </Tooltip>
+
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                className="h-8 w-8"
+                                disabled={!lead.phone}
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  if (lead.phone) {
+                                    const formattedPhone = formatPhoneForWhatsApp(lead.phone);
+                                    window.open(`https://wa.me/${formattedPhone}`, "_blank");
+                                  } else {
+                                    toast({
+                                      title: "Telefone não cadastrado",
+                                      description: "Este lead não possui telefone cadastrado.",
+                                      variant: "destructive",
+                                    });
+                                  }
+                                }}
+                              >
+                                <MessageCircle className="h-4 w-4" />
+                              </Button>
+                            </TooltipTrigger>
+                            <TooltipContent>
+                              <p>Abrir WhatsApp</p>
+                            </TooltipContent>
+                          </Tooltip>
+                        </div>
+                      </TooltipProvider>
                     </CardContent>
                   </Card>
                 ))}
