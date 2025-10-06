@@ -318,6 +318,118 @@ export type Database = {
           },
         ]
       }
+      meeting_participants: {
+        Row: {
+          created_at: string
+          id: string
+          is_organizer: boolean
+          meeting_id: string
+          reminder_sent: boolean
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          is_organizer?: boolean
+          meeting_id: string
+          reminder_sent?: boolean
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          is_organizer?: boolean
+          meeting_id?: string
+          reminder_sent?: boolean
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "meeting_participants_meeting_id_fkey"
+            columns: ["meeting_id"]
+            isOneToOne: false
+            referencedRelation: "meetings"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "meeting_participants_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      meetings: {
+        Row: {
+          company_id: string
+          created_at: string
+          created_by: string
+          description: string | null
+          end_time: string
+          feedback: string | null
+          feedback_collected: boolean
+          id: string
+          lead_id: string | null
+          start_time: string
+          status: Database["public"]["Enums"]["meeting_status"]
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          company_id: string
+          created_at?: string
+          created_by: string
+          description?: string | null
+          end_time: string
+          feedback?: string | null
+          feedback_collected?: boolean
+          id?: string
+          lead_id?: string | null
+          start_time: string
+          status?: Database["public"]["Enums"]["meeting_status"]
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          company_id?: string
+          created_at?: string
+          created_by?: string
+          description?: string | null
+          end_time?: string
+          feedback?: string | null
+          feedback_collected?: boolean
+          id?: string
+          lead_id?: string | null
+          start_time?: string
+          status?: Database["public"]["Enums"]["meeting_status"]
+          title?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "meetings_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "meetings_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "meetings_lead_id_fkey"
+            columns: ["lead_id"]
+            isOneToOne: false
+            referencedRelation: "leads"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       ownership_transfers: {
         Row: {
           company_id: string
@@ -566,6 +678,7 @@ export type Database = {
     }
     Enums: {
       app_role: "gestor" | "vendedor" | "gestor_owner"
+      meeting_status: "agendada" | "realizada" | "cancelada"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -694,6 +807,7 @@ export const Constants = {
   public: {
     Enums: {
       app_role: ["gestor", "vendedor", "gestor_owner"],
+      meeting_status: ["agendada", "realizada", "cancelada"],
     },
   },
 } as const

@@ -12,6 +12,7 @@ import Users from "./pages/Users";
 import UserManagement from "./pages/UserManagement";
 import AcceptInvite from "./pages/AcceptInvite";
 import Integrations from "./pages/Integrations";
+import Agenda from "./pages/Agenda";
 import NotFound from "./pages/NotFound";
 import Sidebar from "./components/layout/Sidebar";
 import Header from "./components/layout/Header";
@@ -91,6 +92,14 @@ const App = () => {
               element={
                 <DemoLayout>
                   <Integrations />
+                </DemoLayout>
+              }
+            />
+            <Route
+              path="/agenda"
+              element={
+                <DemoLayout>
+                  <Agenda />
                 </DemoLayout>
               }
             />
