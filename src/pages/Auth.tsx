@@ -119,8 +119,11 @@ const Auth = () => {
     setLoading(true);
 
     try {
-      const { error } = await supabase.auth.resetPasswordForEmail(resetEmail, {
-        redirectTo: `${window.location.origin}/auth`,
+      const { data, error } = await supabase.functions.invoke('send-password-reset', {
+        body: {
+          email: resetEmail,
+          redirectUrl: `${window.location.origin}/auth`,
+        },
       });
 
       if (error) throw error;
@@ -134,7 +137,7 @@ const Auth = () => {
     } catch (error: any) {
       toast({
         title: "Erro ao enviar email",
-        description: error.message,
+        description: error.message || "Não foi possível enviar o email de recuperação",
         variant: "destructive",
       });
     } finally {
