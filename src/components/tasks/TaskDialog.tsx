@@ -237,14 +237,13 @@ export function TaskDialog({ open, onOpenChange, task }: TaskDialogProps) {
           <div className="space-y-2">
             <Label htmlFor="lead_id">Lead Vinculado (opcional)</Label>
             <Select
-              value={watch("lead_id")}
-              onValueChange={(value) => setValue("lead_id", value)}
+              value={watch("lead_id") || undefined}
+              onValueChange={(value) => setValue("lead_id", value || "")}
             >
               <SelectTrigger>
                 <SelectValue placeholder="Nenhum lead vinculado" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="">Nenhum</SelectItem>
                 {leads?.map((lead) => (
                   <SelectItem key={lead.id} value={lead.id}>
                     {lead.name}
