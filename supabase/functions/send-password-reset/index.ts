@@ -40,6 +40,9 @@ const handler = async (req: Request): Promise<Response> => {
 
     if (error) {
       console.error("Erro ao gerar link de recuperação:", error);
+      if (error.message.includes('not found')) {
+        throw new Error("Email não encontrado. Verifique se você já criou uma conta.");
+      }
       throw new Error(`Erro ao gerar link: ${error.message}`);
     }
 
