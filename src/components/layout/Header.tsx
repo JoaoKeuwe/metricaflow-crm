@@ -2,9 +2,10 @@ import { Bell, Users, LogOut } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { formatDistanceToNow } from "date-fns";
+import { formatDistanceToNow, format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { useNavigate } from "react-router-dom";
 import { useToast } from "@/hooks/use-toast";
@@ -77,6 +78,36 @@ const Header = () => {
     },
   });
 
+  const { data: tasks } = useQuery({
+    queryKey: ["header-tasks"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("tasks")
+        .select("*, assigned_profile:profiles!tasks_assigned_to_fkey(name), lead:leads(name)")
+        .in("status", ["aberta", "em_andamento"])
+        .order("due_date", { ascending: true });
+      if (error) throw error;
+      return data;
+    },
+    enabled: !!session,
+  });
+
+  const { data: pendingMeetings } = useQuery({
+    queryKey: ["pending-meetings"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("meetings")
+        .select("*, lead:leads(name)")
+        .eq("feedback_collected", false)
+        .eq("status", "agendada")
+        .lt("end_time", new Date(Date.now() - 60 * 60 * 1000).toISOString())
+        .order("end_time", { ascending: false });
+      if (error) throw error;
+      return data;
+    },
+    enabled: !!session,
+  });
+
   const handleLogout = async () => {
     await supabase.auth.signOut();
     toast({
@@ -111,44 +142,47 @@ const Header = () => {
 
         <Popover>
           <PopoverTrigger asChild>
-            <Button variant="ghost" size="icon" className="relative">
+            <Button variant="outline" size="icon" className="relative">
               <Bell className="h-5 w-5" />
-              {reminders && reminders.length > 0 && (
-                <span className="absolute top-1 right-1 h-2 w-2 bg-destructive rounded-full" />
+              {((reminders?.length || 0) + (tasks?.length || 0) + (pendingMeetings?.length || 0)) > 0 && (
+                <Badge className="absolute -top-1 -right-1 h-5 w-5 flex items-center justify-center p-0 text-xs">
+                  {(reminders?.length || 0) + (tasks?.length || 0) + (pendingMeetings?.length || 0)}
+                </Badge>
               )}
             </Button>
           </PopoverTrigger>
-          <PopoverContent className="w-80" align="end">
-            <div className="space-y-2">
-              <h3 className="font-semibold text-sm">Lembretes Pendentes</h3>
-              {reminders && reminders.length > 0 ? (
-                <div className="space-y-2 max-h-80 overflow-y-auto">
-                  {reminders.map((reminder: any) => (
-                    <div
-                      key={reminder.id}
-                      className="p-3 bg-muted rounded-lg space-y-1"
-                    >
-                      <p className="text-sm font-medium">
-                        {reminder.leads?.name}
-                      </p>
-                      <p className="text-xs text-muted-foreground">
-                        {reminder.description}
-                      </p>
-                      <p className="text-xs text-muted-foreground">
-                        {formatDistanceToNow(new Date(reminder.reminder_date), {
-                          addSuffix: true,
-                          locale: ptBR,
-                        })}
-                      </p>
-                    </div>
-                  ))}
-                </div>
-              ) : (
-                <p className="text-sm text-muted-foreground">
-                  Nenhum lembrete pendente
-                </p>
-              )}
-            </div>
+          <PopoverContent className="w-96" align="end">
+            <Tabs defaultValue="tasks" className="w-full">
+              <TabsList className="grid w-full grid-cols-3">
+                <TabsTrigger value="tasks">Tarefas {tasks && tasks.length > 0 && `(${tasks.length})`}</TabsTrigger>
+                <TabsTrigger value="reminders">Lembretes {reminders && reminders.length > 0 && `(${reminders.length})`}</TabsTrigger>
+                <TabsTrigger value="meetings">Reuniões {pendingMeetings && pendingMeetings.length > 0 && `(${pendingMeetings.length})`}</TabsTrigger>
+              </TabsList>
+              <TabsContent value="tasks" className="space-y-3 mt-4 max-h-96 overflow-y-auto">
+                {tasks && tasks.length > 0 ? tasks.map((task: any) => (
+                  <div key={task.id} className="p-3 bg-muted rounded-lg space-y-1">
+                    <p className="font-medium text-sm">{task.title}</p>
+                    {task.due_date && <p className="text-xs text-muted-foreground">Prazo: {format(new Date(task.due_date), "dd/MM/yyyy")}</p>}
+                  </div>
+                )) : <p className="text-sm text-muted-foreground text-center py-4">Nenhuma tarefa pendente</p>}
+              </TabsContent>
+              <TabsContent value="reminders" className="space-y-3 mt-4 max-h-96 overflow-y-auto">
+                {reminders && reminders.length > 0 ? reminders.map((reminder: any) => (
+                  <div key={reminder.id} className="p-3 bg-muted rounded-lg space-y-1">
+                    <p className="font-medium text-sm">{reminder.leads?.name}</p>
+                    <p className="text-sm text-muted-foreground">{reminder.description}</p>
+                  </div>
+                )) : <p className="text-sm text-muted-foreground text-center py-4">Nenhum lembrete pendente</p>}
+              </TabsContent>
+              <TabsContent value="meetings" className="space-y-3 mt-4 max-h-96 overflow-y-auto">
+                {pendingMeetings && pendingMeetings.length > 0 ? pendingMeetings.map((meeting: any) => (
+                  <div key={meeting.id} className="p-3 bg-muted rounded-lg space-y-1">
+                    <p className="font-medium text-sm">{meeting.title}</p>
+                    <p className="text-xs text-muted-foreground">Encerrada: {format(new Date(meeting.end_time), "dd/MM/yyyy HH:mm")}</p>
+                  </div>
+                )) : <p className="text-sm text-muted-foreground text-center py-4">Nenhum feedback pendente</p>}
+              </TabsContent>
+            </Tabs>
           </PopoverContent>
         </Popover>
 

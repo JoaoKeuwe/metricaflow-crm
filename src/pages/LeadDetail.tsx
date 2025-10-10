@@ -20,6 +20,7 @@ import { ArrowLeft, Plus, FileDown, Brain, Loader2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { format } from "date-fns";
 import jsPDF from "jspdf";
+import { LinkedTasks } from "@/components/tasks/LinkedTasks";
 import {
   Dialog,
   DialogContent,
@@ -335,6 +336,7 @@ const LeadDetail = () => {
       <Tabs defaultValue="notes" className="w-full">
         <TabsList>
           <TabsTrigger value="notes">Notas</TabsTrigger>
+          <TabsTrigger value="tasks">Tarefas</TabsTrigger>
         </TabsList>
 
         <TabsContent value="notes" className="space-y-4">
@@ -460,6 +462,10 @@ const LeadDetail = () => {
               )}
             </CardContent>
           </Card>
+        </TabsContent>
+
+        <TabsContent value="tasks" className="space-y-4">
+          <LinkedTasks leadId={id!} />
         </TabsContent>
       </Tabs>
 

@@ -13,9 +13,11 @@ import UserManagement from "./pages/UserManagement";
 import AcceptInvite from "./pages/AcceptInvite";
 import Integrations from "./pages/Integrations";
 import Agenda from "./pages/Agenda";
+import Tasks from "./pages/Tasks";
 import NotFound from "./pages/NotFound";
 import Sidebar from "./components/layout/Sidebar";
 import Header from "./components/layout/Header";
+import ProtectedRoute from "./pages/ProtectedRoute";
 
 const queryClient = new QueryClient();
 
@@ -98,9 +100,21 @@ const App = () => {
             <Route
               path="/agenda"
               element={
-                <DemoLayout>
-                  <Agenda />
-                </DemoLayout>
+                <ProtectedRoute>
+                  <DemoLayout>
+                    <Agenda />
+                  </DemoLayout>
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/tasks"
+              element={
+                <ProtectedRoute>
+                  <DemoLayout>
+                    <Tasks />
+                  </DemoLayout>
+                </ProtectedRoute>
               }
             />
             <Route path="*" element={<NotFound />} />
