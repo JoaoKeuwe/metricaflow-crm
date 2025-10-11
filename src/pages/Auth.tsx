@@ -39,17 +39,45 @@ const Auth = () => {
   const [confirmPassword, setConfirmPassword] = useState("");
 
   useEffect(() => {
-    // Check for password reset in URL
-    const urlParams = new URLSearchParams(window.location.search);
-    const isReset = urlParams.get('reset') === 'true';
+    console.debug('[Auth] Current URL:', window.location.href);
     
-    if (isReset) {
+    // Check for password reset indicators in URL
+    const urlParams = new URLSearchParams(window.location.search);
+    const hash = window.location.hash;
+    const isReset = urlParams.get('reset') === 'true';
+    const hasCode = urlParams.has('code');
+    const hasRecoveryInHash = hash.includes('type=recovery') || hash.includes('access_token');
+    
+    console.debug('[Auth] Detection:', { isReset, hasCode, hasRecoveryInHash, hash });
+    
+    // Detect if we're in any recovery flow
+    const inRecoveryFlow = isReset || hasCode || hasRecoveryInHash;
+    
+    if (inRecoveryFlow) {
+      console.debug('[Auth] Recovery flow detected, setting reset mode');
       setResetPasswordMode(true);
     }
+    
+    // If we have a code, exchange it for session
+    if (hasCode) {
+      console.debug('[Auth] Code detected, exchanging for session');
+      supabase.auth.exchangeCodeForSession(window.location.href).then(({ error }) => {
+        if (error) {
+          console.debug('[Auth] Code exchange warning:', error.message);
+        }
+        // Ensure reset mode is set even if there's an error
+        setResetPasswordMode(true);
+        // Clean URL to avoid re-processing
+        window.history.replaceState({}, document.title, '/auth?reset=true');
+      });
+    } else if (hasRecoveryInHash) {
+      // Clean URL if we detected recovery from hash
+      window.history.replaceState({}, document.title, '/auth?reset=true');
+    }
 
-    // Check if user is already logged in
+    // Check if user is already logged in (only redirect if NOT in recovery flow)
     supabase.auth.getSession().then(({ data: { session } }) => {
-      if (session && !isReset) {
+      if (session && !inRecoveryFlow) {
         navigate("/");
       }
     });
@@ -57,10 +85,13 @@ const Auth = () => {
     const {
       data: { subscription },
     } = supabase.auth.onAuthStateChange((event, session) => {
-      if (event === "SIGNED_IN" && session && !isReset) {
+      console.debug('[Auth] Auth state change:', event);
+      // Only navigate on SIGNED_IN if not in recovery flow
+      if (event === "SIGNED_IN" && session && !inRecoveryFlow) {
         navigate("/");
       }
       if (event === "PASSWORD_RECOVERY") {
+        console.debug('[Auth] PASSWORD_RECOVERY event received');
         setResetPasswordMode(true);
       }
     });
@@ -330,6 +361,10 @@ const Auth = () => {
                     />
                     <p className="text-xs text-muted-foreground">
                       Enviaremos um link para redefinir sua senha.
+                    </p>
+                    <p className="text-xs text-muted-foreground bg-muted/50 p-2 rounded">
+                      ℹ️ Por segurança, sempre mostraremos sucesso mesmo se o email não existir. 
+                      Caso não receba email, confirme se já possui cadastro.
                     </p>
                   </div>
                   <Button type="submit" className="w-full" disabled={loading}>
