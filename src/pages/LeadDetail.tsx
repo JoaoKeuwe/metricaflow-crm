@@ -16,7 +16,7 @@ import {
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { ArrowLeft, Plus, FileDown, Brain, Loader2 } from "lucide-react";
+import { ArrowLeft, Plus, FileDown, Brain, Loader2, CalendarClock } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { format } from "date-fns";
 import jsPDF from "jspdf";
@@ -28,6 +28,12 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import { Calendar } from "@/components/ui/calendar";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
 
 const NOTE_TYPES = [
   "Contato feito",
@@ -57,6 +63,8 @@ const LeadDetail = () => {
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [analysis, setAnalysis] = useState("");
   const [showAnalysisDialog, setShowAnalysisDialog] = useState(false);
+  const [returnDate, setReturnDate] = useState<Date>();
+  const [showCalendar, setShowCalendar] = useState(false);
 
   const { data: lead, isLoading } = useQuery({
     queryKey: ["lead", id],
@@ -110,9 +118,20 @@ const LeadDetail = () => {
       });
 
       if (error) throw error;
+
+      // Marcar tarefas de atualização pendentes como concluídas
+      const { error: taskError } = await supabase
+        .from("tasks")
+        .update({ status: "concluida" })
+        .eq("lead_id", id)
+        .eq("title", "Atualização de Lead")
+        .eq("status", "aberta");
+
+      if (taskError) console.error("Erro ao atualizar tarefas:", taskError);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["lead-notes", id] });
+      queryClient.invalidateQueries({ queryKey: ["tasks"] });
       toast({ title: "Nota adicionada com sucesso!" });
       setNoteContent("");
       setNoteType("Contato feito");
@@ -121,6 +140,52 @@ const LeadDetail = () => {
     onError: (error: any) => {
       toast({
         title: "Erro ao adicionar nota",
+        description: error.message,
+        variant: "destructive",
+      });
+    },
+  });
+
+  const scheduleReturnMutation = useMutation({
+    mutationFn: async (dueDate: Date) => {
+      const {
+        data: { session },
+      } = await supabase.auth.getSession();
+      if (!session?.user) throw new Error("Sessão expirada. Por favor, faça login novamente.");
+
+      const { data: profile } = await supabase
+        .from("profiles")
+        .select("company_id")
+        .eq("id", session.user.id)
+        .single();
+
+      if (!profile) throw new Error("Perfil não encontrado");
+
+      const { error } = await supabase.from("tasks").insert({
+        title: "Atualização de Lead",
+        description: `Retorno agendado para ${format(dueDate, "dd/MM/yyyy")} - Atualizar informações do lead ${lead?.name}`,
+        assigned_to: session.user.id,
+        created_by: session.user.id,
+        company_id: profile.company_id,
+        lead_id: id,
+        due_date: dueDate.toISOString(),
+        status: "aberta",
+      });
+
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["tasks"] });
+      toast({ 
+        title: "Retorno agendado!", 
+        description: "Uma tarefa de atualização foi criada"
+      });
+      setReturnDate(undefined);
+      setShowCalendar(false);
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Erro ao agendar retorno",
         description: error.message,
         variant: "destructive",
       });
@@ -410,10 +475,36 @@ const LeadDetail = () => {
                   />
                 </div>
 
-                <Button type="submit" className="w-full">
-                  <Plus className="h-4 w-4 mr-2" />
-                  Adicionar Nota
-                </Button>
+                <div className="flex gap-2">
+                  <Button type="submit" className="flex-1">
+                    <Plus className="h-4 w-4 mr-2" />
+                    Adicionar Nota
+                  </Button>
+                  
+                  <Popover open={showCalendar} onOpenChange={setShowCalendar}>
+                    <PopoverTrigger asChild>
+                      <Button type="button" variant="outline">
+                        <CalendarClock className="h-4 w-4 mr-2" />
+                        Agendar Retorno
+                      </Button>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-auto p-0" align="start">
+                      <Calendar
+                        mode="single"
+                        selected={returnDate}
+                        onSelect={(date) => {
+                          if (date) {
+                            setReturnDate(date);
+                            scheduleReturnMutation.mutate(date);
+                          }
+                        }}
+                        disabled={(date) => date < new Date()}
+                        initialFocus
+                        className="pointer-events-auto"
+                      />
+                    </PopoverContent>
+                  </Popover>
+                </div>
               </form>
             </CardContent>
           </Card>
