@@ -223,6 +223,7 @@ export type Database = {
           id: string
           lead_id: string
           note_type: string
+          return_scheduled_date: string | null
           user_id: string
         }
         Insert: {
@@ -231,6 +232,7 @@ export type Database = {
           id?: string
           lead_id: string
           note_type?: string
+          return_scheduled_date?: string | null
           user_id: string
         }
         Update: {
@@ -239,6 +241,7 @@ export type Database = {
           id?: string
           lead_id?: string
           note_type?: string
+          return_scheduled_date?: string | null
           user_id?: string
         }
         Relationships: [

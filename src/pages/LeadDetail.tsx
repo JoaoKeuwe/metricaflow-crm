@@ -64,7 +64,6 @@ const LeadDetail = () => {
   const [analysis, setAnalysis] = useState("");
   const [showAnalysisDialog, setShowAnalysisDialog] = useState(false);
   const [returnDate, setReturnDate] = useState<Date>();
-  const [showCalendar, setShowCalendar] = useState(false);
 
   const { data: lead, isLoading } = useQuery({
     queryKey: ["lead", id],
@@ -104,20 +103,46 @@ const LeadDetail = () => {
   });
 
   const addNoteMutation = useMutation({
-    mutationFn: async (data: { content: string; note_type: string }) => {
+    mutationFn: async (data: { content: string; note_type: string; return_date?: Date }) => {
       const {
         data: { session },
       } = await supabase.auth.getSession();
       if (!session?.user) throw new Error("Sessão expirada. Por favor, faça login novamente.");
 
+      // Inserir nota com data de retorno
       const { error } = await supabase.from("lead_observations").insert({
         lead_id: id,
         user_id: session.user.id,
         content: data.content,
         note_type: data.note_type,
+        return_scheduled_date: data.return_date?.toISOString(),
       });
 
       if (error) throw error;
+
+      // Se houver data de retorno, criar tarefa
+      if (data.return_date) {
+        const { data: profile } = await supabase
+          .from("profiles")
+          .select("company_id")
+          .eq("id", session.user.id)
+          .single();
+
+        if (profile) {
+          const { error: taskError } = await supabase.from("tasks").insert({
+            title: "Atualização de Lead",
+            description: `Retorno agendado em ${format(data.return_date, "dd/MM/yyyy")} - Atualizar informações do lead ${lead?.name}`,
+            assigned_to: session.user.id,
+            created_by: session.user.id,
+            company_id: profile.company_id,
+            lead_id: id,
+            due_date: data.return_date.toISOString(),
+            status: "aberta",
+          });
+
+          if (taskError) console.error("Erro ao criar tarefa:", taskError);
+        }
+      }
 
       // Marcar tarefas de atualização pendentes como concluídas
       const { error: taskError } = await supabase
@@ -136,6 +161,7 @@ const LeadDetail = () => {
       setNoteContent("");
       setNoteType("Contato feito");
       setCustomNoteType("");
+      setReturnDate(undefined);
     },
     onError: (error: any) => {
       toast({
@@ -146,51 +172,6 @@ const LeadDetail = () => {
     },
   });
 
-  const scheduleReturnMutation = useMutation({
-    mutationFn: async (dueDate: Date) => {
-      const {
-        data: { session },
-      } = await supabase.auth.getSession();
-      if (!session?.user) throw new Error("Sessão expirada. Por favor, faça login novamente.");
-
-      const { data: profile } = await supabase
-        .from("profiles")
-        .select("company_id")
-        .eq("id", session.user.id)
-        .single();
-
-      if (!profile) throw new Error("Perfil não encontrado");
-
-      const { error } = await supabase.from("tasks").insert({
-        title: "Atualização de Lead",
-        description: `Retorno agendado para ${format(dueDate, "dd/MM/yyyy")} - Atualizar informações do lead ${lead?.name}`,
-        assigned_to: session.user.id,
-        created_by: session.user.id,
-        company_id: profile.company_id,
-        lead_id: id,
-        due_date: dueDate.toISOString(),
-        status: "aberta",
-      });
-
-      if (error) throw error;
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["tasks"] });
-      toast({ 
-        title: "Retorno agendado!", 
-        description: "Uma tarefa de atualização foi criada"
-      });
-      setReturnDate(undefined);
-      setShowCalendar(false);
-    },
-    onError: (error: any) => {
-      toast({
-        title: "Erro ao agendar retorno",
-        description: error.message,
-        variant: "destructive",
-      });
-    },
-  });
 
   const handleAddNote = (e: React.FormEvent) => {
     e.preventDefault();
@@ -203,7 +184,11 @@ const LeadDetail = () => {
       });
       return;
     }
-    addNoteMutation.mutate({ content: noteContent, note_type: finalNoteType });
+    addNoteMutation.mutate({ 
+      content: noteContent, 
+      note_type: finalNoteType,
+      return_date: returnDate 
+    });
   };
 
   const handleExportPDF = () => {
@@ -475,36 +460,40 @@ const LeadDetail = () => {
                   />
                 </div>
 
-                <div className="flex gap-2">
-                  <Button type="submit" className="flex-1">
-                    <Plus className="h-4 w-4 mr-2" />
-                    Adicionar Nota
-                  </Button>
-                  
-                  <Popover open={showCalendar} onOpenChange={setShowCalendar}>
+                <div className="space-y-2">
+                  <Label>Agendar Retorno (Opcional)</Label>
+                  <Popover>
                     <PopoverTrigger asChild>
-                      <Button type="button" variant="outline">
+                      <Button
+                        type="button"
+                        variant="outline"
+                        className="w-full justify-start text-left font-normal"
+                      >
                         <CalendarClock className="h-4 w-4 mr-2" />
-                        Agendar Retorno
+                        {returnDate ? format(returnDate, "dd/MM/yyyy") : "Selecione uma data"}
                       </Button>
                     </PopoverTrigger>
                     <PopoverContent className="w-auto p-0" align="start">
                       <Calendar
                         mode="single"
                         selected={returnDate}
-                        onSelect={(date) => {
-                          if (date) {
-                            setReturnDate(date);
-                            scheduleReturnMutation.mutate(date);
-                          }
-                        }}
-                        disabled={(date) => date < new Date()}
+                        onSelect={setReturnDate}
+                        disabled={(date) => date < new Date(new Date().setHours(0, 0, 0, 0))}
                         initialFocus
-                        className="pointer-events-auto"
                       />
                     </PopoverContent>
                   </Popover>
+                  {returnDate && (
+                    <p className="text-xs text-muted-foreground">
+                      Uma tarefa será criada para {format(returnDate, "dd/MM/yyyy")}
+                    </p>
+                  )}
                 </div>
+
+                <Button type="submit" className="w-full">
+                  <Plus className="h-4 w-4 mr-2" />
+                  Adicionar Nota
+                </Button>
               </form>
             </CardContent>
           </Card>
@@ -530,6 +519,12 @@ const LeadDetail = () => {
                           <span className="text-sm font-medium">
                             {note.profiles?.name || "Usuário"}
                           </span>
+                          {note.return_scheduled_date && (
+                            <Badge variant="outline" className="gap-1">
+                              <CalendarClock className="h-3 w-3" />
+                              Retorno: {format(new Date(note.return_scheduled_date), "dd/MM/yyyy")}
+                            </Badge>
+                          )}
                         </div>
                         <span className="text-sm text-muted-foreground">
                           {format(new Date(note.created_at), "dd/MM/yyyy 'às' HH:mm")}
