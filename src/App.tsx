@@ -14,6 +14,7 @@ import AcceptInvite from "./pages/AcceptInvite";
 import Integrations from "./pages/Integrations";
 import Agenda from "./pages/Agenda";
 import Tasks from "./pages/Tasks";
+import LocalProspector from "./pages/LocalProspector";
 import NotFound from "./pages/NotFound";
 import Sidebar from "./components/layout/Sidebar";
 import Header from "./components/layout/Header";
@@ -115,6 +116,14 @@ const App = () => {
                     <Tasks />
                   </DemoLayout>
                 </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/local-prospector"
+              element={
+                <DemoLayout>
+                  <LocalProspector />
+                </DemoLayout>
               }
             />
             <Route path="*" element={<NotFound />} />
