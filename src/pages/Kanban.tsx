@@ -1,4 +1,4 @@
-import { useEffect } from "react";
+import { useEffect, useState, useMemo } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
@@ -8,7 +8,11 @@ import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { useToast } from "@/hooks/use-toast";
-import { Eye, MessageCircle } from "lucide-react";
+import { Eye, MessageCircle, Clock } from "lucide-react";
+import { KanbanFilters } from "@/components/leads/KanbanFilters";
+import { getDaysInCurrentStage, getAgeBadgeVariant, getTimePeriod, formatDaysAgo } from "@/lib/utils";
+import { format } from "date-fns";
+import { ptBR } from "date-fns/locale";
 
 const columns = [
   { id: "novo", title: "Novo", color: "bg-blue-500" },
@@ -37,6 +41,32 @@ const Kanban = () => {
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const navigate = useNavigate();
+
+  // Filter states
+  const [activeOnly, setActiveOnly] = useState(() => {
+    const saved = localStorage.getItem("kanban_active_only");
+    return saved ? JSON.parse(saved) : false;
+  });
+  const [periodFilter, setPeriodFilter] = useState(() => {
+    return localStorage.getItem("kanban_period_filter") || "all";
+  });
+  const [statusFilter, setStatusFilter] = useState(() => {
+    return localStorage.getItem("kanban_status_filter") || "all";
+  });
+  const [searchTerm, setSearchTerm] = useState("");
+
+  // Persist filters
+  useEffect(() => {
+    localStorage.setItem("kanban_active_only", JSON.stringify(activeOnly));
+  }, [activeOnly]);
+
+  useEffect(() => {
+    localStorage.setItem("kanban_period_filter", periodFilter);
+  }, [periodFilter]);
+
+  useEffect(() => {
+    localStorage.setItem("kanban_status_filter", statusFilter);
+  }, [statusFilter]);
 
   const { data: leads } = useQuery({
     queryKey: ["kanban-leads"],
@@ -102,6 +132,48 @@ const Kanban = () => {
     e.preventDefault();
   };
 
+  // Filter and sort leads
+  const filteredLeads = useMemo(() => {
+    if (!leads) return [];
+
+    return leads.filter((lead: any) => {
+      // Period filter
+      if (periodFilter !== "all") {
+        const days = getDaysInCurrentStage(lead.updated_at);
+        const period = getTimePeriod(days);
+        if (period !== periodFilter) return false;
+      }
+
+      // Status filter
+      if (statusFilter !== "all" && lead.status !== statusFilter) {
+        return false;
+      }
+
+      // Search filter
+      if (searchTerm) {
+        const searchLower = searchTerm.toLowerCase();
+        return (
+          lead.name?.toLowerCase().includes(searchLower) ||
+          lead.email?.toLowerCase().includes(searchLower) ||
+          lead.phone?.includes(searchTerm) ||
+          lead.company?.toLowerCase().includes(searchLower)
+        );
+      }
+
+      return true;
+    });
+  }, [leads, periodFilter, statusFilter, searchTerm]);
+
+  // Visible columns based on activeOnly
+  const visibleColumns = useMemo(() => {
+    if (activeOnly) {
+      return columns.filter(col => 
+        ["novo", "contato_feito", "proposta", "negociacao"].includes(col.id)
+      );
+    }
+    return columns;
+  }, [activeOnly]);
+
   return (
     <div className="space-y-6">
       <div>
@@ -111,11 +183,33 @@ const Kanban = () => {
         </p>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-6 gap-4">
-        {columns.map((column) => {
-          const columnLeads = leads?.filter(
-            (lead: any) => lead.status === column.id
-          );
+      <KanbanFilters
+        activeOnly={activeOnly}
+        onActiveOnlyChange={setActiveOnly}
+        periodFilter={periodFilter}
+        onPeriodFilterChange={setPeriodFilter}
+        statusFilter={statusFilter}
+        onStatusFilterChange={setStatusFilter}
+        searchTerm={searchTerm}
+        onSearchTermChange={setSearchTerm}
+        totalLeads={leads?.length || 0}
+        visibleLeads={filteredLeads.length}
+      />
+
+      <div className={`grid grid-cols-1 gap-4 ${
+        activeOnly 
+          ? "md:grid-cols-2 lg:grid-cols-4" 
+          : "md:grid-cols-3 lg:grid-cols-6"
+      }`}>
+        {visibleColumns.map((column) => {
+          const columnLeads = filteredLeads
+            .filter((lead: any) => lead.status === column.id)
+            .sort((a: any, b: any) => {
+              // Sort by age (oldest first)
+              const aDays = getDaysInCurrentStage(a.updated_at);
+              const bDays = getDaysInCurrentStage(b.updated_at);
+              return bDays - aDays;
+            });
 
           return (
             <div
@@ -133,17 +227,38 @@ const Kanban = () => {
               </div>
 
               <div className="space-y-2">
-                {columnLeads?.map((lead: any) => (
-                  <Card
-                    key={lead.id}
-                    draggable
-                    onDragStart={(e) => handleDragStart(e, lead.id)}
-                    className="cursor-move hover:shadow-lg transition-all"
-                  >
-                    <CardHeader className="p-4">
-                      <CardTitle className="text-sm">{lead.name}</CardTitle>
-                    </CardHeader>
-                    <CardContent className="p-4 pt-0 space-y-2">
+                {columnLeads?.map((lead: any) => {
+                  const days = getDaysInCurrentStage(lead.updated_at);
+                  const badgeVariant = getAgeBadgeVariant(days);
+                  const daysText = formatDaysAgo(days);
+                  const updatedDate = format(new Date(lead.updated_at), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR });
+
+                  return (
+                    <Card
+                      key={lead.id}
+                      draggable
+                      onDragStart={(e) => handleDragStart(e, lead.id)}
+                      className="cursor-move hover:shadow-lg transition-all"
+                    >
+                      <CardHeader className="p-4">
+                        <div className="flex items-start justify-between gap-2">
+                          <CardTitle className="text-sm flex-1">{lead.name}</CardTitle>
+                          <TooltipProvider>
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <Badge variant={badgeVariant} className="text-xs shrink-0">
+                                  <Clock className="h-3 w-3 mr-1" />
+                                  {daysText}
+                                </Badge>
+                              </TooltipTrigger>
+                              <TooltipContent>
+                                <p>Neste estágio desde {updatedDate}</p>
+                              </TooltipContent>
+                            </Tooltip>
+                          </TooltipProvider>
+                        </div>
+                      </CardHeader>
+                      <CardContent className="p-4 pt-0 space-y-2">
                       <div className="space-y-1">
                         {lead.email && (
                           <p className="text-xs text-muted-foreground">
@@ -225,7 +340,8 @@ const Kanban = () => {
                       </TooltipProvider>
                     </CardContent>
                   </Card>
-                ))}
+                  );
+                })}
               </div>
             </div>
           );
