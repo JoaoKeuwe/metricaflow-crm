@@ -22,7 +22,7 @@ serve(async (req) => {
 
   try {
     const { query } = await req.json();
-    const SERPER_API_KEY = Deno.env.get("SERPER_API_KEYS");
+    const SERPER_API_KEY = Deno.env.get("SERPER_API_KEY");
 
     if (!SERPER_API_KEY) {
       throw new Error("SERPER_API_KEY não configurada");
