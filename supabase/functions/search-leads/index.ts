@@ -15,6 +15,15 @@ interface SearchResult {
   snippet?: string;
 }
 
+// Regex mais abrangente para telefones brasileiros
+function extractPhoneBR(text: string): string | null {
+  const phoneRegex = /(\+?55\s?)?(\(?\d{2}\)?[\s.\-]?)?\d{4,5}[\s.\-]?\d{4}/g;
+  const match = text.match(phoneRegex);
+  if (!match) return null;
+  // Normaliza: remove espaços, pontos, hífens
+  return match[0].replace(/[\s.\-()]/g, "");
+}
+
 serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
@@ -31,51 +40,105 @@ serve(async (req) => {
     console.log("Buscando leads para:", query);
 
     const results: SearchResult[] = [];
+    const cityMatch = query.match(/([\w\s]+)(?:\s*-?\s*[A-Z]{2})?$/i);
+    const cidade = cityMatch ? cityMatch[1].trim() : "";
 
-    // Busca no Google
+    // 1) Busca no Google Places (melhor para estabelecimentos)
     try {
-      const googleQuery = `${query} contato telefone`;
-      const googleResponse = await fetch("https://google.serper.dev/search", {
+      console.log("Buscando no Google Places...");
+      const placesResponse = await fetch("https://google.serper.dev/places", {
         method: "POST",
         headers: {
           "X-API-KEY": SERPER_API_KEY,
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
-          q: googleQuery,
+          q: query,
           num: 10,
+          gl: "br",
         }),
       });
 
-      if (googleResponse.ok) {
-        const googleData = await googleResponse.json();
-        console.log("Resultados Google:", googleData.organic?.length || 0);
+      if (placesResponse.ok) {
+        const placesData = await placesResponse.json();
+        console.log("Resultados Google Places:", placesData.places?.length || 0);
 
-        // Processa resultados do Google
-        for (const item of googleData.organic || []) {
-          const phoneMatch = item.snippet?.match(/\(?\d{2}\)?\s?\d{4,5}-?\d{4}/);
-          const cityMatch = query.match(/([\w\s]+)(?:\s*-\s*[A-Z]{2})?$/i);
-
-          if (phoneMatch) {
-            results.push({
-              nome: item.title,
-              telefone: phoneMatch[0],
-              cidade: cityMatch ? cityMatch[1].trim() : "",
-              estado: "",
-              source: "Google",
-              link: item.link,
-              snippet: item.snippet?.substring(0, 200),
-            });
-          }
+        for (const place of placesData.places || []) {
+          const phone = place.phoneNumber ? place.phoneNumber.replace(/[\s.\-()]/g, "") : "";
+          
+          results.push({
+            nome: place.title || "Estabelecimento",
+            telefone: phone,
+            cidade: place.address || cidade,
+            estado: "",
+            source: "Google Places",
+            link: place.cid ? `https://www.google.com/maps?cid=${place.cid}` : "",
+            snippet: place.address || "",
+          });
         }
+      } else {
+        const errorText = await placesResponse.text();
+        console.error("Erro Google Places (status:", placesResponse.status, "):", errorText);
       }
     } catch (error) {
-      console.error("Erro ao buscar no Google:", error);
+      console.error("Erro ao buscar no Google Places:", error);
     }
 
-    // Busca no LinkedIn (usando Google site:linkedin.com)
+    // 2) Buscas no Google Search (múltiplas variações)
+    const searchQueries = [
+      `${query} telefone whatsapp`,
+      `${query} contato +55`,
+      `${query} contato telefone`,
+    ];
+
+    for (const searchQuery of searchQueries) {
+      try {
+        console.log("Buscando no Google:", searchQuery);
+        const googleResponse = await fetch("https://google.serper.dev/search", {
+          method: "POST",
+          headers: {
+            "X-API-KEY": SERPER_API_KEY,
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            q: searchQuery,
+            num: 5,
+          }),
+        });
+
+        if (googleResponse.ok) {
+          const googleData = await googleResponse.json();
+          console.log(`Resultados Google Search (${searchQuery}):`, googleData.organic?.length || 0);
+
+          for (const item of googleData.organic || []) {
+            const fullText = `${item.title} ${item.snippet || ""}`;
+            const phone = extractPhoneBR(fullText);
+
+            if (phone) {
+              results.push({
+                nome: item.title,
+                telefone: phone,
+                cidade: cidade,
+                estado: "",
+                source: "Google",
+                link: item.link,
+                snippet: item.snippet?.substring(0, 200),
+              });
+            }
+          }
+        } else {
+          const errorText = await googleResponse.text();
+          console.error("Erro Google Search (status:", googleResponse.status, "):", errorText);
+        }
+      } catch (error) {
+        console.error("Erro ao buscar no Google:", error);
+      }
+    }
+
+    // 3) Busca no LinkedIn (usando Google site:linkedin.com)
     try {
       const linkedinQuery = `site:linkedin.com ${query}`;
+      console.log("Buscando no LinkedIn...");
       const linkedinResponse = await fetch("https://google.serper.dev/search", {
         method: "POST",
         headers: {
@@ -84,7 +147,7 @@ serve(async (req) => {
         },
         body: JSON.stringify({
           q: linkedinQuery,
-          num: 10,
+          num: 5,
         }),
       });
 
@@ -93,27 +156,30 @@ serve(async (req) => {
         console.log("Resultados LinkedIn:", linkedinData.organic?.length || 0);
 
         for (const item of linkedinData.organic || []) {
-          // Extrai nome do título (geralmente está no formato "Nome - Cargo | LinkedIn")
           const nameMatch = item.title?.match(/^([^-|]+)/);
           
           results.push({
             nome: nameMatch ? nameMatch[1].trim() : item.title,
             telefone: "",
-            cidade: "",
+            cidade: cidade,
             estado: "",
             source: "LinkedIn",
             link: item.link,
             snippet: item.snippet?.substring(0, 200),
           });
         }
+      } else {
+        const errorText = await linkedinResponse.text();
+        console.error("Erro LinkedIn (status:", linkedinResponse.status, "):", errorText);
       }
     } catch (error) {
       console.error("Erro ao buscar no LinkedIn:", error);
     }
 
-    // Busca no Instagram (usando Google site:instagram.com)
+    // 4) Busca no Instagram (usando Google site:instagram.com)
     try {
       const instagramQuery = `site:instagram.com ${query}`;
+      console.log("Buscando no Instagram...");
       const instagramResponse = await fetch("https://google.serper.dev/search", {
         method: "POST",
         headers: {
@@ -122,7 +188,7 @@ serve(async (req) => {
         },
         body: JSON.stringify({
           q: instagramQuery,
-          num: 10,
+          num: 5,
         }),
       });
 
@@ -131,19 +197,21 @@ serve(async (req) => {
         console.log("Resultados Instagram:", instagramData.organic?.length || 0);
 
         for (const item of instagramData.organic || []) {
-          // Extrai handle do Instagram do link
           const handleMatch = item.link?.match(/instagram\.com\/([^/]+)/);
           
           results.push({
             nome: handleMatch ? `@${handleMatch[1]}` : item.title,
             telefone: "",
-            cidade: "",
+            cidade: cidade,
             estado: "",
             source: "Instagram",
             link: item.link,
             snippet: item.snippet?.substring(0, 200),
           });
         }
+      } else {
+        const errorText = await instagramResponse.text();
+        console.error("Erro Instagram (status:", instagramResponse.status, "):", errorText);
       }
     } catch (error) {
       console.error("Erro ao buscar no Instagram:", error);

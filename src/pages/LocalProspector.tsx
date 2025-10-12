@@ -158,6 +158,7 @@ export default function LocalProspector() {
 
   const [searchQuery, setSearchQuery] = useState("");
   const [isSearching, setIsSearching] = useState(false);
+  const [allowNoPhone, setAllowNoPhone] = useState(false);
 
   const [page, setPage] = useState(1);
   const pageSize = 10;
@@ -369,13 +370,37 @@ export default function LocalProspector() {
     toast.success("Todos os leads foram apagados");
   }
 
+  // Auto-correção simples de typos comuns
+  function autoCorrectQuery(query: string): string {
+    const corrections: Record<string, string> = {
+      "salaod": "salão",
+      "salaão": "salão",
+      "barberia": "barbearia",
+      "bluemnau": "blumenau",
+      "blumemau": "blumenau",
+      "florianoplis": "florianópolis",
+      "curitba": "curitiba",
+    };
+
+    let corrected = query;
+    for (const [typo, correct] of Object.entries(corrections)) {
+      corrected = corrected.replace(new RegExp(typo, "gi"), correct);
+    }
+    return corrected;
+  }
+
   async function searchLeadsOnline() {
     if (!searchQuery.trim()) {
       return toast.error("Digite o que você quer buscar");
     }
 
+    const correctedQuery = autoCorrectQuery(searchQuery);
+    if (correctedQuery !== searchQuery) {
+      console.log(`Auto-correção: "${searchQuery}" → "${correctedQuery}"`);
+    }
+
     setIsSearching(true);
-    toast.info("Buscando leads no Google, LinkedIn e Instagram...");
+    toast.info("Buscando leads no Google Places, LinkedIn e Instagram...");
 
     try {
       const response = await fetch(
@@ -386,26 +411,49 @@ export default function LocalProspector() {
             "Content-Type": "application/json",
             Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY}`,
           },
-          body: JSON.stringify({ query: searchQuery }),
+          body: JSON.stringify({ query: correctedQuery }),
         }
       );
 
       const data = await response.json();
 
-      if (!data.success) {
-        throw new Error(data.error || "Erro ao buscar leads");
+      if (!response.ok || !data.success) {
+        throw new Error(data.error || `Erro ${response.status}: ${response.statusText}`);
       }
 
       console.log("Leads encontrados:", data.leads);
 
-      // Adiciona os leads encontrados (sem duplicar por telefone)
+      // Estatísticas
+      let withPhone = 0;
+      let withoutPhone = 0;
       let addedCount = 0;
+      let duplicates = 0;
+
       for (const foundLead of data.leads) {
         const phone = cleanPhoneBR(foundLead.telefone);
         
-        // Se não tem telefone ou já existe com esse telefone, pula
-        if (!phone || leads.some((l) => cleanPhoneBR(l.telefone) === phone)) {
-          continue;
+        if (phone) {
+          withPhone++;
+          // Verifica duplicatas por telefone
+          if (leads.some((l) => cleanPhoneBR(l.telefone) === phone)) {
+            duplicates++;
+            continue;
+          }
+        } else {
+          withoutPhone++;
+          // Se não permite sem telefone, pula
+          if (!allowNoPhone) continue;
+          
+          // Verifica duplicatas por link + nome
+          const isDuplicate = leads.some(
+            (l) => 
+              l.notas.includes(foundLead.link || "") && 
+              l.nome.toLowerCase() === foundLead.nome.toLowerCase()
+          );
+          if (isDuplicate) {
+            duplicates++;
+            continue;
+          }
         }
 
         const newLead: Lead = {
@@ -418,17 +466,29 @@ export default function LocalProspector() {
           notas: `Fonte: ${foundLead.source}\nLink: ${foundLead.link || "N/A"}\n${foundLead.snippet || ""}`,
           createdAt: new Date().toISOString(),
           updatedAt: new Date().toISOString(),
-          status: "novo",
+          status: phone ? "novo" : "incompleto",
         };
 
         setLeads((prev) => [newLead, ...prev]);
         addedCount++;
       }
 
+      // Resumo detalhado
+      const totalFound = data.leads.length;
+      console.log(`Resumo: Total=${totalFound} | Com tel=${withPhone} | Sem tel=${withoutPhone} | Adicionados=${addedCount} | Duplicados=${duplicates}`);
+
       if (addedCount === 0) {
-        toast.warning("Nenhum lead novo foi encontrado");
+        toast.warning(
+          `${totalFound} leads encontrados, mas nenhum novo foi adicionado.\n` +
+          `${duplicates} duplicados ignorados.` +
+          (withoutPhone > 0 && !allowNoPhone ? `\n${withoutPhone} sem telefone (ative a opção para importar).` : "")
+        );
       } else {
-        toast.success(`${addedCount} leads adicionados!`);
+        toast.success(
+          `${addedCount} leads adicionados!\n` +
+          `Total encontrado: ${totalFound} | Com telefone: ${withPhone} | Sem telefone: ${withoutPhone}` +
+          (duplicates > 0 ? `\n${duplicates} duplicados ignorados` : "")
+        );
       }
 
       setSearchQuery("");
@@ -513,29 +573,40 @@ export default function LocalProspector() {
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <div className="flex gap-3">
-            <div className="flex-1">
-              <Input
-                placeholder="Ex: salão de beleza blumenau"
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                onKeyDown={(e) => e.key === "Enter" && searchLeadsOnline()}
-                disabled={isSearching}
-              />
+          <div className="space-y-3">
+            <div className="flex gap-3">
+              <div className="flex-1">
+                <Input
+                  placeholder="Ex: salão de beleza blumenau"
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  onKeyDown={(e) => e.key === "Enter" && searchLeadsOnline()}
+                  disabled={isSearching}
+                />
+              </div>
+              <Button onClick={searchLeadsOnline} disabled={isSearching || !searchQuery.trim()}>
+                {isSearching ? (
+                  <>
+                    <Search className="h-4 w-4 mr-2 animate-spin" />
+                    Buscando...
+                  </>
+                ) : (
+                  <>
+                    <Sparkles className="h-4 w-4 mr-2" />
+                    Buscar Leads
+                  </>
+                )}
+              </Button>
             </div>
-            <Button onClick={searchLeadsOnline} disabled={isSearching || !searchQuery.trim()}>
-              {isSearching ? (
-                <>
-                  <Search className="h-4 w-4 mr-2 animate-spin" />
-                  Buscando...
-                </>
-              ) : (
-                <>
-                  <Sparkles className="h-4 w-4 mr-2" />
-                  Buscar Leads
-                </>
-              )}
-            </Button>
+            <label className="flex items-center gap-2 text-sm cursor-pointer">
+              <input 
+                type="checkbox" 
+                checked={allowNoPhone} 
+                onChange={(e) => setAllowNoPhone(e.target.checked)} 
+                className="rounded border-input"
+              />
+              Importar resultados sem telefone (LinkedIn/Instagram - permitir completar depois)
+            </label>
           </div>
         </CardContent>
       </Card>
@@ -746,6 +817,7 @@ export default function LocalProspector() {
                         </SelectTrigger>
                         <SelectContent>
                           <SelectItem value="novo">Novo</SelectItem>
+                          <SelectItem value="incompleto">Incompleto</SelectItem>
                           <SelectItem value="contatado">Contatado</SelectItem>
                           <SelectItem value="qualificado">Qualificado</SelectItem>
                           <SelectItem value="fechado">Fechado</SelectItem>
