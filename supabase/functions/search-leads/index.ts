@@ -13,6 +13,7 @@ interface SearchResult {
   source: string;
   link?: string;
   snippet?: string;
+  website?: string;
 }
 
 // Regex mais abrangente para telefones brasileiros
@@ -118,6 +119,7 @@ serve(async (req) => {
             estado: "",
             source: "Google Places",
             link: place.cid ? `https://www.google.com/maps?cid=${place.cid}` : "",
+            website: place.website || "",
             snippet: place.address || "",
           });
         }
@@ -168,6 +170,7 @@ serve(async (req) => {
                 estado: "",
                 source: "Google",
                 link: item.link,
+                website: item.link,
                 snippet: item.snippet?.substring(0, 200),
               });
             }
@@ -212,6 +215,7 @@ serve(async (req) => {
             estado: "",
             source: "LinkedIn",
             link: item.link,
+            website: item.link,
             snippet: item.snippet?.substring(0, 200),
           });
         }
@@ -254,6 +258,7 @@ serve(async (req) => {
             estado: "",
             source: "Instagram",
             link: item.link,
+            website: item.link,
             snippet: item.snippet?.substring(0, 200),
           });
         }

@@ -21,6 +21,8 @@ interface Lead {
   createdAt: string;
   updatedAt: string;
   status: string;
+  site?: string;
+  vendedor?: string;
 }
 
 interface User {
@@ -151,6 +153,8 @@ export default function LocalProspector() {
   const [estado, setEstado] = useState("");
   const [rating, setRating] = useState("");
   const [notas, setNotas] = useState("");
+  const [site, setSite] = useState("");
+  const [vendedor, setVendedor] = useState("");
 
   const [q, setQ] = useState("");
   const [onlyWhats, setOnlyWhats] = useState(false);
@@ -217,6 +221,8 @@ export default function LocalProspector() {
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
       status: "novo",
+      site: site.trim(),
+      vendedor: vendedor.trim(),
     };
     setLeads((prev) => [lead, ...prev]);
     clearForm();
@@ -230,6 +236,8 @@ export default function LocalProspector() {
     setEstado("");
     setRating("");
     setNotas("");
+    setSite("");
+    setVendedor("");
   }
 
   function toggleSelect(id: string) {
@@ -493,10 +501,12 @@ export default function LocalProspector() {
           cidade: foundLead.cidade || "",
           estado: foundLead.estado || "",
           rating: 0,
-          notas: `Fonte: ${foundLead.source}\nLink: ${foundLead.link || "N/A"}\n${foundLead.snippet || ""}`,
+          notas: `Fonte: ${foundLead.source}\n${foundLead.snippet || ""}`,
           createdAt: new Date().toISOString(),
           updatedAt: new Date().toISOString(),
           status: phone ? "novo" : "incompleto",
+          site: foundLead.website || foundLead.link || "",
+          vendedor: "",
         };
 
         setLeads((prev) => [newLead, ...prev]);
@@ -665,6 +675,25 @@ export default function LocalProspector() {
               <Input id="estado" placeholder="SP" value={estado} onChange={(e) => setEstado(e.target.value)} />
             </div>
             <div className="space-y-2">
+              <Label htmlFor="site">Site</Label>
+              <Input id="site" placeholder="https://exemplo.com" value={site} onChange={(e) => setSite(e.target.value)} />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="vendedor">Vendedor</Label>
+              <Select value={vendedor} onValueChange={setVendedor}>
+                <SelectTrigger id="vendedor">
+                  <SelectValue placeholder="Selecione..." />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="">Sem vendedor</SelectItem>
+                  <SelectItem value="João Silva">João Silva</SelectItem>
+                  <SelectItem value="Maria Santos">Maria Santos</SelectItem>
+                  <SelectItem value="Pedro Costa">Pedro Costa</SelectItem>
+                  <SelectItem value="Ana Lima">Ana Lima</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-2">
               <Label htmlFor="rating">Rating (0-5)</Label>
               <Input id="rating" type="number" min="0" max="5" placeholder="0" value={rating} onChange={(e) => setRating(e.target.value)} />
             </div>
@@ -801,6 +830,8 @@ export default function LocalProspector() {
                   <th className="text-left p-3">Telefone</th>
                   <th className="text-left p-3">Cidade</th>
                   <th className="text-left p-3">UF</th>
+                  <th className="text-left p-3">Site</th>
+                  <th className="text-left p-3">Vendedor</th>
                   <th className="text-left p-3">Rating</th>
                   <th className="text-left p-3">Status</th>
                   <th className="text-left p-3">Notas</th>
@@ -830,6 +861,34 @@ export default function LocalProspector() {
                     </td>
                     <td className="p-3">{l.cidade}</td>
                     <td className="p-3">{l.estado}</td>
+                    <td className="p-3">
+                      {l.site ? (
+                        <a
+                          href={l.site.startsWith('http') ? l.site : `https://${l.site}`}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="text-primary hover:underline text-xs"
+                        >
+                          Visitar Site
+                        </a>
+                      ) : (
+                        <span className="text-muted-foreground text-xs">-</span>
+                      )}
+                    </td>
+                    <td className="p-3">
+                      <Select value={l.vendedor || ""} onValueChange={(value) => updateLead(l.id, { vendedor: value })}>
+                        <SelectTrigger className="w-32">
+                          <SelectValue placeholder="Sem vendedor" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="">Sem vendedor</SelectItem>
+                          <SelectItem value="João Silva">João Silva</SelectItem>
+                          <SelectItem value="Maria Santos">Maria Santos</SelectItem>
+                          <SelectItem value="Pedro Costa">Pedro Costa</SelectItem>
+                          <SelectItem value="Ana Lima">Ana Lima</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </td>
                     <td className="p-3">
                       <Input
                         type="number"
