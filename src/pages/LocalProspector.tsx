@@ -147,15 +147,6 @@ export default function LocalProspector() {
   const [leads, setLeads] = useState<Lead[]>([]);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
 
-  const [nome, setNome] = useState("");
-  const [telefone, setTelefone] = useState("");
-  const [cidade, setCidade] = useState("");
-  const [estado, setEstado] = useState("");
-  const [rating, setRating] = useState("");
-  const [notas, setNotas] = useState("");
-  const [site, setSite] = useState("");
-  const [vendedor, setVendedor] = useState("");
-
   const [q, setQ] = useState("");
   const [onlyWhats, setOnlyWhats] = useState(false);
   const [minRating, setMinRating] = useState(0);
@@ -163,6 +154,8 @@ export default function LocalProspector() {
   const [searchQuery, setSearchQuery] = useState("");
   const [isSearching, setIsSearching] = useState(false);
   const [allowNoPhone, setAllowNoPhone] = useState(false);
+  const [searchSite, setSearchSite] = useState("");
+  const [searchVendedor, setSearchVendedor] = useState("");
 
   const [page, setPage] = useState(1);
   const pageSize = 10;
@@ -197,47 +190,6 @@ export default function LocalProspector() {
     localStorage.removeItem(STORAGE_KEYS.user);
     setUser(null);
     toast.info("Logout realizado");
-  }
-
-  function addLead() {
-    if (!nome.trim()) return toast.error("Informe o nome");
-    if (!telefone.trim()) return toast.error("Informe o telefone");
-
-    const phone = cleanPhoneBR(telefone);
-    if (!phone) return toast.error("Telefone inválido");
-
-    if (leads.some((l) => cleanPhoneBR(l.telefone) === phone)) {
-      return toast.error("Já existe um lead com este telefone.");
-    }
-
-    const lead: Lead = {
-      id: uid(),
-      nome: nome.trim(),
-      telefone: phone,
-      cidade: cidade.trim(),
-      estado: estado.trim().toUpperCase(),
-      rating: Number(rating) || 0,
-      notas: notas.trim(),
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString(),
-      status: "novo",
-      site: site.trim(),
-      vendedor: vendedor.trim(),
-    };
-    setLeads((prev) => [lead, ...prev]);
-    clearForm();
-    toast.success("Lead adicionado!");
-  }
-
-  function clearForm() {
-    setNome("");
-    setTelefone("");
-    setCidade("");
-    setEstado("");
-    setRating("");
-    setNotas("");
-    setSite("");
-    setVendedor("");
   }
 
   function toggleSelect(id: string) {
@@ -505,8 +457,8 @@ export default function LocalProspector() {
           createdAt: new Date().toISOString(),
           updatedAt: new Date().toISOString(),
           status: phone ? "novo" : "incompleto",
-          site: foundLead.website || foundLead.link || "",
-          vendedor: "",
+          site: searchSite || foundLead.website || foundLead.link || "",
+          vendedor: searchVendedor,
         };
 
         setLeads((prev) => [newLead, ...prev]);
@@ -532,6 +484,8 @@ export default function LocalProspector() {
       }
 
       setSearchQuery("");
+      setSearchSite("");
+      setSearchVendedor("");
     } catch (error) {
       console.error("Erro ao buscar leads:", error);
       toast.error(error instanceof Error ? error.message : "Erro ao buscar leads");
@@ -613,7 +567,7 @@ export default function LocalProspector() {
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <div className="space-y-3">
+          <div className="space-y-4">
             <div className="flex gap-3">
               <div className="flex-1">
                 <Input
@@ -638,73 +592,49 @@ export default function LocalProspector() {
                 )}
               </Button>
             </div>
+            
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+              <div className="space-y-2">
+                <Label htmlFor="searchSite">Site (opcional)</Label>
+                <Input
+                  id="searchSite"
+                  placeholder="https://exemplo.com"
+                  value={searchSite}
+                  onChange={(e) => setSearchSite(e.target.value)}
+                  disabled={isSearching}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="searchVendedor">Vendedor (opcional)</Label>
+                <Select 
+                  value={searchVendedor || "none"} 
+                  onValueChange={(val) => setSearchVendedor(val === "none" ? "" : val)}
+                  disabled={isSearching}
+                >
+                  <SelectTrigger id="searchVendedor">
+                    <SelectValue placeholder="Sem vendedor" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="none">Sem vendedor</SelectItem>
+                    <SelectItem value="João Silva">João Silva</SelectItem>
+                    <SelectItem value="Maria Santos">Maria Santos</SelectItem>
+                    <SelectItem value="Pedro Costa">Pedro Costa</SelectItem>
+                    <SelectItem value="Ana Lima">Ana Lima</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+            
             <label className="flex items-center gap-2 text-sm cursor-pointer">
               <input 
                 type="checkbox" 
                 checked={allowNoPhone} 
                 onChange={(e) => setAllowNoPhone(e.target.checked)} 
                 className="rounded border-input"
+                disabled={isSearching}
               />
               Importar resultados sem telefone (LinkedIn/Instagram - permitir completar depois)
             </label>
-          </div>
-        </CardContent>
-      </Card>
-
-      {/* Novo Lead Manual */}
-      <Card>
-        <CardHeader>
-          <CardTitle>Adicionar Lead Manualmente</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            <div className="space-y-2">
-              <Label htmlFor="nome">Nome</Label>
-              <Input id="nome" placeholder="Nome completo" value={nome} onChange={(e) => setNome(e.target.value)} />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="telefone">Telefone</Label>
-              <Input id="telefone" placeholder="(11) 99999-9999" value={telefone} onChange={(e) => setTelefone(e.target.value)} />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="cidade">Cidade</Label>
-              <Input id="cidade" placeholder="São Paulo" value={cidade} onChange={(e) => setCidade(e.target.value)} />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="estado">Estado (UF)</Label>
-              <Input id="estado" placeholder="SP" value={estado} onChange={(e) => setEstado(e.target.value)} />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="site">Site</Label>
-              <Input id="site" placeholder="https://exemplo.com" value={site} onChange={(e) => setSite(e.target.value)} />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="vendedor">Vendedor</Label>
-              <Select value={vendedor || "none"} onValueChange={(val) => setVendedor(val === "none" ? "" : val)}>
-                <SelectTrigger id="vendedor">
-                  <SelectValue placeholder="Selecione..." />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="none">Sem vendedor</SelectItem>
-                  <SelectItem value="João Silva">João Silva</SelectItem>
-                  <SelectItem value="Maria Santos">Maria Santos</SelectItem>
-                  <SelectItem value="Pedro Costa">Pedro Costa</SelectItem>
-                  <SelectItem value="Ana Lima">Ana Lima</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="rating">Rating (0-5)</Label>
-              <Input id="rating" type="number" min="0" max="5" placeholder="0" value={rating} onChange={(e) => setRating(e.target.value)} />
-            </div>
-            <div className="space-y-2 md:col-span-2 lg:col-span-1">
-              <Label htmlFor="notas">Notas</Label>
-              <Input id="notas" placeholder="Observações" value={notas} onChange={(e) => setNotas(e.target.value)} />
-            </div>
-          </div>
-          <div className="flex items-center gap-3 mt-4">
-            <Button onClick={addLead}>Adicionar Lead</Button>
-            <Button onClick={clearForm} variant="outline">Limpar</Button>
           </div>
         </CardContent>
       </Card>
