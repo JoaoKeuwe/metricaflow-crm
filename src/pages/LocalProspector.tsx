@@ -24,7 +24,6 @@ interface Lead {
   site?: string;
   vendedor?: string;
 }
-
 interface User {
   email: string;
   senha: string;
@@ -34,14 +33,17 @@ interface User {
 // ======= Utils =======
 const STORAGE_KEYS = {
   user: "lp_user",
-  leads: "lp_leads",
+  leads: "lp_leads"
 };
-
-const DEFAULT_USERS: User[] = [
-  { email: "admin@empresa.com", senha: "1234", nome: "Gestor" },
-  { email: "vendedor@empresa.com", senha: "1234", nome: "Vendedor" },
-];
-
+const DEFAULT_USERS: User[] = [{
+  email: "admin@empresa.com",
+  senha: "1234",
+  nome: "Gestor"
+}, {
+  email: "vendedor@empresa.com",
+  senha: "1234",
+  nome: "Vendedor"
+}];
 function loadLeads(): Lead[] {
   try {
     const raw = localStorage.getItem(STORAGE_KEYS.leads);
@@ -51,34 +53,30 @@ function loadLeads(): Lead[] {
     return [];
   }
 }
-
 function saveLeads(leads: Lead[]) {
   localStorage.setItem(STORAGE_KEYS.leads, JSON.stringify(leads));
 }
-
 function uid() {
   return Math.random().toString(36).slice(2) + Date.now().toString(36);
 }
-
 function cleanPhoneBR(phone: string) {
   const digits = ("" + phone).replace(/\D/g, "");
   return digits;
 }
-
 function toE164BR(phone: string) {
   const d = cleanPhoneBR(phone);
   if (!d) return "";
   if (d.startsWith("55")) return d;
   return "55" + d;
 }
-
 function hasValidWhatsapp(phone: string) {
   const d = cleanPhoneBR(phone);
   return d.length >= 10;
 }
-
 function downloadTextFile(filename: string, content: string) {
-  const blob = new Blob([content], { type: "text/plain;charset=utf-8" });
+  const blob = new Blob([content], {
+    type: "text/plain;charset=utf-8"
+  });
   const url = URL.createObjectURL(blob);
   const a = document.createElement("a");
   a.href = url;
@@ -88,27 +86,21 @@ function downloadTextFile(filename: string, content: string) {
   document.body.removeChild(a);
   URL.revokeObjectURL(url);
 }
-
 function toCSV(rows: Lead[], delimiter = ",") {
   if (!rows?.length) return "";
   const headers = Object.keys(rows[0]);
   const headerLine = headers.join(delimiter);
-  const lines = rows.map((row) =>
-    headers
-      .map((h) => {
-        const val = (row as any)[h] ?? "";
-        const s = String(val).replace(/"/g, '""');
-        return s.includes(delimiter) || s.includes("\n") ? `"${s}"` : s;
-      })
-      .join(delimiter)
-  );
+  const lines = rows.map(row => headers.map(h => {
+    const val = (row as any)[h] ?? "";
+    const s = String(val).replace(/"/g, '""');
+    return s.includes(delimiter) || s.includes("\n") ? `"${s}"` : s;
+  }).join(delimiter));
   return [headerLine, ...lines].join("\n");
 }
-
 function fromCSV(text: string, delimiter = ",") {
   const lines = text.replace(/\r/g, "").split("\n").filter(Boolean);
   if (!lines.length) return [];
-  const headers = lines[0].split(delimiter).map((h) => h.trim());
+  const headers = lines[0].split(delimiter).map(h => h.trim());
   const data: any[] = [];
   for (let i = 1; i < lines.length; i++) {
     const row: string[] = [];
@@ -132,7 +124,7 @@ function fromCSV(text: string, delimiter = ",") {
     }
     row.push(current);
     const obj: any = {};
-    headers.forEach((h, idx) => (obj[h] = row[idx] ?? ""));
+    headers.forEach((h, idx) => obj[h] = row[idx] ?? "");
     data.push(obj);
   }
   return data;
@@ -143,40 +135,30 @@ export default function LocalProspector() {
   const [user, setUser] = useState<User | null>(null);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-
   const [leads, setLeads] = useState<Lead[]>([]);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
-
   const [q, setQ] = useState("");
   const [onlyWhats, setOnlyWhats] = useState(false);
   const [minRating, setMinRating] = useState(0);
-
   const [searchQuery, setSearchQuery] = useState("");
   const [isSearching, setIsSearching] = useState(false);
   const [allowNoPhone, setAllowNoPhone] = useState(false);
   const [searchSite, setSearchSite] = useState("");
   const [searchVendedor, setSearchVendedor] = useState("");
-
   const [page, setPage] = useState(1);
   const pageSize = 10;
-
   const fileInputRef = useRef<HTMLInputElement>(null);
-
   useEffect(() => {
     const rawUser = localStorage.getItem(STORAGE_KEYS.user);
     if (rawUser) setUser(JSON.parse(rawUser));
     setLeads(loadLeads());
   }, []);
-
   useEffect(() => {
     saveLeads(leads);
   }, [leads]);
-
   function doLogin(e: React.FormEvent) {
     e.preventDefault();
-    const match = DEFAULT_USERS.find(
-      (u) => u.email === email.trim() && u.senha === password
-    );
+    const match = DEFAULT_USERS.find(u => u.email === email.trim() && u.senha === password);
     if (!match) {
       toast.error("Usuário ou senha inválidos.");
       return;
@@ -185,116 +167,99 @@ export default function LocalProspector() {
     setUser(match);
     toast.success(`Bem-vindo, ${match.nome}!`);
   }
-
   function logout() {
     localStorage.removeItem(STORAGE_KEYS.user);
     setUser(null);
     toast.info("Logout realizado");
   }
-
   function toggleSelect(id: string) {
-    setSelectedIds((prev) => {
+    setSelectedIds(prev => {
       const copy = new Set(prev);
       copy.has(id) ? copy.delete(id) : copy.add(id);
       return copy;
     });
   }
-
   function selectAllCurrentPage() {
-    paginated.forEach((l) => selectedIds.add(l.id));
+    paginated.forEach(l => selectedIds.add(l.id));
     setSelectedIds(new Set(selectedIds));
     toast.info(`${paginated.length} leads selecionados`);
   }
-
   function clearSelection() {
     setSelectedIds(new Set());
     toast.info("Seleção limpa");
   }
-
   function updateLead(id: string, patch: Partial<Lead>) {
-    setLeads((prev) =>
-      prev.map((l) => (l.id === id ? { ...l, ...patch, updatedAt: new Date().toISOString() } : l))
-    );
+    setLeads(prev => prev.map(l => l.id === id ? {
+      ...l,
+      ...patch,
+      updatedAt: new Date().toISOString()
+    } : l));
   }
-
   function deleteLead(id: string) {
-    setLeads((prev) => prev.filter((l) => l.id !== id));
-    setSelectedIds((prev) => {
+    setLeads(prev => prev.filter(l => l.id !== id));
+    setSelectedIds(prev => {
       const copy = new Set(prev);
       copy.delete(id);
       return copy;
     });
     toast.success("Lead excluído");
   }
-
   function markSelectedStatus(status: string) {
     if (!selectedIds.size) return toast.error("Nenhum lead selecionado.");
-    setLeads((prev) =>
-      prev.map((l) => (selectedIds.has(l.id) ? { ...l, status, updatedAt: new Date().toISOString() } : l))
-    );
+    setLeads(prev => prev.map(l => selectedIds.has(l.id) ? {
+      ...l,
+      status,
+      updatedAt: new Date().toISOString()
+    } : l));
     toast.success(`${selectedIds.size} leads marcados como ${status}`);
   }
-
   const filtered = useMemo(() => {
     let f = [...leads];
     if (q.trim()) {
       const t = q.trim().toLowerCase();
-      f = f.filter(
-        (l) =>
-          l.nome.toLowerCase().includes(t) ||
-          (l.cidade?.toLowerCase().includes(t)) ||
-          (l.estado?.toLowerCase().includes(t)) ||
-          (l.telefone?.includes(t)) ||
-          (l.notas?.toLowerCase().includes(t))
-      );
+      f = f.filter(l => l.nome.toLowerCase().includes(t) || l.cidade?.toLowerCase().includes(t) || l.estado?.toLowerCase().includes(t) || l.telefone?.includes(t) || l.notas?.toLowerCase().includes(t));
     }
     if (onlyWhats) {
-      f = f.filter((l) => hasValidWhatsapp(l.telefone));
+      f = f.filter(l => hasValidWhatsapp(l.telefone));
     }
     if (minRating > 0) {
-      f = f.filter((l) => (Number(l.rating) || 0) >= minRating);
+      f = f.filter(l => (Number(l.rating) || 0) >= minRating);
     }
     return f;
   }, [leads, q, onlyWhats, minRating]);
-
   const totalPages = Math.max(1, Math.ceil(filtered.length / pageSize));
   const normalizedPage = Math.min(page, totalPages);
   const paginated = filtered.slice((normalizedPage - 1) * pageSize, normalizedPage * pageSize);
-
   useEffect(() => {
     setPage(1);
   }, [q, onlyWhats, minRating]);
-
   function exportCSVAll() {
     if (!leads.length) return toast.error("Sem leads para exportar.");
     const csv = toCSV(leads);
     downloadTextFile("leads.csv", csv);
     toast.success("CSV exportado!");
   }
-
   function exportCSVSelected() {
-    const rows = leads.filter((l) => selectedIds.has(l.id));
+    const rows = leads.filter(l => selectedIds.has(l.id));
     if (!rows.length) return toast.error("Selecione pelo menos um lead.");
     const csv = toCSV(rows);
     downloadTextFile("leads-selecionados.csv", csv);
     toast.success("CSV selecionados exportado!");
   }
-
   function exportDisparadorPRO() {
-    const rows = leads.filter((l) => selectedIds.has(l.id));
+    const rows = leads.filter(l => selectedIds.has(l.id));
     if (!rows.length) return toast.error("Selecione pelo menos um lead.");
     const header = "Nome;Telefone";
-    const lines = rows.map((l) => `${l.nome};${toE164BR(l.telefone)}`);
+    const lines = rows.map(l => `${l.nome};${toE164BR(l.telefone)}`);
     const content = [header, ...lines].join("\n");
     downloadTextFile("disparador-pro.csv", content);
     toast.success("Disparador PRO exportado!");
   }
-
   function handleImportCSV(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
     if (!file) return;
     const reader = new FileReader();
-    reader.onload = (evt) => {
+    reader.onload = evt => {
       const text = String(evt.target?.result || "");
       const parsed = fromCSV(text);
       const normalized: Lead[] = parsed.map((r: any) => ({
@@ -307,23 +272,21 @@ export default function LocalProspector() {
         notas: String(r.notas || r.Observacoes || r.obs || "").trim(),
         createdAt: new Date().toISOString(),
         updatedAt: new Date().toISOString(),
-        status: "importado",
+        status: "importado"
       }));
-
       const byPhone = new Map<string, Lead>();
-      [...leads, ...normalized].forEach((l) => {
+      [...leads, ...normalized].forEach(l => {
         const p = cleanPhoneBR(l.telefone);
         if (!p) return;
         if (!byPhone.has(p)) byPhone.set(p, l);
       });
-      const merged = Array.from(byPhone.values()).sort((a, b) => (a.createdAt < b.createdAt ? 1 : -1));
+      const merged = Array.from(byPhone.values()).sort((a, b) => a.createdAt < b.createdAt ? 1 : -1);
       setLeads(merged);
       if (fileInputRef.current) fileInputRef.current.value = "";
       toast.success(`${normalized.length} registros importados!`);
     };
     reader.readAsText(file, "utf-8");
   }
-
   function clearAll() {
     setLeads([]);
     setSelectedIds(new Set());
@@ -339,75 +302,61 @@ export default function LocalProspector() {
       "bluemnau": "blumenau",
       "blumemau": "blumenau",
       "florianoplis": "florianópolis",
-      "curitba": "curitiba",
+      "curitba": "curitiba"
     };
-
     let corrected = query;
     for (const [typo, correct] of Object.entries(corrections)) {
       corrected = corrected.replace(new RegExp(typo, "gi"), correct);
     }
     return corrected;
   }
-
   async function searchLeadsOnline() {
     if (!searchQuery.trim()) {
       return toast.error("Digite o que você quer buscar");
     }
-
     const correctedQuery = autoCorrectQuery(searchQuery);
     if (correctedQuery !== searchQuery) {
       console.log(`Auto-correção: "${searchQuery}" → "${correctedQuery}"`);
     }
-
     setIsSearching(true);
     toast.info("Buscando leads no Google Places, LinkedIn e Instagram...");
-
     try {
-      const response = await fetch(
-        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/search-leads`,
-        {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY}`,
-          },
-          body: JSON.stringify({ query: correctedQuery }),
-        }
-      );
-
+      const response = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/search-leads`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY}`
+        },
+        body: JSON.stringify({
+          query: correctedQuery
+        })
+      });
       const data = await response.json();
-
       if (!response.ok || !data.success) {
         const errorMsg = data.error || `Erro ${response.status}: ${response.statusText}`;
         const details = data.details || "";
-        
         console.error("Erro da API:", errorMsg, details);
-        
+
         // Mensagem específica para erro de autorização
         if (response.status === 403 || errorMsg.includes("403") || errorMsg.includes("Unauthorized")) {
-          toast.error(
-            "❌ Erro de Autorização do Serper\n\n" +
-            "A chave da API está inválida, expirada ou sem créditos.\n" +
-            "Entre em contato com o suporte para renovar a chave.",
-            { duration: 8000 }
-          );
+          toast.error("❌ Erro de Autorização do Serper\n\n" + "A chave da API está inválida, expirada ou sem créditos.\n" + "Entre em contato com o suporte para renovar a chave.", {
+            duration: 8000
+          });
         } else if (data.errors) {
           // Mostrar erros detalhados de cada provedor
-          const errorList = Object.entries(data.errors)
-            .map(([provider, error]) => `• ${provider}: ${error}`)
-            .join("\n");
-          toast.error(
-            `Erro ao buscar leads:\n${errorMsg}\n\nDetalhes:\n${errorList}`,
-            { duration: 8000 }
-          );
+          const errorList = Object.entries(data.errors).map(([provider, error]) => `• ${provider}: ${error}`).join("\n");
+          toast.error(`Erro ao buscar leads:\n${errorMsg}\n\nDetalhes:\n${errorList}`, {
+            duration: 8000
+          });
         } else {
-          toast.error(`Erro ao buscar leads:\n${errorMsg}${details ? `\n${details}` : ""}`, { duration: 6000 });
+          toast.error(`Erro ao buscar leads:\n${errorMsg}${details ? `\n${details}` : ""}`, {
+            duration: 6000
+          });
         }
         return;
       }
-
       console.log("Leads encontrados:", data.leads);
-      
+
       // Se houve erros parciais mas ainda temos resultados
       if (data.errors) {
         console.warn("Alguns provedores falharam:", data.errors);
@@ -418,14 +367,12 @@ export default function LocalProspector() {
       let withoutPhone = 0;
       let addedCount = 0;
       let duplicates = 0;
-
       for (const foundLead of data.leads) {
         const phone = cleanPhoneBR(foundLead.telefone);
-        
         if (phone) {
           withPhone++;
           // Verifica duplicatas por telefone
-          if (leads.some((l) => cleanPhoneBR(l.telefone) === phone)) {
+          if (leads.some(l => cleanPhoneBR(l.telefone) === phone)) {
             duplicates++;
             continue;
           }
@@ -433,19 +380,14 @@ export default function LocalProspector() {
           withoutPhone++;
           // Se não permite sem telefone, pula
           if (!allowNoPhone) continue;
-          
+
           // Verifica duplicatas por link + nome
-          const isDuplicate = leads.some(
-            (l) => 
-              l.notas.includes(foundLead.link || "") && 
-              l.nome.toLowerCase() === foundLead.nome.toLowerCase()
-          );
+          const isDuplicate = leads.some(l => l.notas.includes(foundLead.link || "") && l.nome.toLowerCase() === foundLead.nome.toLowerCase());
           if (isDuplicate) {
             duplicates++;
             continue;
           }
         }
-
         const newLead: Lead = {
           id: uid(),
           nome: foundLead.nome || "Lead sem nome",
@@ -458,31 +400,20 @@ export default function LocalProspector() {
           updatedAt: new Date().toISOString(),
           status: phone ? "novo" : "incompleto",
           site: searchSite || foundLead.website || foundLead.link || "",
-          vendedor: searchVendedor,
+          vendedor: searchVendedor
         };
-
-        setLeads((prev) => [newLead, ...prev]);
+        setLeads(prev => [newLead, ...prev]);
         addedCount++;
       }
 
       // Resumo detalhado
       const totalFound = data.leads.length;
       console.log(`Resumo: Total=${totalFound} | Com tel=${withPhone} | Sem tel=${withoutPhone} | Adicionados=${addedCount} | Duplicados=${duplicates}`);
-
       if (addedCount === 0) {
-        toast.warning(
-          `${totalFound} leads encontrados, mas nenhum novo foi adicionado.\n` +
-          `${duplicates} duplicados ignorados.` +
-          (withoutPhone > 0 && !allowNoPhone ? `\n${withoutPhone} sem telefone (ative a opção para importar).` : "")
-        );
+        toast.warning(`${totalFound} leads encontrados, mas nenhum novo foi adicionado.\n` + `${duplicates} duplicados ignorados.` + (withoutPhone > 0 && !allowNoPhone ? `\n${withoutPhone} sem telefone (ative a opção para importar).` : ""));
       } else {
-        toast.success(
-          `${addedCount} leads adicionados!\n` +
-          `Total encontrado: ${totalFound} | Com telefone: ${withPhone} | Sem telefone: ${withoutPhone}` +
-          (duplicates > 0 ? `\n${duplicates} duplicados ignorados` : "")
-        );
+        toast.success(`${addedCount} leads adicionados!\n` + `Total encontrado: ${totalFound} | Com telefone: ${withPhone} | Sem telefone: ${withoutPhone}` + (duplicates > 0 ? `\n${duplicates} duplicados ignorados` : ""));
       }
-
       setSearchQuery("");
       setSearchSite("");
       setSearchVendedor("");
@@ -493,10 +424,8 @@ export default function LocalProspector() {
       setIsSearching(false);
     }
   }
-
   if (!user) {
-    return (
-      <div className="w-full min-h-screen flex items-center justify-center bg-background p-4">
+    return <div className="w-full min-h-screen flex items-center justify-center bg-background p-4">
         <Card className="w-full max-w-md">
           <CardHeader>
             <CardTitle>Entrar no Local Prospector</CardTitle>
@@ -506,25 +435,11 @@ export default function LocalProspector() {
             <form onSubmit={doLogin} className="space-y-4">
               <div className="space-y-2">
                 <Label htmlFor="email">E-mail</Label>
-                <Input
-                  id="email"
-                  type="email"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  placeholder="admin@empresa.com"
-                  required
-                />
+                <Input id="email" type="email" value={email} onChange={e => setEmail(e.target.value)} placeholder="admin@empresa.com" required />
               </div>
               <div className="space-y-2">
                 <Label htmlFor="password">Senha</Label>
-                <Input
-                  id="password"
-                  type="password"
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  placeholder="1234"
-                  required
-                />
+                <Input id="password" type="password" value={password} onChange={e => setPassword(e.target.value)} placeholder="1234" required />
               </div>
               <Button type="submit" className="w-full">
                 Entrar
@@ -535,12 +450,9 @@ export default function LocalProspector() {
             </form>
           </CardContent>
         </Card>
-      </div>
-    );
+      </div>;
   }
-
-  return (
-    <div className="space-y-6">
+  return <div className="space-y-6">
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
@@ -562,77 +474,29 @@ export default function LocalProspector() {
             <Sparkles className="h-5 w-5 text-primary" />
             Buscar Leads Automaticamente
           </CardTitle>
-          <CardDescription>
-            Digite o tipo de negócio e localização (ex: "salão de beleza blumenau") e encontraremos leads no Google, LinkedIn e Instagram
-          </CardDescription>
+          <CardDescription>Digite o tipo de negócio e localização (ex: "salão de beleza blumenau") e encontraremos leads no Google.</CardDescription>
         </CardHeader>
         <CardContent>
           <div className="space-y-4">
             <div className="flex gap-3">
               <div className="flex-1">
-                <Input
-                  placeholder="Ex: salão de beleza blumenau"
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  onKeyDown={(e) => e.key === "Enter" && searchLeadsOnline()}
-                  disabled={isSearching}
-                />
+                <Input placeholder="Ex: salão de beleza blumenau" value={searchQuery} onChange={e => setSearchQuery(e.target.value)} onKeyDown={e => e.key === "Enter" && searchLeadsOnline()} disabled={isSearching} />
               </div>
               <Button onClick={searchLeadsOnline} disabled={isSearching || !searchQuery.trim()}>
-                {isSearching ? (
-                  <>
+                {isSearching ? <>
                     <Search className="h-4 w-4 mr-2 animate-spin" />
                     Buscando...
-                  </>
-                ) : (
-                  <>
+                  </> : <>
                     <Sparkles className="h-4 w-4 mr-2" />
                     Buscar Leads
-                  </>
-                )}
+                  </>}
               </Button>
             </div>
             
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-              <div className="space-y-2">
-                <Label htmlFor="searchSite">Site (opcional)</Label>
-                <Input
-                  id="searchSite"
-                  placeholder="https://exemplo.com"
-                  value={searchSite}
-                  onChange={(e) => setSearchSite(e.target.value)}
-                  disabled={isSearching}
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="searchVendedor">Vendedor (opcional)</Label>
-                <Select 
-                  value={searchVendedor || "none"} 
-                  onValueChange={(val) => setSearchVendedor(val === "none" ? "" : val)}
-                  disabled={isSearching}
-                >
-                  <SelectTrigger id="searchVendedor">
-                    <SelectValue placeholder="Sem vendedor" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="none">Sem vendedor</SelectItem>
-                    <SelectItem value="João Silva">João Silva</SelectItem>
-                    <SelectItem value="Maria Santos">Maria Santos</SelectItem>
-                    <SelectItem value="Pedro Costa">Pedro Costa</SelectItem>
-                    <SelectItem value="Ana Lima">Ana Lima</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-            </div>
+            
             
             <label className="flex items-center gap-2 text-sm cursor-pointer">
-              <input 
-                type="checkbox" 
-                checked={allowNoPhone} 
-                onChange={(e) => setAllowNoPhone(e.target.checked)} 
-                className="rounded border-input"
-                disabled={isSearching}
-              />
+              <input type="checkbox" checked={allowNoPhone} onChange={e => setAllowNoPhone(e.target.checked)} className="rounded border-input" disabled={isSearching} />
               Importar resultados sem telefone (LinkedIn/Instagram - permitir completar depois)
             </label>
           </div>
@@ -650,30 +514,17 @@ export default function LocalProspector() {
               <Label htmlFor="search">Buscar</Label>
               <div className="relative">
                 <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-                <Input
-                  id="search"
-                  placeholder="Nome, cidade, estado, telefone, notas..."
-                  value={q}
-                  onChange={(e) => setQ(e.target.value)}
-                  className="pl-9"
-                />
+                <Input id="search" placeholder="Nome, cidade, estado, telefone, notas..." value={q} onChange={e => setQ(e.target.value)} className="pl-9" />
               </div>
             </div>
             <div className="space-y-2">
               <Label htmlFor="min-rating">Rating mínimo</Label>
-              <Input
-                id="min-rating"
-                type="number"
-                min="0"
-                max="5"
-                value={minRating}
-                onChange={(e) => setMinRating(Number(e.target.value) || 0)}
-              />
+              <Input id="min-rating" type="number" min="0" max="5" value={minRating} onChange={e => setMinRating(Number(e.target.value) || 0)} />
             </div>
           </div>
           <div className="flex items-center gap-4 mt-4">
             <label className="flex items-center gap-2 text-sm cursor-pointer">
-              <input type="checkbox" checked={onlyWhats} onChange={(e) => setOnlyWhats(e.target.checked)} className="rounded border-input" />
+              <input type="checkbox" checked={onlyWhats} onChange={e => setOnlyWhats(e.target.checked)} className="rounded border-input" />
               Somente WhatsApp válido
             </label>
             <div className="flex items-center gap-2 ml-auto text-sm text-muted-foreground">
@@ -704,13 +555,7 @@ export default function LocalProspector() {
               Disparador PRO
             </Button>
             <div className="relative">
-              <input
-                ref={fileInputRef}
-                type="file"
-                accept=".csv"
-                onChange={handleImportCSV}
-                className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
-              />
+              <input ref={fileInputRef} type="file" accept=".csv" onChange={handleImportCSV} className="absolute inset-0 w-full h-full opacity-0 cursor-pointer" />
               <Button variant="outline" size="sm">
                 <Upload className="h-4 w-4 mr-2" />
                 Importar CSV
@@ -769,15 +614,9 @@ export default function LocalProspector() {
                 </tr>
               </thead>
               <tbody>
-                {paginated.map((l) => (
-                  <tr key={l.id} className="border-b hover:bg-muted/30">
+                {paginated.map(l => <tr key={l.id} className="border-b hover:bg-muted/30">
                     <td className="p-3">
-                      <input
-                        type="checkbox"
-                        checked={selectedIds.has(l.id)}
-                        onChange={() => toggleSelect(l.id)}
-                        className="rounded border-input"
-                      />
+                      <input type="checkbox" checked={selectedIds.has(l.id)} onChange={() => toggleSelect(l.id)} className="rounded border-input" />
                     </td>
                     <td className="p-3">
                       <div className="font-medium">{l.nome}</div>
@@ -792,24 +631,14 @@ export default function LocalProspector() {
                     <td className="p-3">{l.cidade}</td>
                     <td className="p-3">{l.estado}</td>
                     <td className="p-3">
-                      {l.site ? (
-                        <a
-                          href={l.site.startsWith('http') ? l.site : `https://${l.site}`}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="text-primary hover:underline text-xs"
-                        >
+                      {l.site ? <a href={l.site.startsWith('http') ? l.site : `https://${l.site}`} target="_blank" rel="noopener noreferrer" className="text-primary hover:underline text-xs">
                           Visitar Site
-                        </a>
-                      ) : (
-                        <span className="text-muted-foreground text-xs">-</span>
-                      )}
+                        </a> : <span className="text-muted-foreground text-xs">-</span>}
                     </td>
                     <td className="p-3">
-                      <Select 
-                        value={l.vendedor || "none"} 
-                        onValueChange={(val) => updateLead(l.id, { vendedor: val === "none" ? "" : val })}
-                      >
+                      <Select value={l.vendedor || "none"} onValueChange={val => updateLead(l.id, {
+                    vendedor: val === "none" ? "" : val
+                  })}>
                         <SelectTrigger className="w-32">
                           <SelectValue placeholder="Sem vendedor" />
                         </SelectTrigger>
@@ -823,17 +652,14 @@ export default function LocalProspector() {
                       </Select>
                     </td>
                     <td className="p-3">
-                      <Input
-                        type="number"
-                        min={0}
-                        max={5}
-                        value={l.rating}
-                        onChange={(e) => updateLead(l.id, { rating: Number(e.target.value) || 0 })}
-                        className="w-20"
-                      />
+                      <Input type="number" min={0} max={5} value={l.rating} onChange={e => updateLead(l.id, {
+                    rating: Number(e.target.value) || 0
+                  })} className="w-20" />
                     </td>
                     <td className="p-3">
-                      <Select value={l.status} onValueChange={(value) => updateLead(l.id, { status: value })}>
+                      <Select value={l.status} onValueChange={value => updateLead(l.id, {
+                    status: value
+                  })}>
                         <SelectTrigger className="w-32">
                           <SelectValue />
                         </SelectTrigger>
@@ -848,27 +674,21 @@ export default function LocalProspector() {
                       </Select>
                     </td>
                     <td className="p-3">
-                      <Textarea
-                        value={l.notas}
-                        onChange={(e) => updateLead(l.id, { notas: e.target.value })}
-                        className="min-w-[200px]"
-                        rows={2}
-                      />
+                      <Textarea value={l.notas} onChange={e => updateLead(l.id, {
+                    notas: e.target.value
+                  })} className="min-w-[200px]" rows={2} />
                     </td>
                     <td className="p-3 text-right">
                       <Button onClick={() => deleteLead(l.id)} variant="ghost" size="sm">
                         <Trash2 className="h-4 w-4" />
                       </Button>
                     </td>
-                  </tr>
-                ))}
-                {!paginated.length && (
-                  <tr>
+                  </tr>)}
+                {!paginated.length && <tr>
                     <td colSpan={9} className="p-8 text-center text-muted-foreground">
                       Nenhum lead encontrado.
                     </td>
-                  </tr>
-                )}
+                  </tr>}
               </tbody>
             </table>
           </div>
@@ -881,24 +701,13 @@ export default function LocalProspector() {
           Página {normalizedPage} de {totalPages}
         </div>
         <div className="flex items-center gap-2">
-          <Button
-            disabled={normalizedPage <= 1}
-            onClick={() => setPage((p) => Math.max(1, p - 1))}
-            variant="outline"
-            size="sm"
-          >
+          <Button disabled={normalizedPage <= 1} onClick={() => setPage(p => Math.max(1, p - 1))} variant="outline" size="sm">
             Anterior
           </Button>
-          <Button
-            disabled={normalizedPage >= totalPages}
-            onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
-            variant="outline"
-            size="sm"
-          >
+          <Button disabled={normalizedPage >= totalPages} onClick={() => setPage(p => Math.min(totalPages, p + 1))} variant="outline" size="sm">
             Próxima
           </Button>
         </div>
       </div>
-    </div>
-  );
+    </div>;
 }
