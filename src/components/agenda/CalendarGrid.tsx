@@ -72,9 +72,25 @@ const CalendarGrid = ({ weekDays, meetings, isLoading, onRefetch }: CalendarGrid
     const dropId = over.id as string;
     
     // Parse drop location: "day-YYYY-MM-DD-hour-HH"
-    const [, , dateStr, , hourStr] = dropId.split('-');
+    // Exemplo: "day-2025-01-14-hour-10"
+    const dayIndex = dropId.indexOf('day-');
+    const hourIndex = dropId.indexOf('-hour-');
+    
+    if (dayIndex === -1 || hourIndex === -1) {
+      console.error("Invalid drop ID format:", dropId);
+      return;
+    }
+    
+    const dateStr = dropId.substring(dayIndex + 4, hourIndex); // "2025-01-14"
+    const hourStr = dropId.substring(hourIndex + 6); // "10"
+    
     const newDate = new Date(dateStr);
     const newHour = parseInt(hourStr);
+    
+    if (isNaN(newDate.getTime()) || isNaN(newHour)) {
+      console.error("Invalid date or hour:", { dateStr, hourStr });
+      return;
+    }
     
     const meeting = meetings.find(m => m.id === meetingId);
     if (!meeting) return;
