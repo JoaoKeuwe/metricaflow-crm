@@ -43,9 +43,11 @@ const CalendarGrid = ({ weekDays, meetings, isLoading, onRefetch }: CalendarGrid
   const hours = Array.from({ length: 13 }, (_, i) => i + 8); // 8h às 20h
   const today = format(new Date(), "yyyy-MM-dd");
   const [activeMeeting, setActiveMeeting] = useState<any>(null);
+  const [optimisticMeetings, setOptimisticMeetings] = useState<any[]>([]);
 
   const getMeetingsForDateTime = (date: Date, hour: number) => {
-    return meetings.filter((meeting) => {
+    const allMeetings = optimisticMeetings.length > 0 ? optimisticMeetings : meetings;
+    return allMeetings.filter((meeting) => {
       const meetingDate = new Date(meeting.start_time);
       return (
         format(meetingDate, "yyyy-MM-dd") === format(date, "yyyy-MM-dd") &&
@@ -72,7 +74,6 @@ const CalendarGrid = ({ weekDays, meetings, isLoading, onRefetch }: CalendarGrid
     const dropId = over.id as string;
     
     // Parse drop location: "day-YYYY-MM-DD-hour-HH"
-    // Exemplo: "day-2025-01-14-hour-10"
     const dayIndex = dropId.indexOf('day-');
     const hourIndex = dropId.indexOf('-hour-');
     
@@ -81,8 +82,8 @@ const CalendarGrid = ({ weekDays, meetings, isLoading, onRefetch }: CalendarGrid
       return;
     }
     
-    const dateStr = dropId.substring(dayIndex + 4, hourIndex); // "2025-01-14"
-    const hourStr = dropId.substring(hourIndex + 6); // "10"
+    const dateStr = dropId.substring(dayIndex + 4, hourIndex);
+    const hourStr = dropId.substring(hourIndex + 6);
     
     const newDate = new Date(dateStr);
     const newHour = parseInt(hourStr);
@@ -104,6 +105,19 @@ const CalendarGrid = ({ weekDays, meetings, isLoading, onRefetch }: CalendarGrid
     const newStartTime = setMinutes(setHours(newDate, newHour), 0);
     const newEndTime = new Date(newStartTime.getTime() + durationMs);
 
+    // Optimistic update - atualiza imediatamente na UI
+    const updatedMeeting = {
+      ...meeting,
+      start_time: newStartTime.toISOString(),
+      end_time: newEndTime.toISOString(),
+    };
+    
+    const newOptimisticMeetings = meetings.map(m => 
+      m.id === meetingId ? updatedMeeting : m
+    );
+    setOptimisticMeetings(newOptimisticMeetings);
+
+    // Salva no banco em background
     try {
       const { error } = await supabase
         .from("meetings")
@@ -115,14 +129,13 @@ const CalendarGrid = ({ weekDays, meetings, isLoading, onRefetch }: CalendarGrid
 
       if (error) throw error;
 
-      toast({
-        title: "Reunião movida",
-        description: `Reunião movida para ${format(newStartTime, "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })}`,
-      });
-
+      // Limpa otimistic update e atualiza dados reais
+      setOptimisticMeetings([]);
       onRefetch();
     } catch (error) {
       console.error("Error updating meeting:", error);
+      // Reverte otimistic update em caso de erro
+      setOptimisticMeetings([]);
       toast({
         title: "Erro ao mover reunião",
         description: "Não foi possível mover a reunião. Tente novamente.",

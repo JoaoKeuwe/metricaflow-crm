@@ -62,10 +62,10 @@ const MeetingCard = ({ meeting, onRefetch }: MeetingCardProps) => {
         {...listeners}
         onClick={() => setDetailOpen(true)}
         className={cn(
-          "p-2.5 rounded-md border border-l-4 cursor-grab active:cursor-grabbing transition-all duration-200 text-xs",
-          "bg-background hover:shadow-md hover:scale-[1.02]",
+          "p-2.5 rounded-md border border-l-4 cursor-grab active:cursor-grabbing text-xs",
+          "bg-background hover:shadow-md",
           getStatusBorderColor(meeting.status),
-          isDragging && "shadow-lg z-50"
+          isDragging && "shadow-lg z-50 opacity-50"
         )}
       >
         <div className="flex items-start justify-between gap-1 mb-1.5">
