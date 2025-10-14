@@ -60,39 +60,44 @@ const MeetingCard = ({ meeting, onRefetch }: MeetingCardProps) => {
         style={style}
         {...attributes}
         {...listeners}
-        onClick={() => setDetailOpen(true)}
+        onClick={(e) => {
+          // Só abre o dialog se não estiver arrastando
+          if (!isDragging) {
+            setDetailOpen(true);
+          }
+        }}
         className={cn(
-          "p-2.5 rounded-md border border-l-4 cursor-grab active:cursor-grabbing text-xs",
-          "bg-background hover:shadow-md",
+          "p-2 rounded-md border border-l-4 cursor-grab active:cursor-grabbing text-xs",
+          "bg-background hover:shadow-md transition-shadow",
           getStatusBorderColor(meeting.status),
           isDragging && "shadow-lg z-50 opacity-50"
         )}
       >
-        <div className="flex items-start justify-between gap-1 mb-1.5">
-          <p className="font-semibold line-clamp-1">{meeting.title}</p>
-          <Badge variant="secondary" className={cn("text-[10px] px-1.5 py-0.5 shrink-0", getStatusBadgeColor(meeting.status))}>
+        <div className="flex items-start justify-between gap-1 mb-1">
+          <p className="font-semibold line-clamp-1 text-[11px]">{meeting.title}</p>
+          <Badge variant="secondary" className={cn("text-[9px] px-1 py-0 shrink-0", getStatusBadgeColor(meeting.status))}>
             {meeting.status}
           </Badge>
         </div>
         
-        <div className="flex items-center gap-1 text-muted-foreground mb-1">
-          <Clock className="h-3 w-3" />
-          <span>
+        <div className="flex items-center gap-1 text-muted-foreground mb-0.5">
+          <Clock className="h-2.5 w-2.5" />
+          <span className="text-[10px]">
             {format(new Date(meeting.start_time), "HH:mm")} - {format(new Date(meeting.end_time), "HH:mm")}
           </span>
         </div>
 
         {meeting.lead && (
-          <div className="flex items-center gap-1 text-muted-foreground mb-1">
-            <UserCircle className="h-3 w-3" />
-            <span className="line-clamp-1">{meeting.lead.name}</span>
+          <div className="flex items-center gap-1 text-muted-foreground mb-0.5">
+            <UserCircle className="h-2.5 w-2.5" />
+            <span className="line-clamp-1 text-[10px]">{meeting.lead.name}</span>
           </div>
         )}
 
         {meeting.meeting_participants && meeting.meeting_participants.length > 0 && (
           <div className="flex items-center gap-1 text-muted-foreground">
-            <Users className="h-3 w-3" />
-            <span>{meeting.meeting_participants.length} participante(s)</span>
+            <Users className="h-2.5 w-2.5" />
+            <span className="text-[10px]">{meeting.meeting_participants.length} participante(s)</span>
           </div>
         )}
       </div>

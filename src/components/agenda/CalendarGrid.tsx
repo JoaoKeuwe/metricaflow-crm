@@ -30,7 +30,7 @@ const DroppableSlot = ({ id, children }: DroppableSlotProps) => {
     <div
       ref={setNodeRef}
       className={cn(
-        "p-2.5 border-l border-border/50 relative min-h-[90px] transition-colors",
+        "p-1.5 border-l border-border/50 relative min-h-[80px] transition-colors",
         isOver && "bg-primary/10 ring-2 ring-primary ring-inset"
       )}
     >
@@ -184,11 +184,11 @@ const CalendarGrid = ({ weekDays, meetings, isLoading, onRefetch }: CalendarGrid
               <div 
                 key={hour} 
                 className={cn(
-                  "grid grid-cols-8 min-h-[90px]",
+                  "grid grid-cols-8 min-h-[80px]",
                   index % 2 === 0 && "bg-muted/20"
                 )}
               >
-                <div className="p-4 text-xs text-muted-foreground font-medium border-r border-border/50">
+                <div className="p-3 text-xs text-muted-foreground font-medium border-r border-border/50">
                   {hour}:00
                 </div>
                 {weekDays.map((day) => {
@@ -196,7 +196,7 @@ const CalendarGrid = ({ weekDays, meetings, isLoading, onRefetch }: CalendarGrid
                   const dropId = `day-${format(day, "yyyy-MM-dd")}-hour-${hour}`;
                   return (
                     <DroppableSlot key={dropId} id={dropId}>
-                      <div className="space-y-1.5">
+                      <div className="space-y-1">
                         {dayMeetings.map((meeting) => (
                           <MeetingCard
                             key={meeting.id}
