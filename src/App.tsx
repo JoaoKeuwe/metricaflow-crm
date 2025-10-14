@@ -102,9 +102,7 @@ const App = () => {
               path="/agenda"
               element={
                 <ProtectedRoute>
-                  <DemoLayout>
-                    <Agenda />
-                  </DemoLayout>
+                  <Agenda />
                 </ProtectedRoute>
               }
             />
@@ -112,9 +110,7 @@ const App = () => {
               path="/tasks"
               element={
                 <ProtectedRoute>
-                  <DemoLayout>
-                    <Tasks />
-                  </DemoLayout>
+                  <Tasks />
                 </ProtectedRoute>
               }
             />
