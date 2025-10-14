@@ -4,6 +4,8 @@ import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
 import { useState } from "react";
 import MeetingDetailDialog from "./MeetingDetailDialog";
+import { useDraggable } from "@dnd-kit/core";
+import { CSS } from "@dnd-kit/utilities";
 
 interface MeetingCardProps {
   meeting: any;
@@ -12,6 +14,18 @@ interface MeetingCardProps {
 
 const MeetingCard = ({ meeting, onRefetch }: MeetingCardProps) => {
   const [detailOpen, setDetailOpen] = useState(false);
+  
+  const { attributes, listeners, setNodeRef, transform, isDragging } = useDraggable({
+    id: meeting.id,
+    data: {
+      meeting,
+    },
+  });
+
+  const style = {
+    transform: CSS.Translate.toString(transform),
+    opacity: isDragging ? 0.5 : 1,
+  };
 
   const getStatusBorderColor = (status: string) => {
     switch (status) {
@@ -42,11 +56,16 @@ const MeetingCard = ({ meeting, onRefetch }: MeetingCardProps) => {
   return (
     <>
       <div
+        ref={setNodeRef}
+        style={style}
+        {...attributes}
+        {...listeners}
         onClick={() => setDetailOpen(true)}
         className={cn(
-          "p-2.5 rounded-md border border-l-4 cursor-pointer transition-all duration-200 text-xs",
+          "p-2.5 rounded-md border border-l-4 cursor-grab active:cursor-grabbing transition-all duration-200 text-xs",
           "bg-background hover:shadow-md hover:scale-[1.02]",
-          getStatusBorderColor(meeting.status)
+          getStatusBorderColor(meeting.status),
+          isDragging && "shadow-lg z-50"
         )}
       >
         <div className="flex items-start justify-between gap-1 mb-1.5">
