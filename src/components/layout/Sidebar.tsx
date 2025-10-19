@@ -92,11 +92,6 @@ const Sidebar = () => {
     label: "Importação em Massa",
     requiresOwnerOrGestor: true
   }, {
-    to: "/whatsapp",
-    icon: MessageCircle,
-    label: "WhatsApp",
-    requiresOwnerOrGestor: true
-  }, {
     to: "/users",
     icon: UserCog,
     label: "Usuários",
