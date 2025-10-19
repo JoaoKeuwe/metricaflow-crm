@@ -1,4 +1,4 @@
-import { LayoutDashboard, Users, KanbanSquare, UserCog, Settings, LogOut, Plug, Calendar, ListTodo, Database, Upload } from "lucide-react";
+import { LayoutDashboard, Users, KanbanSquare, UserCog, Settings, LogOut, Plug, Calendar, ListTodo, Database, Upload, MessageCircle } from "lucide-react";
 import { NavLink, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
@@ -90,6 +90,11 @@ const Sidebar = () => {
     to: "/bulk-import",
     icon: Upload,
     label: "Importação em Massa",
+    requiresOwnerOrGestor: true
+  }, {
+    to: "/whatsapp",
+    icon: MessageCircle,
+    label: "WhatsApp",
     requiresOwnerOrGestor: true
   }, {
     to: "/users",

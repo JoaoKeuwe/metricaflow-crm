@@ -16,6 +16,7 @@ import Agenda from "./pages/Agenda";
 import Tasks from "./pages/Tasks";
 import LocalProspector from "./pages/LocalProspector";
 import BulkImport from "./pages/BulkImport";
+import WhatsApp from "./pages/WhatsApp";
 import NotFound from "./pages/NotFound";
 import Sidebar from "./components/layout/Sidebar";
 import Header from "./components/layout/Header";
@@ -129,6 +130,14 @@ const App = () => {
                 <DemoLayout>
                   <BulkImport />
                 </DemoLayout>
+              }
+            />
+            <Route
+              path="/whatsapp"
+              element={
+                <ProtectedRoute>
+                  <WhatsApp />
+                </ProtectedRoute>
               }
             />
             <Route path="*" element={<NotFound />} />
