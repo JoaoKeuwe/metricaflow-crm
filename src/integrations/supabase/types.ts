@@ -634,6 +634,191 @@ export type Database = {
         }
         Relationships: []
       }
+      whatsapp_campaign_messages: {
+        Row: {
+          campaign_id: string
+          error_message: string | null
+          id: string
+          lead_id: string
+          scheduled_at: string
+          sent_at: string | null
+          status: string | null
+          whatsapp_message_id: string | null
+        }
+        Insert: {
+          campaign_id: string
+          error_message?: string | null
+          id?: string
+          lead_id: string
+          scheduled_at: string
+          sent_at?: string | null
+          status?: string | null
+          whatsapp_message_id?: string | null
+        }
+        Update: {
+          campaign_id?: string
+          error_message?: string | null
+          id?: string
+          lead_id?: string
+          scheduled_at?: string
+          sent_at?: string | null
+          status?: string | null
+          whatsapp_message_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "whatsapp_campaign_messages_campaign_id_fkey"
+            columns: ["campaign_id"]
+            isOneToOne: false
+            referencedRelation: "whatsapp_campaigns"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "whatsapp_campaign_messages_lead_id_fkey"
+            columns: ["lead_id"]
+            isOneToOne: false
+            referencedRelation: "leads"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "whatsapp_campaign_messages_whatsapp_message_id_fkey"
+            columns: ["whatsapp_message_id"]
+            isOneToOne: false
+            referencedRelation: "whatsapp_messages"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      whatsapp_campaigns: {
+        Row: {
+          company_id: string
+          created_at: string
+          created_by: string | null
+          delay_seconds: number | null
+          finished_at: string | null
+          id: string
+          leads_processed: number | null
+          leads_responded: number | null
+          leads_total: number
+          message_template: string
+          name: string
+          started_at: string | null
+          status: string | null
+        }
+        Insert: {
+          company_id: string
+          created_at?: string
+          created_by?: string | null
+          delay_seconds?: number | null
+          finished_at?: string | null
+          id?: string
+          leads_processed?: number | null
+          leads_responded?: number | null
+          leads_total: number
+          message_template: string
+          name: string
+          started_at?: string | null
+          status?: string | null
+        }
+        Update: {
+          company_id?: string
+          created_at?: string
+          created_by?: string | null
+          delay_seconds?: number | null
+          finished_at?: string | null
+          id?: string
+          leads_processed?: number | null
+          leads_responded?: number | null
+          leads_total?: number
+          message_template?: string
+          name?: string
+          started_at?: string | null
+          status?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "whatsapp_campaigns_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "whatsapp_campaigns_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      whatsapp_messages: {
+        Row: {
+          company_id: string
+          created_at: string
+          created_by: string | null
+          direction: string
+          evolution_message_id: string | null
+          id: string
+          lead_id: string | null
+          media_type: string | null
+          media_url: string | null
+          message: string
+          phone: string
+          status: string | null
+        }
+        Insert: {
+          company_id: string
+          created_at?: string
+          created_by?: string | null
+          direction: string
+          evolution_message_id?: string | null
+          id?: string
+          lead_id?: string | null
+          media_type?: string | null
+          media_url?: string | null
+          message: string
+          phone: string
+          status?: string | null
+        }
+        Update: {
+          company_id?: string
+          created_at?: string
+          created_by?: string | null
+          direction?: string
+          evolution_message_id?: string | null
+          id?: string
+          lead_id?: string | null
+          media_type?: string | null
+          media_url?: string | null
+          message?: string
+          phone?: string
+          status?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "whatsapp_messages_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "whatsapp_messages_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "whatsapp_messages_lead_id_fkey"
+            columns: ["lead_id"]
+            isOneToOne: false
+            referencedRelation: "leads"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
       [_ in never]: never
@@ -654,6 +839,17 @@ export type Database = {
       generate_api_token: {
         Args: Record<PropertyKey, never>
         Returns: string
+      }
+      get_campaign_stats: {
+        Args: { _campaign_id: string }
+        Returns: {
+          delivered: number
+          failed: number
+          pending: number
+          read: number
+          sent: number
+          total: number
+        }[]
       }
       get_user_company_id: {
         Args: Record<PropertyKey, never>

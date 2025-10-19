@@ -16,11 +16,12 @@ import {
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { ArrowLeft, Plus, FileDown, Brain, Loader2, CalendarClock } from "lucide-react";
+import { ArrowLeft, Plus, FileDown, Brain, Loader2, CalendarClock, MessageCircle } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { format } from "date-fns";
 import jsPDF from "jspdf";
 import { LinkedTasks } from "@/components/tasks/LinkedTasks";
+import { WhatsAppChat } from "@/components/whatsapp/WhatsAppChat";
 import {
   Dialog,
   DialogContent,
@@ -387,6 +388,10 @@ const LeadDetail = () => {
         <TabsList>
           <TabsTrigger value="notes">Notas</TabsTrigger>
           <TabsTrigger value="tasks">Tarefas</TabsTrigger>
+          <TabsTrigger value="whatsapp">
+            <MessageCircle className="h-4 w-4 mr-2" />
+            WhatsApp
+          </TabsTrigger>
         </TabsList>
 
         <TabsContent value="notes" className="space-y-4">
@@ -552,6 +557,22 @@ const LeadDetail = () => {
 
         <TabsContent value="tasks" className="space-y-4">
           <LinkedTasks leadId={id!} />
+        </TabsContent>
+
+        <TabsContent value="whatsapp" className="space-y-4">
+          {lead.phone ? (
+            <WhatsAppChat 
+              leadId={lead.id} 
+              leadPhone={lead.phone} 
+              leadName={lead.name}
+            />
+          ) : (
+            <Card className="p-6 text-center">
+              <p className="text-muted-foreground">
+                Este lead não possui número de telefone cadastrado
+              </p>
+            </Card>
+          )}
         </TabsContent>
       </Tabs>
 

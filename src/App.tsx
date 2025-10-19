@@ -15,6 +15,7 @@ import Integrations from "./pages/Integrations";
 import Agenda from "./pages/Agenda";
 import Tasks from "./pages/Tasks";
 import LocalProspector from "./pages/LocalProspector";
+import BulkImport from "./pages/BulkImport";
 import NotFound from "./pages/NotFound";
 import Sidebar from "./components/layout/Sidebar";
 import Header from "./components/layout/Header";
@@ -119,6 +120,14 @@ const App = () => {
               element={
                 <DemoLayout>
                   <LocalProspector />
+                </DemoLayout>
+              }
+            />
+            <Route
+              path="/bulk-import"
+              element={
+                <DemoLayout>
+                  <BulkImport />
                 </DemoLayout>
               }
             />

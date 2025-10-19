@@ -87,6 +87,11 @@ const Sidebar = () => {
     label: "Local Prospector",
     requiresOwnerOrGestor: false
   }, {
+    to: "/bulk-import",
+    icon: Upload,
+    label: "Importação em Massa",
+    requiresOwnerOrGestor: true
+  }, {
     to: "/users",
     icon: UserCog,
     label: "Usuários",
