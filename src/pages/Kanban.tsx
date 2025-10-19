@@ -6,6 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
+import { Skeleton } from "@/components/ui/skeleton";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { useToast } from "@/hooks/use-toast";
 import { Eye, MessageCircle, Clock } from "lucide-react";
@@ -68,70 +69,53 @@ const Kanban = () => {
     localStorage.setItem("kanban_status_filter", statusFilter);
   }, [statusFilter]);
 
-  const { data: leads } = useQuery({
-    queryKey: ["kanban-leads"],
+  const { data: session } = useQuery({
+    queryKey: ["session"],
     queryFn: async () => {
-      const startOfMonth = new Date();
-      startOfMonth.setDate(1);
-      startOfMonth.setHours(0, 0, 0, 0);
-      
-      const endOfMonth = new Date(startOfMonth);
-      endOfMonth.setMonth(endOfMonth.getMonth() + 1);
-      endOfMonth.setDate(0);
-      endOfMonth.setHours(23, 59, 59, 999);
+      const { data } = await supabase.auth.getSession();
+      return data.session;
+    },
+  });
 
-      const { data: leadsData, error } = await supabase
-        .from("leads")
-        .select("*, profiles(name)")
-        .order("created_at", { ascending: false });
+  const { data: userProfile } = useQuery({
+    queryKey: ["user-profile"],
+    queryFn: async () => {
+      const { data } = await supabase
+        .from("profiles")
+        .select("company_id")
+        .eq("id", session?.user?.id)
+        .single();
+      return data;
+    },
+    enabled: !!session,
+  });
+
+  const { data: leads, isLoading: isLoadingLeads } = useQuery({
+    queryKey: ["kanban-leads", userProfile?.company_id],
+    queryFn: async () => {
+      if (!userProfile?.company_id) return [];
+
+      const now = new Date();
+      const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+      const endOfMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59, 999);
+
+      const { data, error } = await supabase.rpc('get_leads_with_future_activities', {
+        p_company_id: userProfile.company_id,
+        p_start_date: now.toISOString(),
+        p_end_date: endOfMonth.toISOString(),
+      });
 
       if (error) throw error;
 
-      // Para cada lead, buscar atividades futuras no mês atual
-      const now = new Date().toISOString();
-      const endOfMonthISO = endOfMonth.toISOString();
-
-      const leadsWithActivity = await Promise.all(
-        leadsData.map(async (lead) => {
-          // Contar meetings futuros
-          const { count: meetingsCount } = await supabase
-            .from("meetings")
-            .select("*", { count: 'exact', head: true })
-            .eq("lead_id", lead.id)
-            .gt("start_time", now)
-            .lt("start_time", endOfMonthISO)
-            .neq("status", "cancelada");
-
-          // Contar reminders futuros
-          const { count: remindersCount } = await supabase
-            .from("reminders")
-            .select("*", { count: 'exact', head: true })
-            .eq("lead_id", lead.id)
-            .gt("reminder_date", now)
-            .lt("reminder_date", endOfMonthISO)
-            .eq("completed", false);
-
-          // Contar tasks futuras
-          const { count: tasksCount } = await supabase
-            .from("tasks")
-            .select("*", { count: 'exact', head: true })
-            .eq("lead_id", lead.id)
-            .gt("due_date", now)
-            .lt("due_date", endOfMonthISO)
-            .neq("status", "concluida");
-
-          const totalActivities = (meetingsCount || 0) + (remindersCount || 0) + (tasksCount || 0);
-
-          return {
-            ...lead,
-            hasFutureActivity: totalActivities > 0,
-            futureActivitiesCount: totalActivities
-          };
-        })
-      );
-
-      return leadsWithActivity;
+      return data?.map((lead: any) => ({
+        ...lead,
+        profiles: lead.profile_name ? { name: lead.profile_name } : null,
+        hasFutureActivity: lead.has_future_activity,
+        futureActivitiesCount: Number(lead.future_activities_count),
+      })) || [];
     },
+    enabled: !!userProfile?.company_id,
+    staleTime: 2 * 60 * 1000, // Cache por 2 minutos
   });
 
   // Realtime listener para sincronização instantânea
@@ -254,22 +238,52 @@ const Kanban = () => {
         visibleLeads={filteredLeads.length}
       />
 
-      <div className={`grid grid-cols-1 gap-4 ${
-        activeOnly 
-          ? "md:grid-cols-2 lg:grid-cols-4" 
-          : "md:grid-cols-3 lg:grid-cols-6"
-      }`}>
-        {visibleColumns.map((column) => {
-          const columnLeads = filteredLeads
-            .filter((lead: any) => lead.status === column.id)
-            .sort((a: any, b: any) => {
-              // Sort by age (oldest first)
-              const aDays = getDaysInCurrentStage(a.updated_at);
-              const bDays = getDaysInCurrentStage(b.updated_at);
-              return bDays - aDays;
-            });
+      {isLoadingLeads ? (
+        <div className={`grid grid-cols-1 gap-4 ${
+          activeOnly 
+            ? "md:grid-cols-2 lg:grid-cols-4" 
+            : "md:grid-cols-3 lg:grid-cols-6"
+        }`}>
+          {visibleColumns.map((column) => (
+            <div key={column.id} className="space-y-3">
+              <div className="flex items-center gap-2">
+                <Skeleton className="w-3 h-3 rounded-full" />
+                <Skeleton className="h-4 w-32" />
+                <Skeleton className="h-5 w-8 ml-auto" />
+              </div>
+              <div className="space-y-2">
+                {[1, 2, 3].map((i) => (
+                  <Card key={i}>
+                    <CardHeader className="p-4">
+                      <Skeleton className="h-4 w-full" />
+                      <Skeleton className="h-3 w-20 mt-2" />
+                    </CardHeader>
+                    <CardContent className="p-4 pt-0">
+                      <Skeleton className="h-8 w-full" />
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
+            </div>
+          ))}
+        </div>
+      ) : (
+        <div className={`grid grid-cols-1 gap-4 ${
+          activeOnly 
+            ? "md:grid-cols-2 lg:grid-cols-4" 
+            : "md:grid-cols-3 lg:grid-cols-6"
+        }`}>
+          {visibleColumns.map((column) => {
+            const columnLeads = filteredLeads
+              .filter((lead: any) => lead.status === column.id)
+              .sort((a: any, b: any) => {
+                // Sort by age (oldest first)
+                const aDays = getDaysInCurrentStage(a.updated_at);
+                const bDays = getDaysInCurrentStage(b.updated_at);
+                return bDays - aDays;
+              });
 
-          return (
+            return (
             <div
               key={column.id}
               onDrop={(e) => handleDrop(e, column.id)}
@@ -410,9 +424,10 @@ const Kanban = () => {
                 })}
               </div>
             </div>
-          );
-        })}
-      </div>
+            );
+          })}
+        </div>
+      )}
     </div>
   );
 };

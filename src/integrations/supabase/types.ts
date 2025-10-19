@@ -851,6 +851,26 @@ export type Database = {
           total: number
         }[]
       }
+      get_leads_with_future_activities: {
+        Args: { p_company_id: string; p_end_date: string; p_start_date: string }
+        Returns: {
+          assigned_to: string
+          company: string
+          company_id: string
+          created_at: string
+          email: string
+          estimated_value: number
+          future_activities_count: number
+          has_future_activity: boolean
+          id: string
+          name: string
+          phone: string
+          profile_name: string
+          source: string
+          status: string
+          updated_at: string
+        }[]
+      }
       get_user_company_id: {
         Args: Record<PropertyKey, never>
         Returns: string
