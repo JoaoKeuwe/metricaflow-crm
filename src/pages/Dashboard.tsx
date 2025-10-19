@@ -10,6 +10,7 @@ import LeadsSourceChart from "@/components/dashboard/LeadsSourceChart";
 import ConversionFunnelChart from "@/components/dashboard/ConversionFunnelChart";
 import DashboardFilters from "@/components/dashboard/DashboardFilters";
 import { useDetailedPerformanceData } from "@/hooks/useDetailedPerformanceData";
+import { useRealtimeLeads } from "@/hooks/useRealtimeLeads";
 import { Users, CheckCircle, Clock, TrendingUp, DollarSign, Target, FileDown } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -27,6 +28,10 @@ const Dashboard = () => {
   const [compareMode, setCompareMode] = useState(false);
   const [compareMonth, setCompareMonth] = useState(String(new Date().getMonth()));
   const [compareYear, setCompareYear] = useState(String(currentYear - 1));
+  const [isExporting, setIsExporting] = useState(false);
+
+  // Hook centralizado de realtime
+  useRealtimeLeads();
 
   const getDateRange = () => {
     if (selectedMonth === "all") {
@@ -91,109 +96,9 @@ const Dashboard = () => {
     },
   });
 
-  const { data: stats } = useQuery({
+  // Consolidar todas as queries principais do dashboard em uma única chamada
+  const { data: dashboardData, isLoading: isLoadingDashboard } = useQuery({
     queryKey: ["dashboard-stats", userRole, selectedMonth, selectedYear],
-    queryFn: async () => {
-      const dateRange = getDateRange();
-      const {
-        data: { session },
-      } = await supabase.auth.getSession();
-      if (!session?.user) throw new Error("Sessão expirada. Por favor, faça login novamente.");
-
-      let leadsQuery = supabase
-        .from("leads")
-        .select("*", { count: "exact" })
-        .gte("created_at", dateRange.start)
-        .lte("created_at", dateRange.end);
-
-      if (userRole === "vendedor") {
-        leadsQuery = leadsQuery.eq("assigned_to", session.user.id);
-      }
-
-      const { count: totalLeads } = await leadsQuery;
-
-      let wonQuery = supabase
-        .from("leads")
-        .select("*", { count: "exact" })
-        .eq("status", "ganho")
-        .gte("created_at", dateRange.start)
-        .lte("created_at", dateRange.end);
-
-      if (userRole === "vendedor") {
-        wonQuery = wonQuery.eq("assigned_to", session.user.id);
-      }
-
-      const { count: wonLeads } = await wonQuery;
-
-      let pendingQuery = supabase
-        .from("leads")
-        .select("*", { count: "exact" })
-        .in("status", ["novo", "contato_feito", "proposta", "negociacao"])
-        .gte("created_at", dateRange.start)
-        .lte("created_at", dateRange.end);
-
-      if (userRole === "vendedor") {
-        pendingQuery = pendingQuery.eq("assigned_to", session.user.id);
-      }
-
-      const { count: pendingLeads } = await pendingQuery;
-
-      const conversionRate =
-        totalLeads && totalLeads > 0
-          ? ((wonLeads || 0) / totalLeads) * 100
-          : 0;
-
-      // Valor total estimado
-      let estimatedValueQuery = supabase
-        .from("leads")
-        .select("estimated_value")
-        .gte("created_at", dateRange.start)
-        .lte("created_at", dateRange.end);
-      
-      if (userRole === "vendedor") {
-        estimatedValueQuery = estimatedValueQuery.eq("assigned_to", session.user.id);
-      }
-
-      const { data: estimatedData } = await estimatedValueQuery;
-      const totalEstimatedValue = estimatedData?.reduce((sum, lead) => 
-        sum + (Number(lead.estimated_value) || 0), 0) || 0;
-
-      // Valor convertido
-      let convertedValueQuery = supabase
-        .from("leads")
-        .select("estimated_value")
-        .eq("status", "ganho")
-        .gte("created_at", dateRange.start)
-        .lte("created_at", dateRange.end);
-      
-      if (userRole === "vendedor") {
-        convertedValueQuery = convertedValueQuery.eq("assigned_to", session.user.id);
-      }
-
-      const { data: convertedData } = await convertedValueQuery;
-      const totalConvertedValue = convertedData?.reduce((sum, lead) => 
-        sum + (Number(lead.estimated_value) || 0), 0) || 0;
-
-      // Ticket médio
-      const averageTicket = wonLeads && wonLeads > 0 
-        ? totalConvertedValue / wonLeads 
-        : 0;
-
-      return {
-        totalLeads: totalLeads || 0,
-        wonLeads: wonLeads || 0,
-        pendingLeads: pendingLeads || 0,
-        conversionRate: conversionRate.toFixed(1),
-        totalEstimatedValue,
-        totalConvertedValue,
-        averageTicket,
-      };
-    },
-    enabled: !!profile,
-  });
-
-  const { data: statusData } = useQuery({
-    queryKey: ["leads-status", userRole, selectedMonth, selectedYear],
     queryFn: async () => {
       const {
         data: { session },
@@ -202,40 +107,26 @@ const Dashboard = () => {
 
       const dateRange = getDateRange();
 
-      let query = supabase
-        .from("leads")
-        .select("status")
-        .gte("created_at", dateRange.start)
-        .lte("created_at", dateRange.end);
-      
-      if (userRole === "vendedor") {
-        query = query.eq("assigned_to", session.user.id);
-      }
+      const { data, error } = await supabase.functions.invoke('get-dashboard-stats', {
+        body: {
+          start_date: dateRange.start,
+          end_date: dateRange.end,
+          user_role: userRole || 'vendedor',
+          user_id: session.user.id,
+        },
+      });
 
-      const { data } = await query;
-      
-      const statusCounts = data?.reduce((acc, lead) => {
-        acc[lead.status] = (acc[lead.status] || 0) + 1;
-        return acc;
-      }, {} as Record<string, number>) || {};
-
-      const colors: Record<string, string> = {
-        novo: "hsl(var(--chart-1))",
-        contato_feito: "hsl(var(--chart-2))",
-        proposta: "hsl(var(--chart-3))",
-        negociacao: "hsl(var(--chart-4))",
-        ganho: "hsl(var(--chart-5))",
-        perdido: "hsl(var(--chart-6))",
-      };
-
-      return Object.entries(statusCounts).map(([status, count]) => ({
-        status,
-        count,
-        color: colors[status] || "hsl(var(--chart-1))",
-      }));
+      if (error) throw error;
+      return data;
     },
-    enabled: !!profile,
+    enabled: !!profile && !!userRole,
+    staleTime: 3 * 60 * 1000, // Cache de 3 minutos para Dashboard
   });
+
+  const stats = dashboardData?.stats;
+  const statusData = dashboardData?.statusData;
+  const sourceData = dashboardData?.sourceData;
+  const funnelData = dashboardData?.funnelData;
 
   const { data: monthlyClosedData } = useQuery({
     queryKey: ["monthly-closed-leads", userRole, selectedMonth, selectedYear],
@@ -348,90 +239,6 @@ const Dashboard = () => {
     getDateRange(),
     userRole
   );
-
-  const { data: sourceData } = useQuery({
-    queryKey: ["leads-source", userRole, selectedMonth, selectedYear],
-    queryFn: async () => {
-      const {
-        data: { session },
-      } = await supabase.auth.getSession();
-      if (!session?.user) throw new Error("Sessão expirada.");
-
-      const dateRange = getDateRange();
-
-      let query = supabase.from("leads")
-        .select("source")
-        .gte("created_at", dateRange.start)
-        .lte("created_at", dateRange.end);
-      
-      if (userRole === "vendedor") {
-        query = query.eq("assigned_to", session.user.id);
-      }
-
-      const { data } = await query;
-      
-      const sourceCounts = data?.reduce((acc, lead) => {
-        const source = lead.source || "Não informado";
-        acc[source] = (acc[source] || 0) + 1;
-        return acc;
-      }, {} as Record<string, number>) || {};
-
-      const colors = [
-        "hsl(var(--chart-1))",
-        "hsl(var(--chart-2))",
-        "hsl(var(--chart-3))",
-        "hsl(var(--chart-4))",
-        "hsl(var(--chart-5))",
-      ];
-
-      return Object.entries(sourceCounts).map(([source, count], index) => ({
-        source,
-        count,
-        color: colors[index % colors.length],
-      }));
-    },
-    enabled: !!profile,
-  });
-
-  const { data: funnelData } = useQuery({
-    queryKey: ["conversion-funnel", userRole, selectedMonth, selectedYear],
-    queryFn: async () => {
-      const {
-        data: { session },
-      } = await supabase.auth.getSession();
-      if (!session?.user) throw new Error("Sessão expirada.");
-
-      const dateRange = getDateRange();
-
-      let query = supabase.from("leads")
-        .select("status")
-        .gte("created_at", dateRange.start)
-        .lte("created_at", dateRange.end);
-      
-      if (userRole === "vendedor") {
-        query = query.eq("assigned_to", session.user.id);
-      }
-
-      const { data } = await query;
-
-      const stages = [
-        { stage: "Novos", status: "novo", color: "hsl(var(--chart-1))" },
-        { stage: "Contato Feito", status: "contato_feito", color: "hsl(var(--chart-2))" },
-        { stage: "Proposta", status: "proposta", color: "hsl(var(--chart-3))" },
-        { stage: "Negociação", status: "negociacao", color: "hsl(var(--chart-4))" },
-        { stage: "Ganho", status: "ganho", color: "hsl(var(--chart-5))" },
-      ];
-
-      return stages.map((stage) => ({
-        stage: stage.stage,
-        count: data?.filter((lead) => lead.status === stage.status).length || 0,
-        color: stage.color,
-      }));
-    },
-    enabled: !!profile,
-  });
-
-  const [isExporting, setIsExporting] = useState(false);
 
   const handleExportPDF = async () => {
     console.log("Botão de exportar PDF clicado");
@@ -639,7 +446,7 @@ const Dashboard = () => {
           </Button>
         </div>
 
-        {!stats ? (
+        {!stats || isLoadingDashboard ? (
           <div className="space-y-6">
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-6">
               {[1, 2, 3, 4, 5, 6].map((i) => (

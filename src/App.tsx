@@ -22,7 +22,16 @@ import Sidebar from "./components/layout/Sidebar";
 import Header from "./components/layout/Header";
 import ProtectedRoute from "./pages/ProtectedRoute";
 
-const queryClient = new QueryClient();
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      staleTime: 5 * 60 * 1000, // 5 minutos
+      gcTime: 10 * 60 * 1000, // 10 minutos  
+      refetchOnWindowFocus: false,
+      retry: 1,
+    },
+  },
+});
 
 const DemoLayout = ({ children }: { children: React.ReactNode }) => (
   <div className="flex h-screen bg-background">

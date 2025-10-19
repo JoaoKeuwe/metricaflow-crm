@@ -1,7 +1,8 @@
-import { useEffect, useState, useMemo } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
+import { useRealtimeLeads } from "@/hooks/useRealtimeLeads";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -42,6 +43,9 @@ const Kanban = () => {
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const navigate = useNavigate();
+
+  // Hook centralizado de realtime
+  useRealtimeLeads();
 
   // Filter states
   const [activeOnly, setActiveOnly] = useState(() => {
@@ -117,28 +121,6 @@ const Kanban = () => {
     enabled: !!userProfile?.company_id,
     staleTime: 2 * 60 * 1000, // Cache por 2 minutos
   });
-
-  // Realtime listener para sincronização instantânea
-  useEffect(() => {
-    const channel = supabase
-      .channel('kanban-leads-realtime')
-      .on(
-        'postgres_changes',
-        {
-          event: '*',
-          schema: 'public',
-          table: 'leads'
-        },
-        () => {
-          queryClient.invalidateQueries({ queryKey: ["kanban-leads"] });
-        }
-      )
-      .subscribe();
-
-    return () => {
-      supabase.removeChannel(channel);
-    };
-  }, [queryClient]);
 
   const updateStatusMutation = useMutation({
     mutationFn: async ({ id, status }: { id: string; status: string }) => {

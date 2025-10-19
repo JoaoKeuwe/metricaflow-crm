@@ -6,6 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Skeleton } from "@/components/ui/skeleton";
 import { LoadingSpinner } from "@/components/ui/loading-spinner";
+import { useRealtimeLeads } from "@/hooks/useRealtimeLeads";
 import {
   Dialog,
   DialogContent,
@@ -34,7 +35,6 @@ import {
 import { Plus, Eye, ChevronDown, Calendar } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useNavigate } from "react-router-dom";
-import { useEffect } from "react";
 import {
   Table,
   TableBody,
@@ -62,6 +62,10 @@ const Leads = () => {
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const navigate = useNavigate();
+  
+  // Hook centralizado de realtime
+  useRealtimeLeads();
+  
   const [open, setOpen] = useState(false);
   const [formErrors, setFormErrors] = useState<Partial<Record<keyof LeadFormData, string>>>({});
   const [formData, setFormData] = useState<LeadFormData>({
@@ -217,29 +221,6 @@ const Leads = () => {
       return data || [];
     },
   });
-
-  // Realtime listener para sincronização instantânea
-  useEffect(() => {
-    const channel = supabase
-      .channel('leads-realtime')
-      .on(
-        'postgres_changes',
-        {
-          event: '*',
-          schema: 'public',
-          table: 'leads'
-        },
-        () => {
-          queryClient.invalidateQueries({ queryKey: ["leads"] });
-          queryClient.invalidateQueries({ queryKey: ["kanban-leads"] });
-        }
-      )
-      .subscribe();
-
-    return () => {
-      supabase.removeChannel(channel);
-    };
-  }, [queryClient]);
 
   const normalizePhone = (phone: string) => {
     return phone.replace(/\D/g, "");

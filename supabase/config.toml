@@ -77,3 +77,6 @@ verify_jwt = true
 
 [functions.cleanup-completed-tasks]
 verify_jwt = false
+
+[functions.get-dashboard-stats]
+verify_jwt = true
