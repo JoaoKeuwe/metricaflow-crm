@@ -16,12 +16,11 @@ import {
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { ArrowLeft, Plus, FileDown, Brain, Loader2, CalendarClock, MessageCircle } from "lucide-react";
+import { ArrowLeft, Plus, FileDown, CalendarClock } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { format } from "date-fns";
 import jsPDF from "jspdf";
 import { LinkedTasks } from "@/components/tasks/LinkedTasks";
-import { WhatsAppChat } from "@/components/whatsapp/WhatsAppChat";
 import {
   Dialog,
   DialogContent,
@@ -61,9 +60,6 @@ const LeadDetail = () => {
   const [noteContent, setNoteContent] = useState("");
   const [noteType, setNoteType] = useState("Contato feito");
   const [customNoteType, setCustomNoteType] = useState("");
-  const [isAnalyzing, setIsAnalyzing] = useState(false);
-  const [analysis, setAnalysis] = useState("");
-  const [showAnalysisDialog, setShowAnalysisDialog] = useState(false);
   const [returnDate, setReturnDate] = useState<Date>();
 
   const { data: lead, isLoading } = useQuery({
@@ -291,36 +287,6 @@ const LeadDetail = () => {
     });
   };
 
-  const handleAnalyzeConversation = async () => {
-    if (!id) return;
-
-    setIsAnalyzing(true);
-    try {
-      const { data, error } = await supabase.functions.invoke("analyze-lead-conversation", {
-        body: { leadId: id },
-      });
-
-      if (error) throw error;
-
-      if (data?.analysis) {
-        setAnalysis(data.analysis);
-        setShowAnalysisDialog(true);
-        toast({
-          title: "Análise gerada com sucesso!",
-          description: "Confira as recomendações da IA",
-        });
-      }
-    } catch (error: any) {
-      console.error("Erro ao gerar análise:", error);
-      toast({
-        title: "Erro ao gerar análise",
-        description: error.message || "Tente novamente em alguns instantes",
-        variant: "destructive",
-      });
-    } finally {
-      setIsAnalyzing(false);
-    }
-  };
 
   if (isLoading) {
     return <div className="p-6">Carregando...</div>;
@@ -404,10 +370,6 @@ const LeadDetail = () => {
         <TabsList>
           <TabsTrigger value="notes">Notas</TabsTrigger>
           <TabsTrigger value="tasks">Tarefas</TabsTrigger>
-          <TabsTrigger value="whatsapp">
-            <MessageCircle className="h-4 w-4 mr-2" />
-            WhatsApp
-          </TabsTrigger>
         </TabsList>
 
         <TabsContent value="notes" className="space-y-4">
@@ -419,18 +381,6 @@ const LeadDetail = () => {
             >
               <FileDown className="h-4 w-4 mr-2" />
               Exportar PDF
-            </Button>
-            <Button 
-              onClick={handleAnalyzeConversation}
-              variant="outline"
-              disabled={isAnalyzing || !notes || notes.length === 0}
-            >
-              {isAnalyzing ? (
-                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-              ) : (
-                <Brain className="h-4 w-4 mr-2" />
-              )}
-              Analisar com IA
             </Button>
           </div>
 
@@ -574,40 +524,7 @@ const LeadDetail = () => {
         <TabsContent value="tasks" className="space-y-4">
           <LinkedTasks leadId={id!} />
         </TabsContent>
-
-        <TabsContent value="whatsapp" className="space-y-4">
-          {lead.phone ? (
-            <WhatsAppChat 
-              leadId={lead.id} 
-              leadPhone={lead.phone} 
-              leadName={lead.name}
-              readOnly={userRole === 'vendedor'}
-            />
-          ) : (
-            <Card className="p-6 text-center">
-              <p className="text-muted-foreground">
-                Este lead não possui número de telefone cadastrado
-              </p>
-            </Card>
-          )}
-        </TabsContent>
       </Tabs>
-
-      <Dialog open={showAnalysisDialog} onOpenChange={setShowAnalysisDialog}>
-        <DialogContent className="max-w-3xl max-h-[80vh] overflow-y-auto">
-          <DialogHeader>
-            <DialogTitle>Análise de IA - Atendimento ao Cliente</DialogTitle>
-            <DialogDescription>
-              Análise detalhada sobre o atendimento e recomendações de melhoria
-            </DialogDescription>
-          </DialogHeader>
-          <div className="prose prose-sm max-w-none">
-            <div className="whitespace-pre-wrap text-sm leading-relaxed">
-              {analysis}
-            </div>
-          </div>
-        </DialogContent>
-      </Dialog>
     </div>
   );
 };
