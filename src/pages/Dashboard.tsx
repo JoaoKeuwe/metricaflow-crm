@@ -386,16 +386,12 @@ const Dashboard = () => {
 
   return (
     <div className="relative min-h-screen">
-      {/* Animated gradient background - mais vibrante e dinâmico */}
+      {/* Animated gradient background - sutilizado */}
       <div className="fixed inset-0 -z-10 pointer-events-none bg-gradient-to-br from-background via-background to-background">
-        {/* Orbs de cor animados e maiores */}
-        <div className="absolute top-0 -left-40 w-[600px] h-[600px] bg-primary/30 rounded-full mix-blend-screen filter blur-[120px] opacity-40 animate-pulse" />
-        <div className="absolute top-40 -right-40 w-[500px] h-[500px] bg-accent/30 rounded-full mix-blend-screen filter blur-[100px] opacity-40 animate-pulse" style={{ animationDelay: '2s' }} />
-        <div className="absolute bottom-0 left-1/3 w-[550px] h-[550px] bg-[hsl(210,100%,60%)]/25 rounded-full mix-blend-screen filter blur-[110px] opacity-35 animate-pulse" style={{ animationDelay: '4s' }} />
-        <div className="absolute top-1/2 right-1/4 w-[450px] h-[450px] bg-[hsl(158,100%,65%)]/20 rounded-full mix-blend-screen filter blur-[90px] opacity-30 animate-pulse" style={{ animationDelay: '6s' }} />
-        
-        {/* Grid sutil para profundidade */}
-        <div className="absolute inset-0 bg-[linear-gradient(rgba(255,31,78,0.03)_1px,transparent_1px),linear-gradient(90deg,rgba(255,31,78,0.03)_1px,transparent_1px)] bg-[size:50px_50px] [mask-image:radial-gradient(ellipse_80%_50%_at_50%_50%,black,transparent)]" />
+        {/* Orbs de cor sutis */}
+        <div className="absolute top-0 -left-40 w-[500px] h-[500px] bg-primary/15 rounded-full mix-blend-screen filter blur-[80px] opacity-20 animate-pulse" />
+        <div className="absolute top-40 -right-40 w-[400px] h-[400px] bg-accent/15 rounded-full mix-blend-screen filter blur-[70px] opacity-20 animate-pulse" style={{ animationDelay: '2s' }} />
+        <div className="absolute bottom-0 left-1/3 w-[450px] h-[450px] bg-[hsl(210,100%,60%)]/12 rounded-full mix-blend-screen filter blur-[75px] opacity-18 animate-pulse" style={{ animationDelay: '4s' }} />
       </div>
 
       <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-700 relative z-10 pointer-events-auto">
@@ -448,8 +444,8 @@ const Dashboard = () => {
 
         {!stats || isLoadingDashboard ? (
           <div className="space-y-6">
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-6">
-              {[1, 2, 3, 4, 5, 6].map((i) => (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {[1, 2, 3].map((i) => (
                 <Skeleton key={i} className="h-32 rounded-lg" />
               ))}
             </div>
@@ -460,7 +456,7 @@ const Dashboard = () => {
           </div>
         ) : (
           <>
-            <div id="metrics-cards" className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-6 animate-in fade-in slide-in-from-bottom-4 duration-700 delay-300">
+            <div id="metrics-cards" className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 animate-in fade-in slide-in-from-bottom-4 duration-700 delay-300">
         <MetricCard
           title="Total de Leads"
           value={stats?.totalLeads || 0}

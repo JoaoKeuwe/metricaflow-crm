@@ -6,11 +6,11 @@ import { useRealtimeLeads } from "@/hooks/useRealtimeLeads";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Separator } from "@/components/ui/separator";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { useToast } from "@/hooks/use-toast";
-import { Eye, MessageCircle, Clock } from "lucide-react";
+import { Eye, MessageCircle, Clock, ChevronDown } from "lucide-react";
 import { KanbanFilters } from "@/components/leads/KanbanFilters";
 import { getDaysInCurrentStage, getAgeBadgeVariant, getTimePeriod, formatDaysAgo } from "@/lib/utils";
 import { format } from "date-fns";
@@ -47,6 +47,9 @@ const Kanban = () => {
   // Hook centralizado de realtime
   useRealtimeLeads();
 
+  // Expanded cards state
+  const [expandedCards, setExpandedCards] = useState<Set<string>>(new Set());
+
   // Filter states
   const [activeOnly, setActiveOnly] = useState(() => {
     const saved = localStorage.getItem("kanban_active_only");
@@ -59,6 +62,18 @@ const Kanban = () => {
     return localStorage.getItem("kanban_status_filter") || "all";
   });
   const [searchTerm, setSearchTerm] = useState("");
+
+  const toggleCard = (leadId: string) => {
+    setExpandedCards(prev => {
+      const newSet = new Set(prev);
+      if (newSet.has(leadId)) {
+        newSet.delete(leadId);
+      } else {
+        newSet.add(leadId);
+      }
+      return newSet;
+    });
+  };
 
   // Persist filters
   useEffect(() => {
@@ -286,122 +301,101 @@ const Kanban = () => {
                   const badgeVariant = getAgeBadgeVariant(days);
                   const daysText = formatDaysAgo(days);
                   const updatedDate = format(new Date(lead.updated_at), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR });
+                  const isExpanded = expandedCards.has(lead.id);
 
                   return (
-                    <Card
-                      key={lead.id}
-                      draggable
-                      onDragStart={(e) => handleDragStart(e, lead.id)}
-                      className="cursor-move hover:shadow-lg transition-all"
-                    >
-                      <CardHeader className="p-4">
-                        <div className="flex flex-col gap-2">
-                          <div className="flex items-start justify-between gap-2">
-                            <CardTitle className="text-sm flex-1">{lead.name}</CardTitle>
+                    <Collapsible key={lead.id} open={isExpanded} onOpenChange={() => toggleCard(lead.id)}>
+                      <Card
+                        draggable
+                        onDragStart={(e) => handleDragStart(e, lead.id)}
+                        className="cursor-move hover:shadow-md transition-all"
+                      >
+                        <CollapsibleTrigger asChild>
+                          <CardHeader className="p-3 cursor-pointer hover:bg-accent/50 transition-colors">
+                            <div className="flex items-center justify-between gap-2">
+                              <CardTitle className="text-sm font-medium flex-1 line-clamp-1">
+                                {lead.name}
+                              </CardTitle>
+                              <div className="flex items-center gap-1 shrink-0">
+                                <TooltipProvider>
+                                  <Tooltip>
+                                    <TooltipTrigger asChild>
+                                      <Badge variant={badgeVariant} className="text-xs">
+                                        {daysText}
+                                      </Badge>
+                                    </TooltipTrigger>
+                                    <TooltipContent>
+                                      <p>Neste estágio desde {updatedDate}</p>
+                                    </TooltipContent>
+                                  </Tooltip>
+                                </TooltipProvider>
+                                <ChevronDown className={`h-4 w-4 text-muted-foreground transition-transform ${isExpanded ? 'rotate-180' : ''}`} />
+                              </div>
+                            </div>
+                            {lead.hasFutureActivity && (
+                              <Badge variant="outline" className="text-xs w-fit mt-1">
+                                <Clock className="h-3 w-3 mr-1" />
+                                {lead.futureActivitiesCount} agendada{lead.futureActivitiesCount > 1 ? 's' : ''}
+                              </Badge>
+                            )}
+                          </CardHeader>
+                        </CollapsibleTrigger>
+                        
+                        <CollapsibleContent>
+                          <CardContent className="p-3 pt-0 space-y-2 border-t">
+                            <div className="space-y-1 text-xs text-muted-foreground">
+                              {lead.email && <p>📧 {lead.email}</p>}
+                              {lead.phone && <p>📱 {lead.phone}</p>}
+                              {lead.profiles && (
+                                <p>👤 {lead.profiles.name}</p>
+                              )}
+                            </div>
+                            
                             <TooltipProvider>
-                              <Tooltip>
-                                <TooltipTrigger asChild>
-                                  <Badge variant={badgeVariant} className="text-xs shrink-0">
-                                    <Clock className="h-3 w-3 mr-1" />
-                                    {daysText}
-                                  </Badge>
-                                </TooltipTrigger>
-                                <TooltipContent>
-                                  <p>Neste estágio desde {updatedDate}</p>
-                                </TooltipContent>
-                              </Tooltip>
-                            </TooltipProvider>
-                          </div>
-                          {lead.hasFutureActivity && (
-                            <Badge variant="outline" className="text-xs w-fit">
-                              <Clock className="h-3 w-3 mr-1" />
-                              {lead.futureActivitiesCount} agendada{lead.futureActivitiesCount > 1 ? 's' : ''}
-                            </Badge>
-                          )}
-                        </div>
-                      </CardHeader>
-                      <CardContent className="p-4 pt-0 space-y-2">
-                      <div className="space-y-1">
-                        {lead.email && (
-                          <p className="text-xs text-muted-foreground">
-                            {lead.email}
-                          </p>
-                        )}
-                        {lead.phone && (
-                          <p className="text-xs text-muted-foreground">
-                            {lead.phone}
-                          </p>
-                        )}
-                        {lead.profiles && (
-                          <Badge variant="outline" className="text-xs">
-                            {lead.profiles.name}
-                          </Badge>
-                        )}
-                      </div>
-                      
-                      <Separator />
-                      
-                      <TooltipProvider>
-                        <div className="flex items-center gap-1">
-                          <Tooltip>
-                            <TooltipTrigger asChild>
-                              <Button
-                                variant="ghost"
-                                size="icon"
-                                className="h-8 w-8"
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  navigate(`/lead/${lead.id}`);
-                                }}
-                              >
-                                <Eye className="h-4 w-4" />
-                              </Button>
-                            </TooltipTrigger>
-                            <TooltipContent>
-                              <p>Ver detalhes</p>
-                            </TooltipContent>
-                          </Tooltip>
+                              <div className="flex items-center gap-1 pt-1">
+                                <Tooltip>
+                                  <TooltipTrigger asChild>
+                                    <Button
+                                      variant="ghost"
+                                      size="icon"
+                                      className="h-7 w-7"
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        navigate(`/lead/${lead.id}`);
+                                      }}
+                                    >
+                                      <Eye className="h-3.5 w-3.5" />
+                                    </Button>
+                                  </TooltipTrigger>
+                                  <TooltipContent>Ver detalhes</TooltipContent>
+                                </Tooltip>
 
-                          <Tooltip>
-                            <TooltipTrigger asChild>
-                              <Button
-                                variant="ghost"
-                                size="icon"
-                                className="h-8 w-8"
-                                disabled={!lead.phone || !isValidPhone(lead.phone)}
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  if (lead.phone && isValidPhone(lead.phone)) {
-                                    const formattedPhone = formatPhoneForWhatsApp(lead.phone);
-                                    try {
-                                      window.open(`https://api.whatsapp.com/send?phone=${formattedPhone}`, "_blank");
-                                    } catch (error) {
-                                      toast({
-                                        title: "Erro ao abrir WhatsApp",
-                                        description: "Verifique se o pop-up não foi bloqueado pelo navegador.",
-                                        variant: "destructive",
-                                      });
-                                    }
-                                  } else {
-                                    toast({
-                                      title: "Telefone inválido",
-                                      description: "Este lead não possui um telefone válido.",
-                                      variant: "destructive",
-                                    });
-                                  }
-                                }}
-                              >
-                                <MessageCircle className="h-4 w-4" />
-                              </Button>
-                            </TooltipTrigger>
-                            <TooltipContent>
-                              <p>{lead.phone && isValidPhone(lead.phone) ? "Abrir WhatsApp" : "Telefone inválido"}</p>
-                            </TooltipContent>
-                          </Tooltip>
-                        </div>
-                      </TooltipProvider>
-                    </CardContent>
-                  </Card>
+                                <Tooltip>
+                                  <TooltipTrigger asChild>
+                                    <Button
+                                      variant="ghost"
+                                      size="icon"
+                                      className="h-7 w-7"
+                                      disabled={!lead.phone || !isValidPhone(lead.phone)}
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        if (lead.phone && isValidPhone(lead.phone)) {
+                                          const formattedPhone = formatPhoneForWhatsApp(lead.phone);
+                                          window.open(`https://api.whatsapp.com/send?phone=${formattedPhone}`, "_blank");
+                                        }
+                                      }}
+                                    >
+                                      <MessageCircle className="h-3.5 w-3.5" />
+                                    </Button>
+                                  </TooltipTrigger>
+                                  <TooltipContent>WhatsApp</TooltipContent>
+                                </Tooltip>
+                              </div>
+                            </TooltipProvider>
+                          </CardContent>
+                        </CollapsibleContent>
+                      </Card>
+                    </Collapsible>
                   );
                 })}
               </div>

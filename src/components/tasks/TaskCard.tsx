@@ -1,9 +1,11 @@
+import { useState } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { Card, CardContent } from "@/components/ui/card";
+import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { CheckCircle2, Clock, Edit, Trash2, User, Link as LinkIcon } from "lucide-react";
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
+import { CheckCircle2, Clock, Edit, Trash2, User, Link as LinkIcon, ChevronDown } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { format, isPast, differenceInDays } from "date-fns";
 import { useNavigate } from "react-router-dom";
@@ -15,6 +17,7 @@ interface TaskCardProps {
 }
 
 export function TaskCard({ task, onEdit, isGestor }: TaskCardProps) {
+  const [isExpanded, setIsExpanded] = useState(false);
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const navigate = useNavigate();
@@ -95,100 +98,106 @@ export function TaskCard({ task, onEdit, isGestor }: TaskCardProps) {
   const isOverdue = task.due_date && isPast(new Date(task.due_date)) && task.status !== "concluida";
 
   return (
-    <Card className={`border-l-4 ${getPriorityColor(task.due_date)}`}>
-      <CardContent className="p-4 space-y-3">
-        <div className="flex items-start justify-between gap-2">
-          <div className="space-y-1 flex-1">
-            <div className="flex items-center gap-2">
-              <Badge variant={statusBadge.variant}>{statusBadge.label}</Badge>
-              {isOverdue && (
-                <Badge variant="destructive" className="text-xs">Atrasada</Badge>
+    <Collapsible open={isExpanded} onOpenChange={setIsExpanded}>
+      <Card className={`border-l-4 ${getPriorityColor(task.due_date)}`}>
+        <CollapsibleTrigger asChild>
+          <CardHeader className="p-3 cursor-pointer hover:bg-accent/50 transition-colors">
+            <div className="flex items-start justify-between gap-2">
+              <div className="flex-1 space-y-1">
+                <div className="flex items-center gap-2">
+                  <Badge variant={statusBadge.variant} className="text-xs">{statusBadge.label}</Badge>
+                  {isOverdue && <Badge variant="destructive" className="text-xs">Atrasada</Badge>}
+                </div>
+                <h4 className="font-medium text-sm leading-tight line-clamp-2">{task.title}</h4>
+              </div>
+              <div className="flex items-center gap-1 shrink-0">
+                {task.due_date && (
+                  <div className="flex items-center gap-1 text-xs text-muted-foreground">
+                    <Clock className="h-3 w-3" />
+                    <span className={isOverdue ? "text-destructive font-medium" : ""}>
+                      {format(new Date(task.due_date), "dd/MM")}
+                    </span>
+                  </div>
+                )}
+                <ChevronDown className={`h-4 w-4 text-muted-foreground transition-transform ${isExpanded ? 'rotate-180' : ''}`} />
+              </div>
+            </div>
+          </CardHeader>
+        </CollapsibleTrigger>
+
+        <CollapsibleContent>
+          <CardContent className="p-3 pt-0 space-y-3 border-t">
+            {task.description && (
+              <p className="text-xs text-muted-foreground">{task.description}</p>
+            )}
+
+            <div className="space-y-1.5 text-xs">
+              <div className="flex items-center gap-2 text-muted-foreground">
+                <User className="h-3 w-3" />
+                <span>{task.assigned_profile?.name || "Não atribuída"}</span>
+              </div>
+
+              {task.lead && (
+                <div className="flex items-center gap-2">
+                  <LinkIcon className="h-3 w-3 text-muted-foreground" />
+                  <button
+                    onClick={() => navigate(`/leads/${task.lead_id}`)}
+                    className="text-primary hover:underline text-xs"
+                  >
+                    {task.lead.name}
+                  </button>
+                </div>
               )}
             </div>
-            <h4 className="font-semibold leading-tight">{task.title}</h4>
-          </div>
-          
-          <div className="flex gap-1">
-            {isGestor && (
-              <>
-                <Button
-                  size="icon"
-                  variant="ghost"
-                  onClick={() => onEdit(task)}
-                  className="h-8 w-8"
-                >
-                  <Edit className="h-3 w-3" />
-                </Button>
-                <Button
-                  size="icon"
-                  variant="ghost"
-                  onClick={() => deleteTaskMutation.mutate()}
-                  className="h-8 w-8 text-destructive"
-                >
-                  <Trash2 className="h-3 w-3" />
-                </Button>
-              </>
-            )}
-          </div>
-        </div>
 
-        {task.description && (
-          <p className="text-sm text-muted-foreground line-clamp-2">
-            {task.description}
-          </p>
-        )}
-
-        <div className="space-y-2 text-sm">
-          <div className="flex items-center gap-2 text-muted-foreground">
-            <User className="h-3 w-3" />
-            <span>{task.assigned_profile?.name || "Não atribuída"}</span>
-          </div>
-
-          {task.due_date && (
-            <div className="flex items-center gap-2 text-muted-foreground">
-              <Clock className="h-3 w-3" />
-              <span className={isOverdue ? "text-destructive font-medium" : ""}>
-                {format(new Date(task.due_date), "dd/MM/yyyy")}
-              </span>
+            <div className="flex items-center justify-between gap-2 pt-1">
+              {task.status !== "concluida" && (
+                <div className="flex gap-1.5 flex-1">
+                  {task.status === "aberta" && (
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={() => updateStatusMutation.mutate("em_andamento")}
+                      className="flex-1 h-7 text-xs"
+                    >
+                      Iniciar
+                    </Button>
+                  )}
+                  <Button
+                    size="sm"
+                    onClick={() => updateStatusMutation.mutate("concluida")}
+                    className="flex-1 h-7 text-xs"
+                  >
+                    <CheckCircle2 className="h-3 w-3 mr-1" />
+                    Concluir
+                  </Button>
+                </div>
+              )}
+              
+              {isGestor && (
+                <div className="flex gap-1">
+                  <Button
+                    size="icon"
+                    variant="ghost"
+                    onClick={() => onEdit(task)}
+                    className="h-7 w-7"
+                  >
+                    <Edit className="h-3 w-3" />
+                  </Button>
+                  <Button
+                    size="icon"
+                    variant="ghost"
+                    onClick={() => deleteTaskMutation.mutate()}
+                    className="h-7 w-7 text-destructive"
+                  >
+                    <Trash2 className="h-3 w-3" />
+                  </Button>
+                </div>
+              )}
             </div>
-          )}
-
-          {task.lead && (
-            <div className="flex items-center gap-2">
-              <LinkIcon className="h-3 w-3 text-muted-foreground" />
-              <button
-                onClick={() => navigate(`/leads/${task.lead_id}`)}
-                className="text-primary hover:underline text-sm"
-              >
-                {task.lead.name}
-              </button>
-            </div>
-          )}
-        </div>
-
-        {task.status !== "concluida" && (
-          <div className="flex gap-2 pt-2">
-            {task.status === "aberta" && (
-              <Button
-                size="sm"
-                variant="outline"
-                onClick={() => updateStatusMutation.mutate("em_andamento")}
-                className="flex-1"
-              >
-                Iniciar
-              </Button>
-            )}
-            <Button
-              size="sm"
-              onClick={() => updateStatusMutation.mutate("concluida")}
-              className="flex-1"
-            >
-              <CheckCircle2 className="h-3 w-3 mr-1" />
-              Concluir
-            </Button>
-          </div>
-        )}
-      </CardContent>
-    </Card>
+          </CardContent>
+        </CollapsibleContent>
+      </Card>
+    </Collapsible>
   );
 }
