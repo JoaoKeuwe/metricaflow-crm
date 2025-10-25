@@ -1,5 +1,6 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { checkRateLimit, getClientIP } from "../_shared/rate-limit.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -28,6 +29,32 @@ const handler = async (req: Request): Promise<Response> => {
         },
       }
     );
+
+    // Rate limiting: 5 attempts per 5 minutes per IP
+    const clientIP = getClientIP(req);
+    const rateLimit = await checkRateLimit(supabaseAdmin, clientIP, {
+      maxRequests: 5,
+      windowSeconds: 300,
+      endpoint: 'accept-invite'
+    });
+
+    if (!rateLimit.allowed) {
+      console.warn(`Rate limit exceeded for IP: ${clientIP}`);
+      return new Response(
+        JSON.stringify({ 
+          error: "Muitas tentativas. Tente novamente mais tarde.",
+          retryAfter: rateLimit.retryAfter 
+        }),
+        { 
+          status: 429, 
+          headers: { 
+            ...corsHeaders, 
+            "Content-Type": "application/json",
+            "Retry-After": String(rateLimit.retryAfter || 300)
+          } 
+        }
+      );
+    }
 
     const { token, name, password }: AcceptInviteRequest = await req.json();
 

@@ -155,12 +155,30 @@ serve(async (req) => {
 
     // Se auto_prospect está ativo, criar campanha
     if (auto_prospect && message_template && results.imported_leads.length > 0) {
+      // Validar template de mensagem
+      if (message_template.length > 4096) {
+        throw new Error('Template de mensagem muito longo. Máximo 4096 caracteres');
+      }
+
+      const dangerousPatterns = /<script|javascript:|onerror=|onclick=|<iframe/i;
+      if (dangerousPatterns.test(message_template)) {
+        throw new Error('Template contém caracteres ou padrões não permitidos');
+      }
+
+      // Sanitizar template
+      const sanitizedTemplate = message_template
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#x27;');
+
       const { data: campaign, error: campaignError } = await supabase
         .from('whatsapp_campaigns')
         .insert({
           company_id: profile.company_id,
           name: campaign_name || `Importação ${new Date().toLocaleDateString()}`,
-          message_template: message_template,
+          message_template: sanitizedTemplate,
           status: 'scheduled',
           leads_total: results.imported_leads.length,
           created_by: user.id,

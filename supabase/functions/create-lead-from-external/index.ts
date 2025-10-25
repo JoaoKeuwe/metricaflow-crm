@@ -1,4 +1,5 @@
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.58.0';
+import { checkRateLimit, getClientIP } from '../_shared/rate-limit.ts';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -25,6 +26,33 @@ Deno.serve(async (req) => {
     const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
     const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
+
+    // Rate limiting: 60 requests per minute per IP
+    const clientIP = getClientIP(req);
+    const rateLimit = await checkRateLimit(supabase, clientIP, {
+      maxRequests: 60,
+      windowSeconds: 60,
+      endpoint: 'create-lead-from-external'
+    });
+
+    if (!rateLimit.allowed) {
+      console.warn(`Rate limit exceeded for IP: ${clientIP}`);
+      return new Response(
+        JSON.stringify({ 
+          success: false, 
+          error: 'Limite de requisições excedido. Tente novamente mais tarde.',
+          retryAfter: rateLimit.retryAfter 
+        }),
+        { 
+          status: 429, 
+          headers: { 
+            ...corsHeaders, 
+            'Content-Type': 'application/json',
+            'Retry-After': String(rateLimit.retryAfter || 60)
+          } 
+        }
+      );
+    }
 
     // Extrair token do header Authorization
     const authHeader = req.headers.get('Authorization');

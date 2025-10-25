@@ -180,7 +180,7 @@ export type Database = {
           accessed_at: string
           action: string
           id: string
-          ip_address: unknown | null
+          ip_address: unknown
           lead_id: string
           metadata: Json | null
           user_agent: string | null
@@ -190,7 +190,7 @@ export type Database = {
           accessed_at?: string
           action: string
           id?: string
-          ip_address?: unknown | null
+          ip_address?: unknown
           lead_id: string
           metadata?: Json | null
           user_agent?: string | null
@@ -200,7 +200,7 @@ export type Database = {
           accessed_at?: string
           action?: string
           id?: string
-          ip_address?: unknown | null
+          ip_address?: unknown
           lead_id?: string
           metadata?: Json | null
           user_agent?: string | null
@@ -499,6 +499,27 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      rate_limit_log: {
+        Row: {
+          created_at: string
+          endpoint: string
+          id: string
+          identifier: string
+        }
+        Insert: {
+          created_at?: string
+          endpoint: string
+          id?: string
+          identifier: string
+        }
+        Update: {
+          created_at?: string
+          endpoint?: string
+          id?: string
+          identifier?: string
+        }
+        Relationships: []
       }
       reminders: {
         Row: {
@@ -828,18 +849,10 @@ export type Database = {
         Args: { _meeting_id: string; _user_id: string }
         Returns: boolean
       }
-      cleanup_old_integration_logs: {
-        Args: Record<PropertyKey, never>
-        Returns: undefined
-      }
-      count_additional_users: {
-        Args: { _company_id: string }
-        Returns: number
-      }
-      generate_api_token: {
-        Args: Record<PropertyKey, never>
-        Returns: string
-      }
+      cleanup_old_integration_logs: { Args: never; Returns: undefined }
+      cleanup_rate_limit_logs: { Args: never; Returns: undefined }
+      count_additional_users: { Args: { _company_id: string }; Returns: number }
+      generate_api_token: { Args: never; Returns: string }
       get_campaign_stats: {
         Args: { _campaign_id: string }
         Returns: {
@@ -871,16 +884,13 @@ export type Database = {
           updated_at: string
         }[]
       }
-      get_user_company_id: {
-        Args: Record<PropertyKey, never>
-        Returns: string
-      }
+      get_user_company_id: { Args: never; Returns: string }
       get_user_primary_role: {
         Args: { _user_id: string }
         Returns: Database["public"]["Enums"]["app_role"]
       }
       get_user_role: {
-        Args: Record<PropertyKey, never>
+        Args: never
         Returns: Database["public"]["Enums"]["app_role"]
       }
       has_role: {
@@ -894,10 +904,7 @@ export type Database = {
         Args: { _company_id: string; _email: string }
         Returns: boolean
       }
-      is_owner: {
-        Args: { _user_id: string }
-        Returns: boolean
-      }
+      is_owner: { Args: { _user_id: string }; Returns: boolean }
       user_participates_in_meeting: {
         Args: { _meeting_id: string; _user_id: string }
         Returns: boolean

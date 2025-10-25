@@ -1,4 +1,6 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2.58.0";
+import { checkRateLimit, getClientIP } from "../_shared/rate-limit.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -31,6 +33,37 @@ serve(async (req) => {
   }
 
   try {
+    const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
+    const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
+    const supabase = createClient(supabaseUrl, supabaseServiceKey);
+
+    // Rate limiting: 10 requests per minute per IP
+    const clientIP = getClientIP(req);
+    const rateLimit = await checkRateLimit(supabase, clientIP, {
+      maxRequests: 10,
+      windowSeconds: 60,
+      endpoint: 'search-leads'
+    });
+
+    if (!rateLimit.allowed) {
+      console.warn(`Rate limit exceeded for IP: ${clientIP}`);
+      return new Response(
+        JSON.stringify({
+          success: false,
+          error: 'Limite de requisições excedido. Tente novamente mais tarde.',
+          retryAfter: rateLimit.retryAfter
+        }),
+        {
+          status: 429,
+          headers: {
+            ...corsHeaders,
+            'Content-Type': 'application/json',
+            'Retry-After': String(rateLimit.retryAfter || 60)
+          }
+        }
+      );
+    }
+
     const { query } = await req.json();
     const SERPER_API_KEY = Deno.env.get("SERPER_API_KEY");
 

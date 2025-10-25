@@ -56,15 +56,34 @@ serve(async (req) => {
       throw new Error('Telefone e mensagem são obrigatórios');
     }
 
+    // Validar comprimento da mensagem (max 4096 caracteres)
+    if (message.length > 4096) {
+      throw new Error('Mensagem muito longa. Máximo 4096 caracteres');
+    }
+
+    // Validar caracteres perigosos (prevenir XSS)
+    const dangerousPatterns = /<script|javascript:|onerror=|onclick=|<iframe/i;
+    if (dangerousPatterns.test(message)) {
+      throw new Error('Mensagem contém caracteres ou padrões não permitidos');
+    }
+
+    // HTML encode para segurança adicional
+    const sanitizedMessage = message
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;')
+      .replace(/'/g, '&#x27;');
+
     // Limpar telefone (remover caracteres não numéricos)
     const cleanPhone = phone.replace(/\D/g, '');
     
     console.log('Enviando mensagem para:', cleanPhone);
 
-    // Preparar payload para Evolution API
+    // Preparar payload para Evolution API (usar mensagem original, não sanitizada)
     const evolutionPayload: any = {
       number: cleanPhone,
-      text: message,
+      text: message, // Evolution API recebe texto puro
     };
 
     if (media_url) {
@@ -104,14 +123,14 @@ serve(async (req) => {
     const evolutionData = await evolutionResponse.json();
     console.log('Resposta da Evolution:', evolutionData);
 
-    // Salvar mensagem no banco de dados
+    // Salvar mensagem no banco de dados (com sanitização)
     const { data: messageData, error: messageError } = await supabase
       .from('whatsapp_messages')
       .insert({
         company_id: profile.company_id,
         lead_id: lead_id || null,
         phone: cleanPhone,
-        message: message,
+        message: sanitizedMessage, // Armazenar versão sanitizada
         direction: 'sent',
         status: 'sent',
         media_url: media_url || null,

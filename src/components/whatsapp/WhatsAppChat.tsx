@@ -141,6 +141,7 @@ export function WhatsAppChat({ leadId, leadPhone, leadName, readOnly = false }: 
                       : "bg-muted"
                   }`}
                 >
+                  {/* React auto-escapes text content - safe from XSS */}
                   <p className="text-sm break-words">{msg.message}</p>
                   <div
                     className={`flex items-center gap-1 mt-1 text-xs ${
