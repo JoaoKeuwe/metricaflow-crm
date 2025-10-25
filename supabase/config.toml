@@ -80,3 +80,6 @@ verify_jwt = false
 
 [functions.get-dashboard-stats]
 verify_jwt = true
+
+[functions.execute-whatsapp-campaign]
+verify_jwt = true

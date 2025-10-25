@@ -1,4 +1,4 @@
-import { LayoutDashboard, Users, KanbanSquare, UserCog, Settings, LogOut, Plug, Calendar, ListTodo, Database, Upload, MessageCircle } from "lucide-react";
+import { LayoutDashboard, Users, KanbanSquare, UserCog, Settings, LogOut, Plug, Calendar, ListTodo, Database, Upload, MessageCircle, Send } from "lucide-react";
 import { NavLink, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
@@ -85,6 +85,11 @@ const Sidebar = () => {
     to: "/local-prospector",
     icon: Database,
     label: "Local Prospector",
+    requiresOwnerOrGestor: false
+  }, {
+    to: "/whatsapp/campaigns",
+    icon: Send,
+    label: "Campanhas WhatsApp",
     requiresOwnerOrGestor: false
   }, {
     to: "/bulk-import",
