@@ -9,8 +9,10 @@ import SalesPerformanceDetailedChart from "@/components/dashboard/SalesPerforman
 import LeadsSourceChart from "@/components/dashboard/LeadsSourceChart";
 import ConversionFunnelChart from "@/components/dashboard/ConversionFunnelChart";
 import DashboardFilters from "@/components/dashboard/DashboardFilters";
+import { GamificationPanel } from "@/components/dashboard/GamificationPanel";
 import { useDetailedPerformanceData } from "@/hooks/useDetailedPerformanceData";
 import { useRealtimeLeads } from "@/hooks/useRealtimeLeads";
+import { useRealtimeGamification } from "@/hooks/useRealtimeGamification";
 import { Users, CheckCircle, Clock, TrendingUp, DollarSign, Target, FileDown } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -32,6 +34,7 @@ const Dashboard = () => {
 
   // Hook centralizado de realtime
   useRealtimeLeads();
+  const { lastUpdate } = useRealtimeGamification();
 
   const getDateRange = () => {
     if (selectedMonth === "all") {
@@ -456,6 +459,11 @@ const Dashboard = () => {
           </div>
         ) : (
           <>
+            {/* Painel de Gamificação */}
+            <div className="mb-8 animate-in fade-in slide-in-from-bottom-4 duration-700 delay-200">
+              <GamificationPanel />
+            </div>
+
             <div id="metrics-cards" className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 animate-in fade-in slide-in-from-bottom-4 duration-700 delay-300">
         <MetricCard
           title="Total de Leads"
