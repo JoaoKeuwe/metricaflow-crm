@@ -31,6 +31,8 @@ import {
 import { useToast } from "@/hooks/use-toast";
 import { UserPlus, Crown, Power, PowerOff } from "lucide-react";
 import { createUserSchema } from "@/lib/validation";
+import { AvatarUpload } from "@/components/profile/AvatarUpload";
+import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 
 const UserManagement = () => {
   const { toast } = useToast();
@@ -409,6 +411,7 @@ const UserManagement = () => {
         <Table>
           <TableHeader>
             <TableRow>
+              <TableHead>Avatar</TableHead>
               <TableHead>Nome</TableHead>
               <TableHead>Perfil</TableHead>
               <TableHead>Status</TableHead>
@@ -419,8 +422,44 @@ const UserManagement = () => {
             {users?.map((user) => {
               const role = user.user_roles?.[0]?.role || "vendedor";
               const isUserOwner = role === "gestor_owner";
+              const getInitials = (name: string) => {
+                return name
+                  .split(" ")
+                  .map((n) => n[0])
+                  .join("")
+                  .toUpperCase()
+                  .slice(0, 2);
+              };
               return (
                 <TableRow key={user.id}>
+                  <TableCell>
+                    <Dialog>
+                      <DialogTrigger asChild>
+                        <button className="cursor-pointer hover:opacity-80 transition-opacity">
+                          <Avatar className="h-10 w-10">
+                            <AvatarImage src={(user as any).avatar_url || undefined} alt={user.name} />
+                            <AvatarFallback>{getInitials(user.name)}</AvatarFallback>
+                          </Avatar>
+                        </button>
+                      </DialogTrigger>
+                      <DialogContent>
+                        <DialogHeader>
+                          <DialogTitle>Alterar Foto de {user.name}</DialogTitle>
+                          <DialogDescription>
+                            Envie uma nova foto de perfil para este usuário
+                          </DialogDescription>
+                        </DialogHeader>
+                        <AvatarUpload
+                          userId={user.id}
+                          currentAvatarUrl={(user as any).avatar_url}
+                          userName={user.name}
+                          onUploadComplete={() => {
+                            queryClient.invalidateQueries({ queryKey: ["company-users"] });
+                          }}
+                        />
+                      </DialogContent>
+                    </Dialog>
+                  </TableCell>
                   <TableCell className="font-medium">
                     {user.name}
                     {isUserOwner && (

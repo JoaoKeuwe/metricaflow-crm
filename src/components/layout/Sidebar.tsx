@@ -1,4 +1,4 @@
-import { LayoutDashboard, Users, KanbanSquare, UserCog, Settings, LogOut, Plug, Calendar, ListTodo, Database, Upload, MessageCircle } from "lucide-react";
+import { LayoutDashboard, Users, KanbanSquare, UserCog, Settings, LogOut, Plug, Calendar, ListTodo, Database, Upload, MessageCircle, Trophy } from "lucide-react";
 import { NavLink, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
@@ -95,6 +95,11 @@ const Sidebar = () => {
     to: "/integrations",
     icon: Plug,
     label: "Integrações",
+    requiresOwnerOrGestor: true
+  }, {
+    to: "/gamification",
+    icon: Trophy,
+    label: "🎮 Gamificação Live",
     requiresOwnerOrGestor: true
   }];
 

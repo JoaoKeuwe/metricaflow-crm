@@ -76,6 +76,51 @@ export type Database = {
         }
         Relationships: []
       }
+      gamification_events: {
+        Row: {
+          created_at: string | null
+          event_type: string
+          id: string
+          lead_id: string | null
+          metadata: Json | null
+          points: number
+          user_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          event_type: string
+          id?: string
+          lead_id?: string | null
+          metadata?: Json | null
+          points: number
+          user_id: string
+        }
+        Update: {
+          created_at?: string | null
+          event_type?: string
+          id?: string
+          lead_id?: string | null
+          metadata?: Json | null
+          points?: number
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "gamification_events_lead_id_fkey"
+            columns: ["lead_id"]
+            isOneToOne: false
+            referencedRelation: "leads"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "gamification_events_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       integration_logs: {
         Row: {
           api_token_id: string | null
@@ -471,6 +516,7 @@ export type Database = {
       profiles: {
         Row: {
           active: boolean
+          avatar_url: string | null
           company_id: string
           created_at: string
           id: string
@@ -478,6 +524,7 @@ export type Database = {
         }
         Insert: {
           active?: boolean
+          avatar_url?: string | null
           company_id: string
           created_at?: string
           id: string
@@ -485,6 +532,7 @@ export type Database = {
         }
         Update: {
           active?: boolean
+          avatar_url?: string | null
           company_id?: string
           created_at?: string
           id?: string

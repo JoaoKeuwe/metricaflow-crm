@@ -17,6 +17,7 @@ import Tasks from "./pages/Tasks";
 import LocalProspector from "./pages/LocalProspector";
 import BulkImport from "./pages/BulkImport";
 import WhatsApp from "./pages/WhatsApp";
+import GamificationLive from "./pages/GamificationLive";
 import NotFound from "./pages/NotFound";
 import Sidebar from "./components/layout/Sidebar";
 import Header from "./components/layout/Header";
@@ -146,6 +147,14 @@ const App = () => {
               element={
                 <ProtectedRoute>
                   <WhatsApp />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/gamification"
+              element={
+                <ProtectedRoute>
+                  <GamificationLive />
                 </ProtectedRoute>
               }
             />
