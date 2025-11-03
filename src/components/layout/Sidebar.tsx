@@ -92,7 +92,7 @@ const Sidebar = () => {
     label: "Local Prospector",
     requiresOwnerOrGestor: false
   }, {
-    to: "/user-management",
+    to: "/users",
     icon: Settings,
     label: "Gestão de Usuários",
     requiresOwnerOrGestor: true

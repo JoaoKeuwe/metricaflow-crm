@@ -9,7 +9,6 @@ import Leads from "./pages/Leads";
 import LeadDetail from "./pages/LeadDetail";
 import Kanban from "./pages/Kanban";
 import Users from "./pages/Users";
-import UserManagement from "./pages/UserManagement";
 import AcceptInvite from "./pages/AcceptInvite";
 import Integrations from "./pages/Integrations";
 import Agenda from "./pages/Agenda";
@@ -92,14 +91,6 @@ const App = () => {
               element={
                 <DemoLayout>
                   <Users />
-                </DemoLayout>
-              }
-            />
-            <Route
-              path="/user-management"
-              element={
-                <DemoLayout>
-                  <UserManagement />
                 </DemoLayout>
               }
             />

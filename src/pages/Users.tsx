@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
@@ -36,9 +36,11 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { UserPlus, Trash2, Users, Clock, CheckCircle, XCircle, Loader2, Crown, Mail } from "lucide-react";
+import { UserPlus, Trash2, Users, Clock, CheckCircle, XCircle, Loader2, Crown, Mail, Power, PowerOff } from "lucide-react";
 import { inviteSchema } from "@/lib/validation";
+import { AvatarUpload } from "@/components/profile/AvatarUpload";
 
 export default function UsersPage() {
   const { toast } = useToast();
@@ -46,6 +48,9 @@ export default function UsersPage() {
   const [dialogOpen, setDialogOpen] = useState(false);
   const [inviteEmail, setInviteEmail] = useState("");
   const [inviteRole, setInviteRole] = useState<"gestor" | "vendedor">("vendedor");
+  const [roleFilter, setRoleFilter] = useState<string>("all");
+  const [avatarDialogOpen, setAvatarDialogOpen] = useState(false);
+  const [selectedUserId, setSelectedUserId] = useState<string | null>(null);
 
   const { data: session } = useQuery({
     queryKey: ["session"],
@@ -95,7 +100,7 @@ export default function UsersPage() {
       
       const { data: profiles, error: profilesError } = await supabase
         .from("profiles")
-        .select("id, name, created_at, company_id")
+        .select("id, name, created_at, company_id, active, avatar_url")
         .eq("company_id", profile.company_id)
         .order("created_at", { ascending: true });
 
@@ -224,6 +229,61 @@ export default function UsersPage() {
     },
   });
 
+  const toggleUserActiveMutation = useMutation({
+    mutationFn: async ({ userId, active }: { userId: string; active: boolean }) => {
+      const { error } = await supabase
+        .from("profiles")
+        .update({ active })
+        .eq("id", userId);
+
+      if (error) throw error;
+    },
+    onSuccess: (_, { active }) => {
+      toast({
+        title: active ? "Usuário ativado" : "Usuário desativado",
+      });
+      queryClient.invalidateQueries({ queryKey: ["company-users"] });
+    },
+    onError: () => {
+      toast({
+        title: "Erro ao atualizar status do usuário",
+        variant: "destructive",
+      });
+    },
+  });
+
+  // Realtime subscription
+  useEffect(() => {
+    if (!profile?.company_id) return;
+
+    const channel = supabase
+      .channel("users-realtime")
+      .on(
+        "postgres_changes",
+        {
+          event: "*",
+          schema: "public",
+          table: "profiles",
+          filter: `company_id=eq.${profile.company_id}`,
+        },
+        () => queryClient.invalidateQueries({ queryKey: ["company-users"] })
+      )
+      .on(
+        "postgres_changes",
+        {
+          event: "*",
+          schema: "public",
+          table: "user_roles",
+        },
+        () => queryClient.invalidateQueries({ queryKey: ["company-users"] })
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [profile?.company_id, queryClient]);
+
   const handleInvite = async () => {
     // Validação com Zod
     try {
@@ -267,6 +327,20 @@ export default function UsersPage() {
     
     return <Badge variant={config.variant}><Icon className="h-3 w-3 mr-1" />{config.label}</Badge>;
   };
+
+  const getInitials = (name: string) => {
+    return name
+      .split(" ")
+      .map((n) => n[0])
+      .join("")
+      .toUpperCase()
+      .slice(0, 2);
+  };
+
+  // Apply role filter
+  const filteredUsers = roleFilter !== "all"
+    ? users?.filter(u => u.user_roles?.some((r: any) => r.role === roleFilter))
+    : users;
 
   if (!canManageUsers) {
     return (
@@ -348,6 +422,21 @@ export default function UsersPage() {
         </Dialog>
       </div>
 
+      <div className="flex gap-4 items-center mb-4">
+        <Label>Filtrar por perfil:</Label>
+        <Select value={roleFilter} onValueChange={setRoleFilter}>
+          <SelectTrigger className="w-[200px]">
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">Todos</SelectItem>
+            <SelectItem value="gestor_owner">Proprietário</SelectItem>
+            <SelectItem value="gestor">Gestor</SelectItem>
+            <SelectItem value="vendedor">Vendedor</SelectItem>
+          </SelectContent>
+        </Select>
+      </div>
+
       <Tabs defaultValue="users" className="w-full">
         <TabsList>
           <TabsTrigger value="users">Usuários Ativos</TabsTrigger>
@@ -371,29 +460,78 @@ export default function UsersPage() {
               <Table>
                 <TableHeader>
                   <TableRow>
+                    <TableHead>Avatar</TableHead>
                     <TableHead>Nome</TableHead>
                     <TableHead>Perfil</TableHead>
-                    <TableHead>Ações</TableHead>
+                    <TableHead>Status</TableHead>
+                    {isOwner && <TableHead>Ações</TableHead>}
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {users?.map((user) => {
+                  {filteredUsers?.map((user) => {
                     const role = user.user_roles?.[0]?.role || "vendedor";
                     const isUserOwner = role === "gestor_owner";
                     return (
                       <TableRow key={user.id}>
+                        <TableCell>
+                          <Dialog>
+                            <DialogTrigger asChild>
+                              <button 
+                                className="cursor-pointer hover:opacity-80 transition-opacity"
+                                onClick={() => setSelectedUserId(user.id)}
+                              >
+                                <Avatar className="h-10 w-10">
+                                  <AvatarImage src={user.avatar_url || undefined} />
+                                  <AvatarFallback>{getInitials(user.name)}</AvatarFallback>
+                                </Avatar>
+                              </button>
+                            </DialogTrigger>
+                            <DialogContent>
+                              <DialogHeader>
+                                <DialogTitle>Upload de Avatar</DialogTitle>
+                                <DialogDescription>
+                                  Clique para fazer upload de uma nova foto de perfil
+                                </DialogDescription>
+                              </DialogHeader>
+                              <AvatarUpload 
+                                userId={user.id} 
+                                currentAvatarUrl={user.avatar_url} 
+                                userName={user.name} 
+                              />
+                            </DialogContent>
+                          </Dialog>
+                        </TableCell>
                         <TableCell className="font-medium">
                           {user.name}
                           {isUserOwner && <Crown className="inline ml-2 h-4 w-4 text-yellow-500" />}
                         </TableCell>
                         <TableCell>{getRoleBadge(role)}</TableCell>
                         <TableCell>
-                          {!isUserOwner && isOwner && (
-                            <Button size="sm" variant="ghost" disabled>
-                              <Trash2 className="h-4 w-4" />
-                            </Button>
-                          )}
+                          <Badge variant={user.active ? "default" : "secondary"}>
+                            {user.active ? "Ativo" : "Inativo"}
+                          </Badge>
                         </TableCell>
+                        {isOwner && (
+                          <TableCell>
+                            {!isUserOwner && (
+                              <Button
+                                size="sm"
+                                variant="ghost"
+                                onClick={() => toggleUserActiveMutation.mutate({
+                                  userId: user.id,
+                                  active: !user.active,
+                                })}
+                                disabled={toggleUserActiveMutation.isPending}
+                              >
+                                {user.active ? (
+                                  <PowerOff className="h-4 w-4 text-red-500" />
+                                ) : (
+                                  <Power className="h-4 w-4 text-green-500" />
+                                )}
+                              </Button>
+                            )}
+                          </TableCell>
+                        )}
                       </TableRow>
                     );
                   })}
