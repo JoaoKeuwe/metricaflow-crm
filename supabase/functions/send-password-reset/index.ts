@@ -3,8 +3,7 @@ import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.38.4';
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers":
-    "authorization, x-client-info, apikey, content-type",
+  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
 interface PasswordResetRequest {
@@ -59,23 +58,29 @@ const handler = async (req: Request): Promise<Response> => {
       throw new Error("Link de recuperação não foi gerado");
     }
 
-    const RESEND_API_KEY = Deno.env.get("RESEND_API_KEY");
-    if (!RESEND_API_KEY) {
-      throw new Error("RESEND_API_KEY não configurada");
+    const resendApiKey = Deno.env.get("RESEND_API_KEY");
+    const resendFrom = Deno.env.get("RESEND_FROM") || "CRM System <onboarding@resend.dev>";
+    
+    console.log("Resend config:", { 
+      hasApiKey: !!resendApiKey, 
+      from: resendFrom 
+    });
+    
+    if (!resendApiKey) {
+      console.error("RESEND_API_KEY not configured");
+      throw new Error("RESEND_API_KEY is required");
     }
 
-    const RESEND_FROM = Deno.env.get("RESEND_FROM") || "CRM <onboarding@resend.dev>";
-    console.log("Enviando email de:", RESEND_FROM, "para:", email);
-
-    // Send email via Resend API
-    const resendResponse = await fetch("https://api.resend.com/emails", {
+    console.log("Sending password reset email to:", email);
+    
+    const emailResponse = await fetch("https://api.resend.com/emails", {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
-        Authorization: `Bearer ${RESEND_API_KEY}`,
+        Authorization: `Bearer ${resendApiKey}`,
       },
       body: JSON.stringify({
-        from: RESEND_FROM,
+        from: resendFrom,
         to: [email],
         subject: "Redefinir sua senha",
         html: `
@@ -101,35 +106,48 @@ const handler = async (req: Request): Promise<Response> => {
       }),
     });
 
-    if (!resendResponse.ok) {
-      const errorData = await resendResponse.text();
-      console.error("Erro do Resend:", errorData);
+    if (!emailResponse.ok) {
+      const errorData = await emailResponse.json();
+      console.error("Resend API error:", {
+        status: emailResponse.status,
+        error: errorData
+      });
       
-      // Se for erro 403 (domínio não verificado), retornar sucesso genérico
-      // para não "quebrar" a UX, mas logar o problema
-      if (resendResponse.status === 403) {
-        console.warn("⚠️ Domínio não verificado no Resend. Configure em resend.com/domains");
+      // Erro 403: Domínio não verificado
+      if (emailResponse.status === 403) {
         return new Response(
           JSON.stringify({ 
-            success: true, 
-            message: "Email enviado com sucesso",
-            warning: "Domain verification needed" 
+            error: "Configuração de email incompleta",
+            details: `O domínio usado para envio de emails não foi verificado no Resend. Configure o domínio em https://resend.com/domains e adicione os registros DNS necessários.`,
+            hint: "Durante testes, você pode usar 'onboarding@resend.dev' no secret RESEND_FROM."
           }),
           {
-            status: 200,
-            headers: {
-              "Content-Type": "application/json",
-              ...corsHeaders,
-            },
+            status: 500,
+            headers: { "Content-Type": "application/json", ...corsHeaders },
           }
         );
       }
       
-      throw new Error(`Erro ao enviar email: ${errorData}`);
+      // Erro 422: Domain verification (retorna sucesso para não revelar se email existe)
+      if (emailResponse.status === 422) {
+        console.log("Domain verification error (returning success for security):", errorData);
+        return new Response(
+          JSON.stringify({ 
+            success: true,
+            message: "If this email exists in our system, you will receive a password reset link."
+          }),
+          {
+            status: 200,
+            headers: { "Content-Type": "application/json", ...corsHeaders },
+          }
+        );
+      }
+      
+      throw new Error(`Resend API error: ${JSON.stringify(errorData)}`);
     }
 
-    const emailData = await resendResponse.json();
-    console.log("Email de recuperação enviado:", emailData);
+    const emailData = await emailResponse.json();
+    console.log("Password reset email sent successfully:", emailData);
 
     return new Response(
       JSON.stringify({ success: true, message: "Email enviado com sucesso" }),
@@ -142,11 +160,14 @@ const handler = async (req: Request): Promise<Response> => {
       }
     );
   } catch (error: any) {
-    console.error("Erro ao enviar email de recuperação:", error);
-    return new Response(JSON.stringify({ error: error.message }), {
-      status: 500,
-      headers: { "Content-Type": "application/json", ...corsHeaders },
-    });
+    console.error("Error in send-password-reset function:", error);
+    return new Response(
+      JSON.stringify({ error: error.message }),
+      {
+        status: 500,
+        headers: { "Content-Type": "application/json", ...corsHeaders },
+      }
+    );
   }
 };
 
