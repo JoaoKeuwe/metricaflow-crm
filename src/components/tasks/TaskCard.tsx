@@ -27,7 +27,7 @@ export function TaskCard({ task, onEdit, isGestor }: TaskCardProps) {
   const getStatusBadge = (status: string) => {
     const statusMap: Record<string, { label: string; variant: any }> = {
       aberta: { label: "Aberta", variant: "default" },
-      em_andamento: { label: "Em Andamento", variant: "secondary" },
+      em_atraso: { label: "Em Atraso", variant: "destructive" },
       concluida: { label: "Concluída", variant: "outline" },
     };
     return statusMap[status] || statusMap.aberta;
@@ -47,7 +47,7 @@ export function TaskCard({ task, onEdit, isGestor }: TaskCardProps) {
     if (task.lead_id) {
       setIsNotesDrawerOpen(true);
     } else {
-      updateStatusMutation.mutate("em_andamento");
+      updateStatusMutation.mutate("em_atraso");
     }
   };
 
@@ -177,17 +177,19 @@ export function TaskCard({ task, onEdit, isGestor }: TaskCardProps) {
                       Iniciar
                     </Button>
                   )}
-                  <Button
-                    size="sm"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      updateStatusMutation.mutate("concluida");
-                    }}
-                    className="flex-1 h-7 text-xs"
-                  >
-                    <CheckCircle2 className="h-3 w-3 mr-1" />
-                    Concluir
-                  </Button>
+                  {(task.status === "aberta" || task.status === "em_atraso") && (
+                    <Button
+                      size="sm"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        updateStatusMutation.mutate("concluida");
+                      }}
+                      className="flex-1 h-7 text-xs"
+                    >
+                      <CheckCircle2 className="h-3 w-3 mr-1" />
+                      Concluir
+                    </Button>
+                  )}
                 </div>
               )}
               

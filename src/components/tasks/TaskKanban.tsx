@@ -16,23 +16,30 @@ export function TaskKanban({ tasks, onEditTask, isGestor }: TaskKanbanProps) {
 
   const columns = [
     { id: "aberta", title: "Abertas", status: "aberta" },
-    { id: "em_andamento", title: "Em Andamento", status: "em_andamento" },
+    { id: "em_atraso", title: "Em Atraso", status: "em_atraso" },
     { id: "concluida", title: "Concluídas", status: "concluida" },
   ];
 
   return (
     <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
       {columns.map((column) => {
-        let columnTasks = tasks.filter((task) => task.status === column.status);
-        
-        // Para tarefas abertas, mostrar apenas as do dia
-        if (column.status === "aberta") {
-          columnTasks = columnTasks.filter((task) => {
-            if (!task.due_date) return true; // Mostrar tarefas sem data
+        let columnTasks = tasks.filter((task) => {
+          // Verificar se a tarefa está atrasada
+          const isOverdue = task.due_date && new Date(task.due_date) < new Date();
+          
+          if (column.status === "aberta") {
+            // Abertas: apenas tarefas do dia que não estão atrasadas
+            if (!task.due_date) return task.status === "aberta";
             const dueDate = new Date(task.due_date);
-            return dueDate >= startOfToday && dueDate <= endOfToday;
-          });
-        }
+            return task.status === "aberta" && dueDate >= startOfToday && dueDate <= endOfToday;
+          } else if (column.status === "em_atraso") {
+            // Em atraso: tarefas abertas ou em_atraso que passaram da data
+            return (task.status === "aberta" || task.status === "em_atraso") && isOverdue;
+          } else {
+            // Concluídas
+            return task.status === column.status;
+          }
+        });
 
         return (
           <Card key={column.id}>

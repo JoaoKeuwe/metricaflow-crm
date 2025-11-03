@@ -76,7 +76,7 @@ export function TaskFilters({ filters, onFiltersChange }: TaskFiltersProps) {
             <SelectContent>
               <SelectItem value="all">Todos</SelectItem>
               <SelectItem value="aberta">Aberta</SelectItem>
-              <SelectItem value="em_andamento">Em Andamento</SelectItem>
+              <SelectItem value="em_atraso">Em Atraso</SelectItem>
               <SelectItem value="concluida">Concluída</SelectItem>
             </SelectContent>
           </Select>
