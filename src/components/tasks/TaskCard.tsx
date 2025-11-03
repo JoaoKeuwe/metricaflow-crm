@@ -141,7 +141,10 @@ export function TaskCard({ task, onEdit, isGestor }: TaskCardProps) {
                 <div className="flex items-center gap-2">
                   <LinkIcon className="h-3 w-3 text-muted-foreground" />
                   <button
-                    onClick={() => navigate(`/leads/${task.lead_id}`)}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      navigate(`/lead/${task.lead_id}`);
+                    }}
                     className="text-primary hover:underline text-xs"
                   >
                     {task.lead.name}
@@ -157,7 +160,10 @@ export function TaskCard({ task, onEdit, isGestor }: TaskCardProps) {
                     <Button
                       size="sm"
                       variant="outline"
-                      onClick={() => updateStatusMutation.mutate("em_andamento")}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        updateStatusMutation.mutate("em_andamento");
+                      }}
                       className="flex-1 h-7 text-xs"
                     >
                       Iniciar
@@ -165,7 +171,10 @@ export function TaskCard({ task, onEdit, isGestor }: TaskCardProps) {
                   )}
                   <Button
                     size="sm"
-                    onClick={() => updateStatusMutation.mutate("concluida")}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      updateStatusMutation.mutate("concluida");
+                    }}
                     className="flex-1 h-7 text-xs"
                   >
                     <CheckCircle2 className="h-3 w-3 mr-1" />
@@ -179,7 +188,10 @@ export function TaskCard({ task, onEdit, isGestor }: TaskCardProps) {
                   <Button
                     size="icon"
                     variant="ghost"
-                    onClick={() => onEdit(task)}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      onEdit(task);
+                    }}
                     className="h-7 w-7"
                   >
                     <Edit className="h-3 w-3" />
@@ -187,7 +199,10 @@ export function TaskCard({ task, onEdit, isGestor }: TaskCardProps) {
                   <Button
                     size="icon"
                     variant="ghost"
-                    onClick={() => deleteTaskMutation.mutate()}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      deleteTaskMutation.mutate();
+                    }}
                     className="h-7 w-7 text-destructive"
                   >
                     <Trash2 className="h-3 w-3" />
