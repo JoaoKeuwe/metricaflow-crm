@@ -121,6 +121,41 @@ export type Database = {
           },
         ]
       }
+      gamification_settings: {
+        Row: {
+          company_id: string
+          event_type: string
+          id: string
+          points: number
+          updated_at: string | null
+          updated_by: string | null
+        }
+        Insert: {
+          company_id: string
+          event_type: string
+          id?: string
+          points: number
+          updated_at?: string | null
+          updated_by?: string | null
+        }
+        Update: {
+          company_id?: string
+          event_type?: string
+          id?: string
+          points?: number
+          updated_at?: string | null
+          updated_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "gamification_settings_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       integration_logs: {
         Row: {
           api_token_id: string | null
@@ -911,6 +946,10 @@ export type Database = {
           sent: number
           total: number
         }[]
+      }
+      get_gamification_points: {
+        Args: { _company_id: string; _event_type: string }
+        Returns: number
       }
       get_leads_with_future_activities: {
         Args: { p_company_id: string; p_end_date: string; p_start_date: string }

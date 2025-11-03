@@ -16,6 +16,8 @@ import { Button } from "@/components/ui/button";
 import { motion } from "framer-motion";
 import { calculateUserStats, calculateBadges, getNextBadge, Badge } from "@/lib/gamification";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { GamificationSettings } from "@/components/gamification/GamificationSettings";
+import { Settings } from "lucide-react";
 
 export default function GamificationLive() {
   const [showCelebration, setShowCelebration] = useState(false);
@@ -24,6 +26,24 @@ export default function GamificationLive() {
   const { latestSale, clearLatestSale } = useGamificationEvents();
   const { isMuted, volume, setIsMuted, setVolume, playSound } = useGamificationSounds();
   const [lastUpdate, setLastUpdate] = useState(new Date());
+
+  // Check user role
+  const { data: userRole } = useQuery({
+    queryKey: ["user-role"],
+    queryFn: async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return null;
+
+      const { data, error } = await supabase
+        .from("user_roles")
+        .select("role")
+        .eq("user_id", user.id)
+        .single();
+
+      if (error) throw error;
+      return data?.role;
+    },
+  });
 
   // Buscar eventos para detectar novos badges
   const { data: allEvents } = useQuery({
@@ -182,7 +202,7 @@ export default function GamificationLive() {
 
         {/* Tabs de conteúdo */}
         <Tabs defaultValue="ranking" className="w-full">
-          <TabsList className="grid w-full max-w-md mx-auto grid-cols-3">
+          <TabsList className={`grid w-full max-w-2xl mx-auto ${userRole === 'gestor_owner' || userRole === 'gestor' ? 'grid-cols-4' : 'grid-cols-3'}`}>
             <TabsTrigger value="ranking">
               <Trophy className="h-4 w-4 mr-2" />
               Ranking
@@ -195,6 +215,12 @@ export default function GamificationLive() {
               <TrendingUp className="h-4 w-4 mr-2" />
               Pontos
             </TabsTrigger>
+            {(userRole === 'gestor_owner' || userRole === 'gestor') && (
+              <TabsTrigger value="configuracoes">
+                <Settings className="h-4 w-4 mr-2" />
+                Configurações
+              </TabsTrigger>
+            )}
           </TabsList>
 
           <TabsContent value="ranking" className="mt-8">
@@ -239,6 +265,12 @@ export default function GamificationLive() {
           <TabsContent value="pontos" className="mt-8">
             <PointsBreakdown />
           </TabsContent>
+
+          {(userRole === 'gestor_owner' || userRole === 'gestor') && (
+            <TabsContent value="configuracoes" className="mt-8">
+              <GamificationSettings />
+            </TabsContent>
+          )}
         </Tabs>
 
         {/* Footer com indicadores */}
