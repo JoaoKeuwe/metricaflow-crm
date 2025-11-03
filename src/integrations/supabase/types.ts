@@ -610,7 +610,7 @@ export type Database = {
           created_at: string
           description: string
           id: string
-          lead_id: string
+          lead_id: string | null
           reminder_date: string
           user_id: string
         }
@@ -619,7 +619,7 @@ export type Database = {
           created_at?: string
           description: string
           id?: string
-          lead_id: string
+          lead_id?: string | null
           reminder_date: string
           user_id: string
         }
@@ -628,7 +628,7 @@ export type Database = {
           created_at?: string
           description?: string
           id?: string
-          lead_id?: string
+          lead_id?: string | null
           reminder_date?: string
           user_id?: string
         }
