@@ -24,21 +24,28 @@ export function TaskKanban({ tasks, onEditTask, isGestor }: TaskKanbanProps) {
     <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
       {columns.map((column) => {
         let columnTasks = tasks.filter((task) => {
-          // Verificar se a tarefa está atrasada
-          const isOverdue = task.due_date && new Date(task.due_date) < new Date();
+          if (!task.due_date) {
+            // Tarefas sem data aparecem em "abertas" se não estiverem concluídas
+            return column.status === "aberta" && task.status !== "concluida";
+          }
+
+          const dueDate = new Date(task.due_date);
+          const today = new Date();
+          today.setHours(0, 0, 0, 0);
+          dueDate.setHours(0, 0, 0, 0);
           
           if (column.status === "aberta") {
-            // Abertas: apenas tarefas do dia que não estão atrasadas
-            if (!task.due_date) return task.status === "aberta";
-            const dueDate = new Date(task.due_date);
-            return task.status === "aberta" && dueDate >= startOfToday && dueDate <= endOfToday;
+            // Abertas: apenas tarefas de HOJE que não estão concluídas
+            return dueDate.getTime() === today.getTime() && task.status !== "concluida";
           } else if (column.status === "em_atraso") {
-            // Em atraso: tarefas abertas ou em_atraso que passaram da data
-            return (task.status === "aberta" || task.status === "em_atraso") && isOverdue;
-          } else {
-            // Concluídas
-            return task.status === column.status;
+            // Em atraso: tarefas de dias ANTERIORES que não estão concluídas
+            return dueDate < today && task.status !== "concluida";
+          } else if (column.status === "concluida") {
+            // Concluídas: apenas tarefas marcadas como concluídas
+            return task.status === "concluida";
           }
+          
+          return false;
         });
 
         return (
