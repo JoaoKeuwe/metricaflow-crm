@@ -5,12 +5,16 @@ import { LeaderboardLive } from "@/components/gamification/LeaderboardLive";
 import { PointsBreakdown } from "@/components/gamification/PointsBreakdown";
 import { SaleCelebration } from "@/components/gamification/SaleCelebration";
 import { useGamificationEvents } from "@/hooks/useGamificationEvents";
+import { useGamificationSounds } from "@/hooks/useGamificationSounds";
+import { SoundControls } from "@/components/gamification/SoundControls";
 import { Trophy, Users, TrendingUp, RefreshCw } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { motion } from "framer-motion";
 
 export default function GamificationLive() {
   const [showCelebration, setShowCelebration] = useState(false);
   const { latestSale, clearLatestSale } = useGamificationEvents();
+  const { isMuted, volume, setIsMuted, setVolume, playSound } = useGamificationSounds();
   const [lastUpdate, setLastUpdate] = useState(new Date());
 
   // Buscar dados do vendedor quando houver nova venda
@@ -35,8 +39,9 @@ export default function GamificationLive() {
   useEffect(() => {
     if (latestSale && sellerData) {
       setShowCelebration(true);
+      playSound('sale');
     }
-  }, [latestSale, sellerData]);
+  }, [latestSale, sellerData, playSound]);
 
   const handleCelebrationComplete = () => {
     setShowCelebration(false);
@@ -53,7 +58,15 @@ export default function GamificationLive() {
   }, []);
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-background via-background to-primary/5 p-6">
+    <div className="min-h-screen bg-gradient-to-br from-background via-background to-primary/5 p-4 md:p-6">
+      {/* Sound Controls */}
+      <SoundControls
+        isMuted={isMuted}
+        volume={volume}
+        onMuteToggle={() => setIsMuted(!isMuted)}
+        onVolumeChange={setVolume}
+      />
+
       {/* Modal de celebração */}
       {showCelebration && latestSale && sellerData && (
         <SaleCelebration
@@ -66,24 +79,42 @@ export default function GamificationLive() {
         />
       )}
 
-      <div className="max-w-7xl mx-auto space-y-6">
+      <div className="max-w-[1920px] mx-auto space-y-8">
         {/* Header */}
-        <div className="text-center space-y-4">
-          <div className="flex items-center justify-center gap-3">
-            <Trophy className="h-12 w-12 text-primary animate-bounce" />
-            <h1 className="text-5xl font-bold bg-gradient-to-r from-primary to-primary/60 bg-clip-text text-transparent">
+        <motion.div
+          initial={{ y: -50, opacity: 0 }}
+          animate={{ y: 0, opacity: 1 }}
+          className="text-center space-y-4"
+        >
+          <div className="flex items-center justify-center gap-4">
+            <motion.div
+              animate={{ y: [0, -10, 0] }}
+              transition={{ duration: 2, repeat: Infinity }}
+            >
+              <Trophy className="h-16 w-16 text-primary" />
+            </motion.div>
+            <h1 className="text-6xl md:text-7xl lg:text-8xl font-bold bg-gradient-to-r from-primary via-purple-400 to-primary bg-clip-text text-transparent">
               Ranking ao Vivo
             </h1>
-            <Trophy className="h-12 w-12 text-primary animate-bounce" />
+            <motion.div
+              animate={{ y: [0, -10, 0] }}
+              transition={{ duration: 2, repeat: Infinity, delay: 1 }}
+            >
+              <Trophy className="h-16 w-16 text-primary" />
+            </motion.div>
           </div>
-          <p className="text-xl text-muted-foreground">
+          <p className="text-xl md:text-2xl text-muted-foreground">
             Últimos 30 dias • Atualização automática a cada 5 segundos
           </p>
-          <div className="flex items-center justify-center gap-2 text-sm text-muted-foreground">
+          <motion.div
+            animate={{ opacity: [0.5, 1, 0.5] }}
+            transition={{ duration: 2, repeat: Infinity }}
+            className="flex items-center justify-center gap-2 text-sm text-muted-foreground"
+          >
             <RefreshCw className="h-4 w-4 animate-spin" />
             <span>Última atualização: {lastUpdate.toLocaleTimeString()}</span>
-          </div>
-        </div>
+          </motion.div>
+        </motion.div>
 
         {/* Sistema de Pontuação */}
         <PointsBreakdown />
@@ -92,23 +123,37 @@ export default function GamificationLive() {
         <LeaderboardLive />
 
         {/* Footer com indicadores */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-8">
-          <div className="bg-card rounded-lg p-4 text-center border border-primary/20">
-            <Trophy className="h-8 w-8 mx-auto mb-2 text-primary" />
-            <p className="text-2xl font-bold">Top Performers</p>
+        <motion.div
+          initial={{ y: 50, opacity: 0 }}
+          animate={{ y: 0, opacity: 1 }}
+          transition={{ delay: 0.5 }}
+          className="grid grid-cols-1 md:grid-cols-3 gap-6 mt-12"
+        >
+          <motion.div
+            whileHover={{ scale: 1.05 }}
+            className="bg-card rounded-2xl p-6 text-center border-2 border-primary/30 shadow-lg"
+          >
+            <Trophy className="h-10 w-10 mx-auto mb-3 text-primary" />
+            <p className="text-3xl font-bold">Top Performers</p>
             <p className="text-sm text-muted-foreground">Celebrando a excelência</p>
-          </div>
-          <div className="bg-card rounded-lg p-4 text-center border border-primary/20">
-            <Users className="h-8 w-8 mx-auto mb-2 text-primary" />
-            <p className="text-2xl font-bold">Time Unido</p>
+          </motion.div>
+          <motion.div
+            whileHover={{ scale: 1.05 }}
+            className="bg-card rounded-2xl p-6 text-center border-2 border-primary/30 shadow-lg"
+          >
+            <Users className="h-10 w-10 mx-auto mb-3 text-primary" />
+            <p className="text-3xl font-bold">Time Unido</p>
             <p className="text-sm text-muted-foreground">Crescendo juntos</p>
-          </div>
-          <div className="bg-card rounded-lg p-4 text-center border border-primary/20">
-            <TrendingUp className="h-8 w-8 mx-auto mb-2 text-primary" />
-            <p className="text-2xl font-bold">Em Tempo Real</p>
+          </motion.div>
+          <motion.div
+            whileHover={{ scale: 1.05 }}
+            className="bg-card rounded-2xl p-6 text-center border-2 border-primary/30 shadow-lg"
+          >
+            <TrendingUp className="h-10 w-10 mx-auto mb-3 text-primary" />
+            <p className="text-3xl font-bold">Em Tempo Real</p>
             <p className="text-sm text-muted-foreground">Acompanhe cada venda</p>
-          </div>
-        </div>
+          </motion.div>
+        </motion.div>
 
         {/* Botão para sair */}
         <div className="text-center pt-4">
