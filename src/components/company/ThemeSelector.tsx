@@ -24,7 +24,7 @@ const ThemeSelector = () => {
   const [previewTheme, setPreviewTheme] = useState<ThemeName | null>(null);
   const queryClient = useQueryClient();
 
-  // Fetch current theme
+  // Fetch current theme and user role
   const { data: currentTheme } = useQuery({
     queryKey: ['company-theme'],
     queryFn: async () => {
@@ -48,6 +48,35 @@ const ThemeSelector = () => {
       return company?.theme as ThemeName || 'moderno';
     },
   });
+
+  // Check if user is owner or gestor
+  const { data: userRole } = useQuery({
+    queryKey: ['user-role'],
+    queryFn: async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return null;
+
+      // Check if owner
+      const { data: company } = await supabase
+        .from('companies')
+        .select('owner_id')
+        .eq('owner_id', user.id)
+        .maybeSingle();
+
+      if (company) return 'owner';
+
+      // Check if gestor
+      const { data: role } = await supabase
+        .from('user_roles')
+        .select('role')
+        .eq('user_id', user.id)
+        .maybeSingle();
+
+      return role?.role || null;
+    },
+  });
+
+  const canEditTheme = userRole === 'owner' || userRole === 'gestor' || userRole === 'gestor_owner';
 
   // Update theme mutation
   const updateThemeMutation = useMutation({
@@ -114,7 +143,10 @@ const ThemeSelector = () => {
             Tema do Sistema
           </CardTitle>
           <CardDescription>
-            Escolha a paleta de cores que representa sua empresa
+            {canEditTheme 
+              ? 'Escolha a paleta de cores que representa sua empresa'
+              : 'Apenas owners e gestores podem alterar o tema do sistema'
+            }
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -126,12 +158,14 @@ const ThemeSelector = () => {
               return (
                 <Card
                   key={theme.name}
-                  className={`cursor-pointer transition-all hover:scale-105 relative ${
+                  className={`transition-all relative ${
                     isActive ? 'ring-2 ring-primary' : ''
-                  } ${previewTheme === theme.name ? 'ring-2 ring-accent' : ''}`}
-                  onClick={() => handleThemeSelect(theme.name)}
-                  onMouseEnter={() => handleThemePreview(theme.name)}
-                  onMouseLeave={() => handleThemePreview(null)}
+                  } ${previewTheme === theme.name ? 'ring-2 ring-accent' : ''} ${
+                    canEditTheme ? 'cursor-pointer hover:scale-105' : 'opacity-60 cursor-not-allowed'
+                  }`}
+                  onClick={() => canEditTheme && handleThemeSelect(theme.name)}
+                  onMouseEnter={() => canEditTheme && handleThemePreview(theme.name)}
+                  onMouseLeave={() => canEditTheme && handleThemePreview(null)}
                 >
                   {previewTheme === theme.name && (
                     <div className="absolute -top-2 -right-2 z-10">
