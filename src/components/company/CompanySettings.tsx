@@ -37,15 +37,14 @@ const CompanySettings = () => {
     enabled: !!session?.user?.id,
   });
 
-  const { data: userRole } = useQuery({
+  const { data: userRoles } = useQuery({
     queryKey: ["user-role", session?.user?.id],
     queryFn: async () => {
       if (!session?.user?.id) return null;
       const { data } = await supabase
         .from("user_roles")
         .select("role")
-        .eq("user_id", session.user.id)
-        .single();
+        .eq("user_id", session.user.id);
       return data;
     },
     enabled: !!session?.user?.id,
@@ -54,8 +53,7 @@ const CompanySettings = () => {
   // Check if user is owner (via company.owner_id) or has gestor/gestor_owner role
   const isOwnerOrGestor = 
     profile?.company?.owner_id === session?.user?.id || 
-    userRole?.role === "gestor_owner" || 
-    userRole?.role === "gestor";
+    userRoles?.some(ur => ur.role === "gestor_owner" || ur.role === "gestor");
 
   const updateCompanyMutation = useMutation({
     mutationFn: async (data: { system_name?: string; logo_url?: string }) => {

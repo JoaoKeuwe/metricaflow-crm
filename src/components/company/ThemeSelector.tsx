@@ -50,33 +50,44 @@ const ThemeSelector = () => {
   });
 
   // Check if user is owner or gestor
-  const { data: userRole } = useQuery({
-    queryKey: ['user-role'],
+  const { data: session } = useQuery({
+    queryKey: ['session'],
     queryFn: async () => {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) return null;
-
-      // Check if owner
-      const { data: company } = await supabase
-        .from('companies')
-        .select('owner_id')
-        .eq('owner_id', user.id)
-        .maybeSingle();
-
-      if (company) return 'owner';
-
-      // Check if gestor
-      const { data: role } = await supabase
-        .from('user_roles')
-        .select('role')
-        .eq('user_id', user.id)
-        .maybeSingle();
-
-      return role?.role || null;
+      const { data } = await supabase.auth.getSession();
+      return data.session;
     },
   });
 
-  const canEditTheme = userRole === 'owner' || userRole === 'gestor' || userRole === 'gestor_owner';
+  const { data: profile } = useQuery({
+    queryKey: ['profile', session?.user?.id],
+    queryFn: async () => {
+      if (!session?.user?.id) return null;
+      const { data } = await supabase
+        .from('profiles')
+        .select('*, company:companies(*)')
+        .eq('id', session.user.id)
+        .single();
+      return data;
+    },
+    enabled: !!session?.user?.id,
+  });
+
+  const { data: userRoles } = useQuery({
+    queryKey: ['user-roles', session?.user?.id],
+    queryFn: async () => {
+      if (!session?.user?.id) return null;
+      const { data } = await supabase
+        .from('user_roles')
+        .select('role')
+        .eq('user_id', session.user.id);
+      return data;
+    },
+    enabled: !!session?.user?.id,
+  });
+
+  const canEditTheme = 
+    profile?.company?.owner_id === session?.user?.id || 
+    userRoles?.some(ur => ur.role === 'gestor_owner' || ur.role === 'gestor');
 
   // Update theme mutation
   const updateThemeMutation = useMutation({
