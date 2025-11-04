@@ -1,4 +1,4 @@
-import { LayoutDashboard, Users, KanbanSquare, UserCog, Settings, LogOut, Plug, Calendar, ListTodo, Bell, Database, Upload, MessageCircle, Trophy } from "lucide-react";
+import { LayoutDashboard, Users, KanbanSquare, Settings, LogOut, Plug, Calendar, ListTodo, Bell, Database, Trophy, HelpCircle } from "lucide-react";
 import { NavLink, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
@@ -106,6 +106,16 @@ const Sidebar = () => {
     icon: Trophy,
     label: "🎮 Gamificação Live",
     requiresOwnerOrGestor: true
+  }, {
+    to: "/settings",
+    icon: Settings,
+    label: "Configurações",
+    requiresOwnerOrGestor: true
+  }, {
+    to: "/help",
+    icon: HelpCircle,
+    label: "Ajuda",
+    requiresOwnerOrGestor: false
   }];
 
   const navItems = allNavItems.filter(item => !item.requiresOwnerOrGestor || isOwnerOrGestor);

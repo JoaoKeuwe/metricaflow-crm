@@ -18,10 +18,14 @@ import LocalProspector from "./pages/LocalProspector";
 import BulkImport from "./pages/BulkImport";
 import WhatsApp from "./pages/WhatsApp";
 import GamificationLive from "./pages/GamificationLive";
+import Help from "./pages/Help";
+import Settings from "./pages/Settings";
 import NotFound from "./pages/NotFound";
 import Sidebar from "./components/layout/Sidebar";
 import Header from "./components/layout/Header";
 import ProtectedRoute from "./pages/ProtectedRoute";
+import OnboardingTour from "./components/onboarding/OnboardingTour";
+import WhatsAppButton from "./components/support/WhatsAppButton";
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -41,6 +45,8 @@ const DemoLayout = ({ children }: { children: React.ReactNode }) => (
       <Header />
       <main className="flex-1 overflow-y-auto p-6">{children}</main>
     </div>
+    <OnboardingTour />
+    <WhatsAppButton />
   </div>
 );
 
@@ -155,6 +161,22 @@ const App = () => {
               element={
                 <ProtectedRoute>
                   <GamificationLive />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/help"
+              element={
+                <DemoLayout>
+                  <Help />
+                </DemoLayout>
+              }
+            />
+            <Route
+              path="/settings"
+              element={
+                <ProtectedRoute>
+                  <Settings />
                 </ProtectedRoute>
               }
             />

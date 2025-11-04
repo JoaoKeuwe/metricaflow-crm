@@ -56,22 +56,28 @@ export type Database = {
         Row: {
           created_at: string
           id: string
+          logo_url: string | null
           name: string
           owner_id: string | null
+          system_name: string | null
           user_limit_adicionais: number | null
         }
         Insert: {
           created_at?: string
           id?: string
+          logo_url?: string | null
           name: string
           owner_id?: string | null
+          system_name?: string | null
           user_limit_adicionais?: number | null
         }
         Update: {
           created_at?: string
           id?: string
+          logo_url?: string | null
           name?: string
           owner_id?: string | null
+          system_name?: string | null
           user_limit_adicionais?: number | null
         }
         Relationships: []
@@ -554,24 +560,30 @@ export type Database = {
           avatar_url: string | null
           company_id: string
           created_at: string
+          email_notifications: boolean | null
           id: string
           name: string
+          onboarding_completed: boolean | null
         }
         Insert: {
           active?: boolean
           avatar_url?: string | null
           company_id: string
           created_at?: string
+          email_notifications?: boolean | null
           id: string
           name: string
+          onboarding_completed?: boolean | null
         }
         Update: {
           active?: boolean
           avatar_url?: string | null
           company_id?: string
           created_at?: string
+          email_notifications?: boolean | null
           id?: string
           name?: string
+          onboarding_completed?: boolean | null
         }
         Relationships: [
           {
