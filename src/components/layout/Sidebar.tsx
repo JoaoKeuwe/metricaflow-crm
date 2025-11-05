@@ -119,12 +119,12 @@ const Sidebar = () => {
   }];
 
   const navItems = allNavItems.filter(item => !item.requiresOwnerOrGestor || isOwnerOrGestor);
-  return <aside className="w-64 bg-card border-r border-border flex flex-col sticky top-0 h-screen z-30">
+  return <aside className="w-64 bg-card border-r border-border flex flex-col sticky top-0 h-screen z-30 min-h-0">
       <div className="p-6 border-b border-border">
         <h1 className="text-2xl font-bold bg-gradient-to-r from-primary to-purple-600 bg-clip-text text-transparent">Pro</h1>
       </div>
 
-      <nav className="flex-1 p-4 space-y-2">
+      <nav className="flex-1 min-h-0 overflow-y-auto p-4 space-y-2">
         {navItems.map(item => <NavLink key={item.to} to={item.to} className={({
         isActive
       }) => `flex items-center gap-3 px-4 py-3 rounded-lg transition-all ${isActive ? "bg-primary text-primary-foreground shadow-md" : "text-muted-foreground hover:bg-muted hover:text-foreground"}`}>
