@@ -48,17 +48,24 @@ const handler = async (req: Request): Promise<Response> => {
       );
     }
 
-    const resendApiKey = Deno.env.get("RESEND_API_KEY");
-    const resendFrom = Deno.env.get("RESEND_FROM") || "CRM System <onboarding@resend.dev>";
+    const brevoApiKey = Deno.env.get("BREVO_API_KEY");
+    const brevoFromEmail = Deno.env.get("BREVO_FROM_EMAIL");
+    const brevoFromName = Deno.env.get("BREVO_FROM_NAME") || "WORKFLOWB";
     
-    console.log("Resend config:", { 
-      hasApiKey: !!resendApiKey, 
-      from: resendFrom 
+    console.log("Brevo config:", { 
+      hasApiKey: !!brevoApiKey, 
+      from: brevoFromEmail,
+      name: brevoFromName
     });
     
-    if (!resendApiKey) {
-      console.error("RESEND_API_KEY not configured");
-      throw new Error("RESEND_API_KEY is required");
+    if (!brevoApiKey) {
+      console.error("BREVO_API_KEY not configured");
+      throw new Error("BREVO_API_KEY is required");
+    }
+    
+    if (!brevoFromEmail) {
+      console.error("BREVO_FROM_EMAIL not configured");
+      throw new Error("BREVO_FROM_EMAIL is required");
     }
     
     console.log('Sending invite email:', { inviteId, email, role, companyName });
@@ -67,18 +74,26 @@ const handler = async (req: Request): Promise<Response> => {
     
     const roleLabel = role === "gestor" ? "Gestor" : "Vendedor";
 
-    // Send email using Resend API directly
-    const emailResponse = await fetch("https://api.resend.com/emails", {
+    // Send email using Brevo API
+    const emailResponse = await fetch("https://api.brevo.com/v3/smtp/email", {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
-        Authorization: `Bearer ${resendApiKey}`,
+        "api-key": brevoApiKey,
       },
       body: JSON.stringify({
-        from: resendFrom,
-        to: [email],
+        sender: {
+          name: brevoFromName,
+          email: brevoFromEmail,
+        },
+        to: [
+          {
+            email: email,
+            name: email.split('@')[0], // Use email prefix as name
+          }
+        ],
         subject: `Convite para ${companyName}`,
-        html: `
+        htmlContent: `
           <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
             <h1 style="color: #333;">Você foi convidado!</h1>
             <p>Você foi convidado para fazer parte de <strong>${companyName}</strong> como <strong>${roleLabel}</strong>.</p>
@@ -105,18 +120,18 @@ const handler = async (req: Request): Promise<Response> => {
 
     if (!emailResponse.ok) {
       const errorData = await emailResponse.json();
-      console.error("Resend API error:", {
+      console.error("Brevo API error:", {
         status: emailResponse.status,
         error: errorData
       });
       
-      // Erro 403: Domínio não verificado
-      if (emailResponse.status === 403) {
+      // Erro 401: API key inválida
+      if (emailResponse.status === 401) {
         return new Response(
           JSON.stringify({ 
             error: "Configuração de email incompleta",
-            details: `O domínio usado para envio de emails não foi verificado no Resend. Configure o domínio em https://resend.com/domains e adicione os registros DNS necessários.`,
-            hint: "Durante testes, você pode usar 'onboarding@resend.dev' no secret RESEND_FROM."
+            details: `A chave de API do Brevo não é válida ou está expirada. Verifique se BREVO_API_KEY está configurado corretamente.`,
+            hint: "Obtenha uma nova API key em https://app.brevo.com/settings/keys/api"
           }),
           {
             status: 500,
@@ -125,7 +140,7 @@ const handler = async (req: Request): Promise<Response> => {
         );
       }
       
-      throw new Error(`Resend API error: ${JSON.stringify(errorData)}`);
+      throw new Error(`Brevo API error: ${JSON.stringify(errorData)}`);
     }
 
     const emailData = await emailResponse.json();
