@@ -20,6 +20,8 @@ import WhatsApp from "./pages/WhatsApp";
 import GamificationLive from "./pages/GamificationLive";
 import Help from "./pages/Help";
 import Settings from "./pages/Settings";
+import ReportSettings from "./pages/ReportSettings";
+import Goals from "./pages/Goals";
 import NotFound from "./pages/NotFound";
 import Sidebar from "./components/layout/Sidebar";
 import Header from "./components/layout/Header";
@@ -183,6 +185,22 @@ const App = () => {
               element={
                 <ProtectedRoute>
                   <Settings />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/settings/reports"
+              element={
+                <ProtectedRoute>
+                  <ReportSettings />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/goals"
+              element={
+                <ProtectedRoute>
+                  <Goals />
                 </ProtectedRoute>
               }
             />

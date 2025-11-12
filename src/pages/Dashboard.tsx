@@ -9,6 +9,7 @@ import SalesPerformanceDetailedChart from "@/components/dashboard/SalesPerforman
 import LeadsSourceChart from "@/components/dashboard/LeadsSourceChart";
 import ConversionFunnelChart from "@/components/dashboard/ConversionFunnelChart";
 import DashboardFilters from "@/components/dashboard/DashboardFilters";
+import { GoalsProgressCard } from "@/components/dashboard/GoalsProgressCard";
 import { useDetailedPerformanceData } from "@/hooks/useDetailedPerformanceData";
 import { useRealtimeLeads } from "@/hooks/useRealtimeLeads";
 import { Users, CheckCircle, Clock, TrendingUp, DollarSign, Target, FileDown } from "lucide-react";
@@ -494,6 +495,9 @@ const Dashboard = () => {
           description="Valor médio por venda"
         />
       </div>
+
+      {/* Goals Progress Card */}
+      <GoalsProgressCard />
 
       <div id="status-source-charts" className="grid grid-cols-1 lg:grid-cols-2 gap-8 animate-in fade-in slide-in-from-bottom-4 duration-700 delay-500">
         {statusData && <LeadsStatusChart data={statusData} />}

@@ -14,6 +14,66 @@ export type Database = {
   }
   public: {
     Tables: {
+      ai_report_insights: {
+        Row: {
+          attention_points: Json | null
+          company_id: string
+          created_at: string | null
+          highlights: Json | null
+          id: string
+          motivation: string | null
+          report_date: string
+          report_type: string
+          strategic_analysis: string | null
+          suggested_actions: Json | null
+          summary: string | null
+          user_id: string | null
+        }
+        Insert: {
+          attention_points?: Json | null
+          company_id: string
+          created_at?: string | null
+          highlights?: Json | null
+          id?: string
+          motivation?: string | null
+          report_date: string
+          report_type: string
+          strategic_analysis?: string | null
+          suggested_actions?: Json | null
+          summary?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          attention_points?: Json | null
+          company_id?: string
+          created_at?: string | null
+          highlights?: Json | null
+          id?: string
+          motivation?: string | null
+          report_date?: string
+          report_type?: string
+          strategic_analysis?: string | null
+          suggested_actions?: Json | null
+          summary?: string | null
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ai_report_insights_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ai_report_insights_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       api_tokens: {
         Row: {
           active: boolean
@@ -657,6 +717,139 @@ export type Database = {
           },
           {
             foreignKeyName: "reminders_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      report_settings: {
+        Row: {
+          ai_analysis_level: string | null
+          company_id: string
+          daily_report_time: string | null
+          daily_reports_enabled: boolean | null
+          extra_recipients: string[] | null
+          id: string
+          include_predictions: boolean | null
+          include_swot: boolean | null
+          updated_at: string | null
+          updated_by: string | null
+          weekly_report_day: number | null
+          weekly_report_time: string | null
+          weekly_reports_enabled: boolean | null
+        }
+        Insert: {
+          ai_analysis_level?: string | null
+          company_id: string
+          daily_report_time?: string | null
+          daily_reports_enabled?: boolean | null
+          extra_recipients?: string[] | null
+          id?: string
+          include_predictions?: boolean | null
+          include_swot?: boolean | null
+          updated_at?: string | null
+          updated_by?: string | null
+          weekly_report_day?: number | null
+          weekly_report_time?: string | null
+          weekly_reports_enabled?: boolean | null
+        }
+        Update: {
+          ai_analysis_level?: string | null
+          company_id?: string
+          daily_report_time?: string | null
+          daily_reports_enabled?: boolean | null
+          extra_recipients?: string[] | null
+          id?: string
+          include_predictions?: boolean | null
+          include_swot?: boolean | null
+          updated_at?: string | null
+          updated_by?: string | null
+          weekly_report_day?: number | null
+          weekly_report_time?: string | null
+          weekly_reports_enabled?: boolean | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "report_settings_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: true
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "report_settings_updated_by_fkey"
+            columns: ["updated_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      sales_goals: {
+        Row: {
+          company_id: string
+          conversions_goal: number | null
+          created_at: string | null
+          created_by: string | null
+          end_date: string
+          id: string
+          leads_goal: number | null
+          observations_goal: number | null
+          period_type: string
+          revenue_goal: number | null
+          start_date: string
+          tasks_goal: number | null
+          user_id: string
+        }
+        Insert: {
+          company_id: string
+          conversions_goal?: number | null
+          created_at?: string | null
+          created_by?: string | null
+          end_date: string
+          id?: string
+          leads_goal?: number | null
+          observations_goal?: number | null
+          period_type: string
+          revenue_goal?: number | null
+          start_date: string
+          tasks_goal?: number | null
+          user_id: string
+        }
+        Update: {
+          company_id?: string
+          conversions_goal?: number | null
+          created_at?: string | null
+          created_by?: string | null
+          end_date?: string
+          id?: string
+          leads_goal?: number | null
+          observations_goal?: number | null
+          period_type?: string
+          revenue_goal?: number | null
+          start_date?: string
+          tasks_goal?: number | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "sales_goals_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "sales_goals_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "sales_goals_user_id_fkey"
             columns: ["user_id"]
             isOneToOne: false
             referencedRelation: "profiles"

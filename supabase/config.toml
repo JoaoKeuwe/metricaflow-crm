@@ -78,5 +78,8 @@ verify_jwt = true
 [functions.cleanup-completed-tasks]
 verify_jwt = false
 
-[functions.get-dashboard-stats]
+[functions.send-daily-report]
+verify_jwt = false
+
+[functions.send-weekly-summary]
 verify_jwt = true
