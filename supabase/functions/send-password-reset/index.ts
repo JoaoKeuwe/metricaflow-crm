@@ -58,68 +58,150 @@ const handler = async (req: Request): Promise<Response> => {
       throw new Error("Link de recuperação não foi gerado");
     }
 
-    const resendApiKey = Deno.env.get("RESEND_API_KEY");
-    const resendFrom = Deno.env.get("RESEND_FROM") || "CRM System <onboarding@resend.dev>";
+    const brevoApiKey = Deno.env.get("BREVO_API_KEY");
+    const brevoFromEmail = Deno.env.get("BREVO_FROM_EMAIL");
+    const brevoFromName = Deno.env.get("BREVO_FROM_NAME") || "WorkFlow360 CRM";
     
-    console.log("Resend config:", { 
-      hasApiKey: !!resendApiKey, 
-      from: resendFrom 
+    console.log("Brevo config:", { 
+      hasApiKey: !!brevoApiKey, 
+      fromEmail: brevoFromEmail,
+      fromName: brevoFromName
     });
     
-    if (!resendApiKey) {
-      console.error("RESEND_API_KEY not configured");
-      throw new Error("RESEND_API_KEY is required");
+    if (!brevoApiKey || !brevoFromEmail) {
+      console.error("BREVO_API_KEY or BREVO_FROM_EMAIL not configured");
+      throw new Error("BREVO_API_KEY e BREVO_FROM_EMAIL são obrigatórios");
     }
 
     console.log("Sending password reset email to:", email);
     
-    const emailResponse = await fetch("https://api.resend.com/emails", {
+    const emailResponse = await fetch("https://api.brevo.com/v3/smtp/email", {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
-        Authorization: `Bearer ${resendApiKey}`,
+        "api-key": brevoApiKey,
       },
       body: JSON.stringify({
-        from: resendFrom,
-        to: [email],
-        subject: "Redefinir sua senha",
-        html: `
-          <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
-            <h2 style="color: #333;">Redefinir sua senha</h2>
-            <p>Você solicitou a redefinição de senha para sua conta.</p>
-            <p>Clique no botão abaixo para redefinir sua senha:</p>
-            <div style="margin: 30px 0;">
-              <a href="${resetLink}" 
-                 style="background-color: #4F46E5; color: white; padding: 12px 24px; 
-                        text-decoration: none; border-radius: 6px; display: inline-block;">
-                Redefinir Senha
-              </a>
-            </div>
-            <p style="color: #666; font-size: 14px;">
-              Se você não solicitou esta redefinição, pode ignorar este email com segurança.
-            </p>
-            <p style="color: #666; font-size: 14px;">
-              Este link expira em 1 hora.
-            </p>
-          </div>
+        sender: {
+          name: brevoFromName,
+          email: brevoFromEmail,
+        },
+        to: [
+          {
+            email: email,
+          },
+        ],
+        subject: "Redefinir sua senha - WorkFlow360 CRM",
+        htmlContent: `
+          <!DOCTYPE html>
+          <html>
+            <head>
+              <style>
+                body {
+                  font-family: 'Poppins', Arial, sans-serif;
+                  line-height: 1.6;
+                  color: #111111;
+                  max-width: 600px;
+                  margin: 0 auto;
+                  padding: 20px;
+                }
+                .container {
+                  background-color: #F8F8F8;
+                  border-radius: 10px;
+                  padding: 30px;
+                  border: 1px solid #e0e0e0;
+                }
+                .header {
+                  text-align: center;
+                  margin-bottom: 30px;
+                }
+                .header h1 {
+                  color: #FF3B99;
+                  margin: 0;
+                  font-weight: 700;
+                }
+                .content {
+                  background-color: white;
+                  padding: 20px;
+                  border-radius: 5px;
+                }
+                .button {
+                  display: inline-block;
+                  padding: 15px 30px;
+                  background-color: #FF3B99;
+                  color: white !important;
+                  text-decoration: none;
+                  border-radius: 8px;
+                  margin: 20px 0;
+                  font-weight: 600;
+                  transition: background-color 0.3s;
+                }
+                .button:hover {
+                  background-color: #FF6FBF;
+                }
+                .footer {
+                  margin-top: 30px;
+                  text-align: center;
+                  font-size: 12px;
+                  color: #333333;
+                }
+                .warning-box {
+                  background-color: #FFF4E6;
+                  border-left: 4px solid #FF3B99;
+                  padding: 15px;
+                  margin: 20px 0;
+                  border-radius: 4px;
+                }
+              </style>
+            </head>
+            <body>
+              <div class="container">
+                <div class="header">
+                  <h1>🔐 WorkFlow360 CRM</h1>
+                </div>
+                <div class="content">
+                  <h2 style="color: #111111;">Recuperação de Senha</h2>
+                  <p>Olá!</p>
+                  <p>Recebemos uma solicitação para redefinir a senha da sua conta no <strong>WorkFlow360 CRM</strong>.</p>
+                  <p>Para criar uma nova senha, clique no botão abaixo:</p>
+                  <div style="text-align: center;">
+                    <a href="${resetLink}" class="button">Redefinir Minha Senha</a>
+                  </div>
+                  <div class="warning-box">
+                    <p style="margin: 0; font-weight: 600;">⚠️ Importante:</p>
+                    <ul style="margin: 10px 0;">
+                      <li>Este link é válido por 1 hora</li>
+                      <li>Se você não solicitou esta alteração, ignore este email</li>
+                      <li>Sua senha atual continuará funcionando</li>
+                    </ul>
+                  </div>
+                  <p>Se o botão não funcionar, copie e cole este link no seu navegador:</p>
+                  <p style="word-break: break-all; color: #666; font-size: 12px; background-color: #F8F8F8; padding: 10px; border-radius: 4px;">${resetLink}</p>
+                </div>
+                <div class="footer">
+                  <p>Este é um email automático, por favor não responda.</p>
+                  <p style="color: #FF3B99; font-weight: 600;">&copy; ${new Date().getFullYear()} WorkFlow360 CRM - Sistema de Gestão de Vendas</p>
+                </div>
+              </div>
+            </body>
+          </html>
         `,
       }),
     });
 
     if (!emailResponse.ok) {
       const errorData = await emailResponse.json();
-      console.error("Resend API error:", {
+      console.error("Brevo API error:", {
         status: emailResponse.status,
         error: errorData
       });
       
-      // Erro 403: Domínio não verificado
-      if (emailResponse.status === 403) {
+      // Erro 401: API key inválida
+      if (emailResponse.status === 401) {
         return new Response(
           JSON.stringify({ 
-            error: "Configuração de email incompleta",
-            details: `O domínio usado para envio de emails não foi verificado no Resend. Configure o domínio em https://resend.com/domains e adicione os registros DNS necessários.`,
-            hint: "Durante testes, você pode usar 'onboarding@resend.dev' no secret RESEND_FROM."
+            error: "Erro de autenticação",
+            details: "API key da Brevo inválida ou expirada. Verifique a configuração do secret BREVO_API_KEY."
           }),
           {
             status: 500,
@@ -128,13 +210,13 @@ const handler = async (req: Request): Promise<Response> => {
         );
       }
       
-      // Erro 422: Domain verification (retorna sucesso para não revelar se email existe)
-      if (emailResponse.status === 422) {
-        console.log("Domain verification error (returning success for security):", errorData);
+      // Erro 400/422: Outros erros (retorna sucesso para não revelar se email existe)
+      if (emailResponse.status === 400 || emailResponse.status === 422) {
+        console.log("Brevo validation error (returning success for security):", errorData);
         return new Response(
           JSON.stringify({ 
             success: true,
-            message: "If this email exists in our system, you will receive a password reset link."
+            message: "Se o email existir no sistema, você receberá um link de recuperação."
           }),
           {
             status: 200,
@@ -143,7 +225,7 @@ const handler = async (req: Request): Promise<Response> => {
         );
       }
       
-      throw new Error(`Resend API error: ${JSON.stringify(errorData)}`);
+      throw new Error(`Brevo API error: ${JSON.stringify(errorData)}`);
     }
 
     const emailData = await emailResponse.json();
