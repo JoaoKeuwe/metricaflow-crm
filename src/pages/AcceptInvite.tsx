@@ -119,10 +119,31 @@ const AcceptInvite = () => {
 
       toast({
         title: "✅ Conta criada!",
-        description: "Você já pode fazer login com suas credenciais.",
+        description: "Fazendo login automático...",
       });
 
-      navigate("/auth");
+      // Login automático após criar conta
+      const { error: signInError } = await supabase.auth.signInWithPassword({
+        email: invite.email,
+        password: password,
+      });
+
+      if (signInError) {
+        console.error("Auto login error:", signInError);
+        toast({
+          title: "Conta criada com sucesso",
+          description: "Por favor, faça login com suas credenciais.",
+        });
+        navigate("/auth");
+        return;
+      }
+
+      toast({
+        title: "✅ Bem-vindo!",
+        description: "Login realizado com sucesso.",
+      });
+
+      navigate("/");
     } catch (error: any) {
       console.error("Error accepting invite:", error);
       toast({
