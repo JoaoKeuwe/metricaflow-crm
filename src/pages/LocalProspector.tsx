@@ -35,26 +35,11 @@ interface Lead {
   aiAnalysis?: LeadAIAnalysis;
   isAnalyzing?: boolean;
 }
-interface User {
-  email: string;
-  senha: string;
-  nome: string;
-}
 
 // ======= Utils =======
 const STORAGE_KEYS = {
-  user: "lp_user",
   leads: "lp_leads"
 };
-const DEFAULT_USERS: User[] = [{
-  email: "admin@empresa.com",
-  senha: "1234",
-  nome: "Gestor"
-}, {
-  email: "vendedor@empresa.com",
-  senha: "1234",
-  nome: "Vendedor"
-}];
 function loadLeads(): Lead[] {
   try {
     const raw = localStorage.getItem(STORAGE_KEYS.leads);
@@ -143,9 +128,6 @@ function fromCSV(text: string, delimiter = ",") {
 
 // ======= Component =======
 export default function LocalProspector() {
-  const [user, setUser] = useState<User | null>(null);
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
   const [leads, setLeads] = useState<Lead[]>([]);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [q, setQ] = useState("");
@@ -160,29 +142,11 @@ export default function LocalProspector() {
   const pageSize = 10;
   const fileInputRef = useRef<HTMLInputElement>(null);
   useEffect(() => {
-    const rawUser = localStorage.getItem(STORAGE_KEYS.user);
-    if (rawUser) setUser(JSON.parse(rawUser));
     setLeads(loadLeads());
   }, []);
   useEffect(() => {
     saveLeads(leads);
   }, [leads]);
-  function doLogin(e: React.FormEvent) {
-    e.preventDefault();
-    const match = DEFAULT_USERS.find(u => u.email === email.trim() && u.senha === password);
-    if (!match) {
-      toast.error("Usuário ou senha inválidos.");
-      return;
-    }
-    localStorage.setItem(STORAGE_KEYS.user, JSON.stringify(match));
-    setUser(match);
-    toast.success(`Bem-vindo, ${match.nome}!`);
-  }
-  function logout() {
-    localStorage.removeItem(STORAGE_KEYS.user);
-    setUser(null);
-    toast.info("Logout realizado");
-  }
   function toggleSelect(id: string) {
     setSelectedIds(prev => {
       const copy = new Set(prev);
@@ -488,46 +452,12 @@ export default function LocalProspector() {
       setIsSearching(false);
     }
   }
-  if (!user) {
-    return <div className="w-full min-h-screen flex items-center justify-center bg-background p-4">
-        <Card className="w-full max-w-md">
-          <CardHeader>
-            <CardTitle>Entrar no Local Prospector</CardTitle>
-            <CardDescription>Sistema 100% local - dados salvos no navegador</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <form onSubmit={doLogin} className="space-y-4">
-              <div className="space-y-2">
-                <Label htmlFor="email">E-mail</Label>
-                <Input id="email" type="email" value={email} onChange={e => setEmail(e.target.value)} placeholder="admin@empresa.com" required />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="password">Senha</Label>
-                <Input id="password" type="password" value={password} onChange={e => setPassword(e.target.value)} placeholder="1234" required />
-              </div>
-              <Button type="submit" className="w-full">
-                Entrar
-              </Button>
-              <p className="text-xs text-muted-foreground">
-                Dica: admin@empresa.com / 1234 ou vendedor@empresa.com / 1234
-              </p>
-            </form>
-          </CardContent>
-        </Card>
-      </div>;
-  }
   return <div className="space-y-6">
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-3xl font-bold">Local Prospector</h1>
           <p className="text-sm text-muted-foreground">Sistema 100% local - dados salvos no navegador</p>
-        </div>
-        <div className="flex items-center gap-3">
-          <span className="text-sm text-muted-foreground">{user?.nome}</span>
-          <Button onClick={logout} variant="outline" size="sm">
-            Sair
-          </Button>
         </div>
       </div>
 
