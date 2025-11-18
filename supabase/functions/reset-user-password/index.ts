@@ -22,13 +22,34 @@ const handler = async (req: Request): Promise<Response> => {
     const { token, password }: ResetPasswordRequest = await req.json();
     console.log("Reset password request for token:", token);
 
+    // Validate basic input
     if (!token || !password) {
-      throw new Error("Token e senha são obrigatórios");
+      return new Response(
+        JSON.stringify({ 
+          success: false, 
+          code: "missing_fields",
+          message: "Token e senha são obrigatórios" 
+        }),
+        {
+          status: 200,
+          headers: { "Content-Type": "application/json", ...corsHeaders },
+        }
+      );
     }
 
     // Validate password strength
     if (password.length < 12) {
-      throw new Error("Senha deve ter no mínimo 12 caracteres");
+      return new Response(
+        JSON.stringify({ 
+          success: false, 
+          code: "weak_password",
+          message: "A senha deve ter no mínimo 12 caracteres" 
+        }),
+        {
+          status: 200,
+          headers: { "Content-Type": "application/json", ...corsHeaders },
+        }
+      );
     }
 
     // Initialize Supabase client with service role
@@ -47,7 +68,17 @@ const handler = async (req: Request): Promise<Response> => {
 
     if (tokenError || !tokenData) {
       console.error("Invalid token:", tokenError);
-      throw new Error("Token inválido ou expirado");
+      return new Response(
+        JSON.stringify({ 
+          success: false, 
+          code: "token_invalid",
+          message: "Token inválido ou expirado. Por favor, solicite um novo link de redefinição de senha." 
+        }),
+        {
+          status: 200,
+          headers: { "Content-Type": "application/json", ...corsHeaders },
+        }
+      );
     }
 
     // Update user password using admin API
@@ -61,15 +92,35 @@ const handler = async (req: Request): Promise<Response> => {
       
       // Handle specific error types
       if (updateError.message?.includes('weak') || updateError.message?.includes('pwned')) {
-        throw new Error("Esta senha é muito fraca ou está em uma lista de senhas comprometidas. Por favor, escolha uma senha mais forte e única.");
+        return new Response(
+          JSON.stringify({ 
+            success: false, 
+            code: "weak_password",
+            message: "Esta senha é muito fraca ou está em uma lista de senhas comprometidas. Por favor, escolha uma senha mais forte e única que você não tenha usado antes." 
+          }),
+          {
+            status: 200,
+            headers: { "Content-Type": "application/json", ...corsHeaders },
+          }
+        );
       }
       
-      throw new Error("Erro ao atualizar senha. Por favor, tente novamente.");
+      return new Response(
+        JSON.stringify({ 
+          success: false, 
+          code: "update_failed",
+          message: "Erro ao atualizar senha. Por favor, tente novamente." 
+        }),
+        {
+          status: 200,
+          headers: { "Content-Type": "application/json", ...corsHeaders },
+        }
+      );
     }
 
     console.log("Password updated successfully for user:", tokenData.user_id);
 
-    // Mark token as used
+    // Mark token as used only on success
     await supabase
       .from('password_reset_tokens')
       .update({ used: true })
@@ -90,11 +141,16 @@ const handler = async (req: Request): Promise<Response> => {
       }
     );
   } catch (error: any) {
-    console.error("Error in reset-user-password function:", error);
+    // Unexpected errors only
+    console.error("Unexpected error in reset-user-password function:", error);
     return new Response(
-      JSON.stringify({ error: error.message }),
+      JSON.stringify({ 
+        success: false,
+        code: "internal_error",
+        message: "Erro interno do servidor. Por favor, tente novamente mais tarde." 
+      }),
       {
-        status: 400,
+        status: 500,
         headers: { "Content-Type": "application/json", ...corsHeaders },
       }
     );

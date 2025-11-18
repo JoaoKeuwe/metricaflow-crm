@@ -66,7 +66,7 @@ const ResetPassword = () => {
     e.preventDefault();
 
     if (!isPasswordValid) {
-      toast.error("Senha não atende aos requisitos mínimos");
+      toast.error("Por favor, atenda a todos os requisitos de senha");
       return;
     }
 
@@ -86,19 +86,19 @@ const ResetPassword = () => {
         },
       });
 
+      // Handle unexpected errors (network, etc.)
       if (error) {
-        throw new Error(error.message || "Erro ao redefinir senha");
+        throw new Error(error.message || "Erro de conexão. Por favor, tente novamente.");
       }
 
-      if (data?.error) {
-        throw new Error(data.error);
-      }
-
+      // Handle structured error responses from the function
       if (!data?.success) {
-        throw new Error("Erro ao redefinir senha. Por favor, tente novamente.");
+        toast.error(data?.message || "Erro ao redefinir senha. Por favor, tente novamente.");
+        return;
       }
 
-      toast.success("Senha redefinida com sucesso!");
+      // Success case
+      toast.success(data.message || "Senha redefinida com sucesso!");
 
       // Get user email from the response to auto-login
       if (data?.user?.email) {
@@ -121,7 +121,7 @@ const ResetPassword = () => {
       }
     } catch (error: any) {
       console.error("Error resetting password:", error);
-      toast.error(error.message || "Erro ao redefinir senha");
+      toast.error(error.message || "Erro ao redefinir senha. Por favor, tente novamente.");
     } finally {
       setSubmitting(false);
     }
@@ -164,7 +164,14 @@ const ResetPassword = () => {
                 required
                 disabled={submitting}
               />
-              {password && <PasswordStrength password={password} />}
+              {password && (
+                <>
+                  <PasswordStrength password={password} />
+                  <p className="text-xs text-muted-foreground mt-2">
+                    💡 Dica: Evite senhas que você já usou em outros sites ou que sejam muito comuns.
+                  </p>
+                </>
+              )}
             </div>
 
             <div className="space-y-2">
