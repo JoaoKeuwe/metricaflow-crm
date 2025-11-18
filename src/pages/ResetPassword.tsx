@@ -86,7 +86,17 @@ const ResetPassword = () => {
         },
       });
 
-      if (error) throw error;
+      if (error) {
+        throw new Error(error.message || "Erro ao redefinir senha");
+      }
+
+      if (data?.error) {
+        throw new Error(data.error);
+      }
+
+      if (!data?.success) {
+        throw new Error("Erro ao redefinir senha. Por favor, tente novamente.");
+      }
 
       toast.success("Senha redefinida com sucesso!");
 

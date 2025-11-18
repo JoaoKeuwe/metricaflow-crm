@@ -27,8 +27,8 @@ const handler = async (req: Request): Promise<Response> => {
     }
 
     // Validate password strength
-    if (password.length < 8) {
-      throw new Error("Senha deve ter no mínimo 8 caracteres");
+    if (password.length < 12) {
+      throw new Error("Senha deve ter no mínimo 12 caracteres");
     }
 
     // Initialize Supabase client with service role
@@ -58,7 +58,13 @@ const handler = async (req: Request): Promise<Response> => {
 
     if (updateError) {
       console.error("Error updating password:", updateError);
-      throw new Error("Erro ao atualizar senha");
+      
+      // Handle specific error types
+      if (updateError.message?.includes('weak') || updateError.message?.includes('pwned')) {
+        throw new Error("Esta senha é muito fraca ou está em uma lista de senhas comprometidas. Por favor, escolha uma senha mais forte e única.");
+      }
+      
+      throw new Error("Erro ao atualizar senha. Por favor, tente novamente.");
     }
 
     console.log("Password updated successfully for user:", tokenData.user_id);
