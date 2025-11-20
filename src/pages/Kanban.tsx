@@ -208,8 +208,10 @@ const Kanban = () => {
   const filteredLeads = useMemo(() => {
     if (!leads) return [];
 
+    const hasAnyFutureActivity = leads.some((lead: any) => lead.hasFutureActivity);
+
     return leads.filter((lead: any) => {
-      if (activeOnly && !lead.hasFutureActivity) {
+      if (activeOnly && hasAnyFutureActivity && !lead.hasFutureActivity) {
         return false;
       }
 
