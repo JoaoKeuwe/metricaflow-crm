@@ -237,14 +237,8 @@ const Kanban = () => {
     });
   }, [leads, activeOnly, periodFilter, statusFilter, searchTerm]);
 
-  const visibleColumns = useMemo(() => {
-    if (activeOnly) {
-      return columns.filter(col => 
-        ["novo", "contato_feito", "proposta", "negociacao"].includes(col.id)
-      );
-    }
-    return columns;
-  }, [activeOnly]);
+  const visibleColumns = useMemo(() => columns, []);
+
 
   return (
     <div className="space-y-6 pb-8">
