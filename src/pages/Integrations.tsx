@@ -47,6 +47,8 @@ export default function Integrations() {
   const [isCreating, setIsCreating] = useState(false);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [testLoading, setTestLoading] = useState(false);
+  const [userRole, setUserRole] = useState<string | null>(null);
+  const canManageIntegrations = userRole === "gestor" || userRole === "gestor_owner";
 
   const projectUrl = import.meta.env.VITE_SUPABASE_URL;
   const endpointUrl = `${projectUrl}/functions/v1/create-lead-from-external`;
@@ -57,8 +59,24 @@ export default function Integrations() {
 
   const loadData = async () => {
     setLoading(true);
-    await Promise.all([loadTokens(), loadLogs()]);
+    const role = await loadUserRole();
+    if (role === "gestor" || role === "gestor_owner") {
+      await Promise.all([loadTokens(), loadLogs()]);
+    }
     setLoading(false);
+  };
+
+  const loadUserRole = async (): Promise<string | null> => {
+    const { data, error } = await supabase.rpc("get_user_role");
+
+    if (error) {
+      console.error("Erro ao carregar role do usuário:", error);
+      return null;
+    }
+
+    const role = data as string | null;
+    setUserRole(role);
+    return role;
   };
 
   const loadTokens = async () => {
@@ -96,68 +114,42 @@ export default function Integrations() {
       return;
     }
 
+    if (!canManageIntegrations) {
+      toast({
+        title: "Permissão negada",
+        description: "Apenas gestores e owners podem criar tokens de API.",
+        variant: "destructive",
+      });
+      return;
+    }
+
     setIsCreating(true);
     try {
-      // Obter usuário autenticado
-      const { data: authData, error: authError } = await supabase.auth.getUser();
-      if (authError || !authData?.user) {
-        toast({ title: "Sessão inválida. Faça login novamente.", variant: "destructive" });
-        return;
-      }
-
-      // Obter company_id do usuário atual com segurança
-      const { data: profile, error: profileError } = await supabase
-        .from("profiles")
-        .select("company_id")
-        .eq("id", authData.user.id)
-        .maybeSingle();
-
-      if (profileError || !profile?.company_id) {
-        console.error("Erro perfil:", profileError);
-        toast({ title: "Não foi possível identificar sua empresa.", variant: "destructive" });
-        return;
-      }
-
-      // Tenta gerar token via função do banco (seguro e preferível)
-      let tokenValue: string | null = null;
-      const { data: tokenData, error: tokenError } = await supabase.rpc("generate_api_token");
-
-      if (tokenError) {
-        // Fallback seguro usando Web Crypto caso a função não exista/esteja indisponível
-        console.warn("RPC generate_api_token falhou, usando fallback:", tokenError);
-        const bytes = new Uint8Array(32);
-        crypto.getRandomValues(bytes);
-        const hex = Array.from(bytes)
-          .map((b) => b.toString(16).padStart(2, "0"))
-          .join("");
-        tokenValue = `tok_${hex}`;
-      } else {
-        tokenValue = tokenData as string;
-      }
-
-      if (!tokenValue) {
-        toast({ title: "Falha ao gerar token", variant: "destructive" });
-        return;
-      }
-
-      // Inserir token no banco respeitando RLS
-      const { error: insertError } = await supabase.from("api_tokens").insert({
-        company_id: profile.company_id,
-        token: tokenValue,
-        name: newTokenName.trim(),
+      const { data, error } = await supabase.rpc("create_api_token", {
+        p_name: newTokenName.trim(),
       });
 
-      if (insertError) {
-        console.error("Erro insert token:", insertError);
-        const msg = (insertError as any)?.message || "Erro ao criar token";
-        toast({ title: msg.includes("row-level security") ? "Permissão negada" : "Erro ao criar token", description: msg, variant: "destructive" });
+      if (error) {
+        console.error("Erro RPC create_api_token:", error);
+        const msg = (error as any)?.message || "Erro ao criar token";
+        toast({
+          title: msg.toLowerCase().includes("permissão") ? "Permissão negada" : "Erro ao criar token",
+          description: msg,
+          variant: "destructive",
+        });
+        return;
+      }
+
+      const createdToken = data as string | null;
+      if (!createdToken) {
+        toast({ title: "Falha ao criar token", variant: "destructive" });
         return;
       }
 
       toast({ title: "Token criado com sucesso!" });
       setNewTokenName("");
       setIsDialogOpen(false);
-      loadTokens();
+      await loadTokens();
     } catch (error) {
       console.error("Erro ao criar token:", error);
       const msg = (error as any)?.message || "Erro ao criar token";
