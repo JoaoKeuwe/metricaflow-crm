@@ -1,9 +1,10 @@
+import { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { TrendingUp, Clock, DollarSign, Info, Settings } from "lucide-react";
 import { HoverCard, HoverCardContent, HoverCardTrigger } from "@/components/ui/hover-card";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { MarketingCostsSettings } from "./MarketingCostsSettings";
 
 interface AdvancedMetricsCardProps {
@@ -14,38 +15,32 @@ interface AdvancedMetricsCardProps {
 }
 
 export const AdvancedMetricsCard = ({ cac, ltv, payback, avgTimeInFunnel }: AdvancedMetricsCardProps) => {
+  const [isDialogOpen, setIsDialogOpen] = useState(false);
+
   return (
-    <Card className="hover:shadow-lg transition-all duration-300 border-accent/20 hover:border-accent/40">
-      <CardHeader>
-        <div className="flex items-center justify-between">
-          <div>
-            <CardTitle className="flex items-center gap-2 text-lg">
-              <TrendingUp className="h-5 w-5 text-accent" />
-              Métricas Avançadas
-            </CardTitle>
-            <CardDescription>
-              Análise estratégica de desempenho
-            </CardDescription>
+    <>
+      <Card className="hover:shadow-lg transition-all duration-300 border-accent/20 hover:border-accent/40">
+        <CardHeader>
+          <div className="flex items-center justify-between">
+            <div>
+              <CardTitle className="flex items-center gap-2 text-lg">
+                <TrendingUp className="h-5 w-5 text-accent" />
+                Métricas Avançadas
+              </CardTitle>
+              <CardDescription>
+                Análise estratégica de desempenho
+              </CardDescription>
+            </div>
+            <Button 
+              variant="outline" 
+              size="sm"
+              onClick={() => setIsDialogOpen(true)}
+            >
+              <Settings className="h-4 w-4 mr-2" />
+              Configurar Custos
+            </Button>
           </div>
-          <Dialog>
-            <DialogTrigger asChild>
-              <Button variant="outline" size="sm">
-                <Settings className="h-4 w-4 mr-2" />
-                Configurar Custos
-              </Button>
-            </DialogTrigger>
-            <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
-              <DialogHeader>
-                <DialogTitle>Configuração de Custos</DialogTitle>
-                <DialogDescription>
-                  Configure os custos de marketing e vendas para cálculo automático de CAC, LTV e Payback
-                </DialogDescription>
-              </DialogHeader>
-              <MarketingCostsSettings />
-            </DialogContent>
-          </Dialog>
-        </div>
-      </CardHeader>
+        </CardHeader>
       <CardContent className="space-y-4">
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <HoverCard>
@@ -135,5 +130,18 @@ export const AdvancedMetricsCard = ({ cac, ltv, payback, avgTimeInFunnel }: Adva
         )}
       </CardContent>
     </Card>
+
+    <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+      <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+        <DialogHeader>
+          <DialogTitle>Configuração de Custos</DialogTitle>
+          <DialogDescription>
+            Configure os custos de marketing e vendas para cálculo automático de CAC, LTV e Payback
+          </DialogDescription>
+        </DialogHeader>
+        <MarketingCostsSettings />
+      </DialogContent>
+    </Dialog>
+  </>
   );
 };
