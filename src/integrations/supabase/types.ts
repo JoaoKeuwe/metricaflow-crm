@@ -419,8 +419,10 @@ export type Database = {
           email: string | null
           estimated_value: number | null
           id: string
+          motivo_perda: string | null
           name: string
           phone: string | null
+          qualificado: boolean | null
           source: string | null
           status: string
           updated_at: string
@@ -433,8 +435,10 @@ export type Database = {
           email?: string | null
           estimated_value?: number | null
           id?: string
+          motivo_perda?: string | null
           name: string
           phone?: string | null
+          qualificado?: boolean | null
           source?: string | null
           status?: string
           updated_at?: string
@@ -447,8 +451,10 @@ export type Database = {
           email?: string | null
           estimated_value?: number | null
           id?: string
+          motivo_perda?: string | null
           name?: string
           phone?: string | null
+          qualificado?: boolean | null
           source?: string | null
           status?: string
           updated_at?: string

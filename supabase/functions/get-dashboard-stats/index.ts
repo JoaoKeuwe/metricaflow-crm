@@ -55,6 +55,15 @@ Deno.serve(async (req) => {
       statusDataResult,
       sourceDataResult,
       funnelDataResult,
+      qualifiedLeadsResult,
+      opportunitiesResult,
+      closedLeadsWithTimeResult,
+      lostLeadsResult,
+      activeLeadsForForecastResult,
+      scheduledMeetingsResult,
+      completedMeetingsResult,
+      tasksResult,
+      observationsResult,
     ] = await Promise.all([
       // Total leads
       buildQuery(supabaseClient.from('leads').select('*', { count: 'exact', head: true })),
@@ -79,13 +88,45 @@ Deno.serve(async (req) => {
       
       // Funnel data
       buildQuery(supabaseClient.from('leads').select('status')),
+
+      // Qualified leads
+      buildQuery(supabaseClient.from('leads').select('*', { count: 'exact', head: true }).eq('qualificado', true)),
+
+      // Opportunities (leads that reached proposta, negociacao or ganho)
+      buildQuery(supabaseClient.from('leads').select('*', { count: 'exact', head: true }).in('status', ['proposta', 'negociacao', 'ganho'])),
+
+      // Closed leads with time data
+      buildQuery(supabaseClient.from('leads').select('created_at, updated_at').eq('status', 'ganho')),
+
+      // Lost leads with reasons
+      buildQuery(supabaseClient.from('leads').select('motivo_perda').eq('status', 'perdido')),
+
+      // Active leads for forecast
+      buildQuery(supabaseClient.from('leads').select('status, estimated_value').in('status', ['novo', 'contato_feito', 'proposta', 'negociacao'])),
+
+      // Scheduled meetings
+      buildQuery(supabaseClient.from('meetings').select('*', { count: 'exact', head: true }).neq('status', 'cancelada')),
+
+      // Completed meetings
+      buildQuery(supabaseClient.from('meetings').select('*', { count: 'exact', head: true }).eq('status', 'realizada')),
+
+      // Tasks
+      buildQuery(supabaseClient.from('tasks').select('*', { count: 'exact', head: true })),
+
+      // Observations
+      buildQuery(supabaseClient.from('lead_observations').select('*', { count: 'exact', head: true })),
     ]);
 
     // Calculate metrics
     const totalLeads = totalLeadsResult.count || 0;
     const wonLeads = wonLeadsResult.count || 0;
     const pendingLeads = pendingLeadsResult.count || 0;
+    const qualifiedLeads = qualifiedLeadsResult.count || 0;
+    const opportunities = opportunitiesResult.count || 0;
+
     const conversionRate = totalLeads > 0 ? ((wonLeads / totalLeads) * 100).toFixed(1) : '0.0';
+    const qualificationRate = totalLeads > 0 ? ((qualifiedLeads / totalLeads) * 100).toFixed(1) : '0.0';
+    const winRate = opportunities > 0 ? ((wonLeads / opportunities) * 100).toFixed(1) : '0.0';
 
     const totalEstimatedValue = estimatedValueResult.data?.reduce((sum: number, lead: any) => 
       sum + (Number(lead.estimated_value) || 0), 0) || 0;
@@ -94,6 +135,51 @@ Deno.serve(async (req) => {
       sum + (Number(lead.estimated_value) || 0), 0) || 0;
 
     const averageTicket = wonLeads > 0 ? totalConvertedValue / wonLeads : 0;
+
+    // Calculate average time in funnel
+    const avgTimeInFunnel = closedLeadsWithTimeResult.data?.length > 0
+      ? closedLeadsWithTimeResult.data.reduce((sum: number, lead: any) => {
+          const days = Math.ceil(
+            (new Date(lead.updated_at).getTime() - new Date(lead.created_at).getTime()) 
+            / (1000 * 60 * 60 * 24)
+          );
+          return sum + days;
+        }, 0) / closedLeadsWithTimeResult.data.length
+      : 0;
+
+    // Process loss reasons
+    const lossReasons = lostLeadsResult.data?.reduce((acc: Record<string, number>, lead: any) => {
+      const reason = lead.motivo_perda || 'Não informado';
+      acc[reason] = (acc[reason] || 0) + 1;
+      return acc;
+    }, {} as Record<string, number>) || {};
+
+    const lossReasonsData = Object.entries(lossReasons).map(([reason, count]) => ({
+      reason,
+      count,
+      percentage: ((count as number / (lostLeadsResult.data?.length || 1)) * 100).toFixed(1)
+    }));
+
+    // Calculate forecast
+    const probabilityMap: Record<string, number> = {
+      'novo': 0.10,
+      'contato_feito': 0.20,
+      'proposta': 0.40,
+      'negociacao': 0.70
+    };
+
+    const forecast = activeLeadsForForecastResult.data?.reduce((sum: number, lead: any) => {
+      const value = Number(lead.estimated_value) || 0;
+      const probability = probabilityMap[lead.status] || 0;
+      return sum + (value * probability);
+    }, 0) || 0;
+
+    // Calculate total activities
+    const scheduledMeetings = scheduledMeetingsResult.count || 0;
+    const completedMeetings = completedMeetingsResult.count || 0;
+    const totalTasks = tasksResult.count || 0;
+    const totalObservations = observationsResult.count || 0;
+    const totalActivities = scheduledMeetings + totalTasks + totalObservations;
 
     // Process status data
     const statusCounts = statusDataResult.data?.reduce((acc: Record<string, number>, lead: any) => {
@@ -137,7 +223,7 @@ Deno.serve(async (req) => {
       color: chartColors[index % chartColors.length],
     }));
 
-    // Process funnel data
+    // Process funnel data with conversion rates
     const stages = [
       { stage: 'Novos', status: 'novo', color: 'hsl(var(--chart-1))' },
       { stage: 'Contato Feito', status: 'contato_feito', color: 'hsl(var(--chart-2))' },
@@ -152,19 +238,48 @@ Deno.serve(async (req) => {
       color: stage.color,
     }));
 
+    // Calculate conversion by stage
+    const stagesFlow = [
+      { from: 'novo', to: 'contato_feito' },
+      { from: 'contato_feito', to: 'proposta' },
+      { from: 'proposta', to: 'negociacao' },
+      { from: 'negociacao', to: 'ganho' }
+    ];
+
+    const conversionByStage = stagesFlow.map(flow => {
+      const fromCount = statusCounts[flow.from] || 0;
+      const toCount = statusCounts[flow.to] || 0;
+      const rate = fromCount > 0 ? ((toCount / fromCount) * 100).toFixed(1) : '0.0';
+      return {
+        from: flow.from,
+        to: flow.to,
+        rate: `${rate}%`
+      };
+    });
+
     const response = {
       stats: {
         totalLeads,
         wonLeads,
         pendingLeads,
+        qualifiedLeads,
         conversionRate,
+        qualificationRate,
+        winRate,
         totalEstimatedValue,
         totalConvertedValue,
         averageTicket,
+        avgTimeInFunnel: Math.round(avgTimeInFunnel),
+        scheduledMeetings,
+        completedMeetings,
+        totalActivities,
+        forecast,
       },
       statusData,
       sourceData,
       funnelData,
+      lossReasonsData,
+      conversionByStage,
     };
 
     console.log('Dashboard stats fetched successfully:', response.stats);
