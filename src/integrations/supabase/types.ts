@@ -1174,6 +1174,7 @@ export type Database = {
       cleanup_old_integration_logs: { Args: never; Returns: undefined }
       cleanup_rate_limit_logs: { Args: never; Returns: undefined }
       count_additional_users: { Args: { _company_id: string }; Returns: number }
+      create_api_token: { Args: { p_name: string }; Returns: string }
       generate_api_token: { Args: never; Returns: string }
       get_campaign_stats: {
         Args: { _campaign_id: string }
