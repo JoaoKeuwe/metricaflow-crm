@@ -1,4 +1,4 @@
-import { useState } from "react";
+// Advanced metrics card for CAC, LTV e Payback
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { TrendingUp, Clock, DollarSign, Info, Settings } from "lucide-react";
 import { HoverCard, HoverCardContent, HoverCardTrigger } from "@/components/ui/hover-card";
@@ -15,10 +15,8 @@ interface AdvancedMetricsCardProps {
 }
 
 export const AdvancedMetricsCard = ({ cac, ltv, payback, avgTimeInFunnel }: AdvancedMetricsCardProps) => {
-  const [isDialogOpen, setIsDialogOpen] = useState(false);
-
   return (
-    <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+    <Dialog>
       <Card className="hover:shadow-lg transition-all duration-300 border-accent/20 hover:border-accent/40">
         <CardHeader>
           <div className="flex items-center justify-between">
