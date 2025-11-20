@@ -142,20 +142,46 @@ const Kanban = () => {
     mutationFn: async ({ id, status }: { id: string; status: string }) => {
       const { error } = await supabase
         .from("leads")
-        .update({ status })
+        .update({ status, updated_at: new Date().toISOString() })
         .eq("id", id);
 
       if (error) throw error;
     },
+    onMutate: async ({ id, status }) => {
+      // Cancelar queries em andamento
+      await queryClient.cancelQueries({ queryKey: ["kanban-leads"] });
+      
+      // Snapshot do estado anterior
+      const previousLeads = queryClient.getQueryData(["kanban-leads", userProfile?.company_id]);
+      
+      // Atualizar otimisticamente
+      queryClient.setQueryData(["kanban-leads", userProfile?.company_id], (old: any) => {
+        if (!old) return old;
+        return old.map((lead: any) => 
+          lead.id === id 
+            ? { ...lead, status, updated_at: new Date().toISOString() }
+            : lead
+        );
+      });
+      
+      return { previousLeads };
+    },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["kanban-leads"] });
       toast({ title: "Status atualizado com sucesso!" });
     },
-    onError: () => {
+    onError: (error, variables, context) => {
+      // Reverter em caso de erro
+      if (context?.previousLeads) {
+        queryClient.setQueryData(["kanban-leads", userProfile?.company_id], context.previousLeads);
+      }
       toast({ 
         title: "Erro ao atualizar status", 
         variant: "destructive" 
       });
+    },
+    onSettled: () => {
+      // Sincronizar com servidor após mutation
+      queryClient.invalidateQueries({ queryKey: ["kanban-leads"] });
     },
   });
 
