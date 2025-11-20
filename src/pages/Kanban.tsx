@@ -71,6 +71,7 @@ const Kanban = () => {
     const now = new Date();
     return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
   });
+  const [viewMode, setViewMode] = useState<'monthly' | 'yearly'>('monthly');
   const [searchTerm, setSearchTerm] = useState("");
   const [closedSearchTerm, setClosedSearchTerm] = useState("");
   const [lostSearchTerm, setLostSearchTerm] = useState("");
@@ -211,41 +212,78 @@ const Kanban = () => {
     updateStatusMutation.mutate({ id: leadId, status: newStatus });
   };
 
-  // Leads do mês selecionado (com atividade agendada no mês)
+  // Leads do período selecionado (mensal ou anual)
   const monthLeads = useMemo(() => {
     if (!allLeads) return [];
     
     const [year, month] = selectedMonth.split('-').map(Number);
-    const monthStart = new Date(year, month - 1, 1);
-    const monthEnd = new Date(year, month, 0, 23, 59, 59);
 
-    return allLeads.filter((lead: any) => {
-      // Excluir fechados e perdidos do kanban principal
-      if (lead.status === 'fechado' || lead.status === 'perdido') return false;
-      
-      // Verificar se tem atividade agendada no mês
-      if (!lead.nextActivityDate) return false;
-      
-      const activityDate = new Date(lead.nextActivityDate);
-      return activityDate >= monthStart && activityDate <= monthEnd;
-    });
-  }, [allLeads, selectedMonth]);
+    if (viewMode === 'yearly') {
+      // Visualização anual - mostrar todos os leads do ano
+      return allLeads.filter((lead: any) => {
+        // Excluir perdidos do kanban principal
+        if (lead.status === 'perdido') return false;
+        
+        // Incluir leads fechados do ano
+        if (lead.status === 'fechado') {
+          const updatedDate = new Date(lead.updated_at);
+          return updatedDate.getFullYear() === year;
+        }
+        
+        // Incluir leads com atividade agendada no ano
+        if (lead.nextActivityDate) {
+          const activityDate = new Date(lead.nextActivityDate);
+          return activityDate.getFullYear() === year;
+        }
+        
+        return false;
+      });
+    } else {
+      // Visualização mensal
+      const monthStart = new Date(year, month - 1, 1);
+      const monthEnd = new Date(year, month, 0, 23, 59, 59);
 
-  // Leads fechados do mês
+      return allLeads.filter((lead: any) => {
+        // Excluir perdidos do kanban principal
+        if (lead.status === 'perdido') return false;
+        
+        // Incluir leads fechados do mês
+        if (lead.status === 'fechado') {
+          const updatedDate = new Date(lead.updated_at);
+          return updatedDate >= monthStart && updatedDate <= monthEnd;
+        }
+        
+        // Incluir leads com atividade agendada no mês
+        if (lead.nextActivityDate) {
+          const activityDate = new Date(lead.nextActivityDate);
+          return activityDate >= monthStart && activityDate <= monthEnd;
+        }
+        
+        return false;
+      });
+    }
+  }, [allLeads, selectedMonth, viewMode]);
+
+  // Leads fechados do período (mensal ou anual)
   const closedLeads = useMemo(() => {
     if (!allLeads) return [];
     
     const [year, month] = selectedMonth.split('-').map(Number);
-    const monthStart = new Date(year, month - 1, 1);
-    const monthEnd = new Date(year, month, 0, 23, 59, 59);
 
     return allLeads.filter((lead: any) => {
       if (lead.status !== 'fechado') return false;
       
       const updatedAt = new Date(lead.updated_at);
-      const isInMonth = updatedAt >= monthStart && updatedAt <= monthEnd;
       
-      if (!isInMonth) return false;
+      const isInPeriod = viewMode === 'yearly' 
+        ? updatedAt.getFullYear() === year
+        : (() => {
+            const monthStart = new Date(year, month - 1, 1);
+            const monthEnd = new Date(year, month, 0, 23, 59, 59);
+            return updatedAt >= monthStart && updatedAt <= monthEnd;
+          })();
+      
+      if (!isInPeriod) return false;
 
       if (closedSearchTerm) {
         const searchLower = closedSearchTerm.toLowerCase();
@@ -257,11 +295,13 @@ const Kanban = () => {
       
       return true;
     });
-  }, [allLeads, selectedMonth, closedSearchTerm]);
+  }, [allLeads, selectedMonth, viewMode, closedSearchTerm]);
 
   // Leads lost/inativos (>30 dias sem atualização, sem atividade futura)
   const lostLeads = useMemo(() => {
     if (!allLeads) return [];
+    
+    const [year, month] = selectedMonth.split('-').map(Number);
 
     return allLeads.filter((lead: any) => {
       if (lead.status === 'fechado' || lead.status === 'perdido') return false;
@@ -276,6 +316,18 @@ const Kanban = () => {
         }));
 
       if (!(hasNoFutureActivity && isStale && hasNoRecentNotes)) return false;
+      
+      // Filtrar por período
+      const updatedAt = new Date(lead.updated_at);
+      const isInPeriod = viewMode === 'yearly' 
+        ? updatedAt.getFullYear() === year
+        : (() => {
+            const monthStart = new Date(year, month - 1, 1);
+            const monthEnd = new Date(year, month, 0, 23, 59, 59);
+            return updatedAt >= monthStart && updatedAt <= monthEnd;
+          })();
+      
+      if (!isInPeriod) return false;
 
       if (lostSearchTerm) {
         const searchLower = lostSearchTerm.toLowerCase();
@@ -287,7 +339,7 @@ const Kanban = () => {
 
       return true;
     });
-  }, [allLeads, lostSearchTerm]);
+  }, [allLeads, selectedMonth, viewMode, lostSearchTerm]);
 
   const filteredMonthLeads = useMemo(() => {
     if (!monthLeads) return [];
@@ -315,7 +367,9 @@ const Kanban = () => {
       <div>
         <h1 className="text-3xl font-bold tracking-tight">Kanban de Leads</h1>
         <p className="text-muted-foreground mt-1">
-          Arraste e solte para alterar o status dos leads
+          {viewMode === 'monthly' 
+            ? 'Arraste e solte para alterar o status dos leads' 
+            : 'Visualização anual - todos os leads do ano'}
         </p>
       </div>
 
@@ -326,6 +380,8 @@ const Kanban = () => {
         onSearchTermChange={setSearchTerm}
         totalLeads={monthLeads?.length || 0}
         visibleLeads={filteredMonthLeads.length}
+        viewMode={viewMode}
+        onViewModeChange={setViewMode}
       />
 
       {isLoadingLeads ? (
@@ -398,9 +454,13 @@ const Kanban = () => {
       <div className="mt-8 space-y-4">
         <div className="flex items-center justify-between">
           <div>
-            <h2 className="text-2xl font-bold">Fechados do Mês</h2>
+            <h2 className="text-2xl font-bold">
+              {viewMode === 'monthly' ? 'Fechados do Mês' : 'Fechados do Ano'}
+            </h2>
             <p className="text-sm text-muted-foreground">
-              Vendas concluídas em {format(new Date(selectedMonth + '-01'), 'MMMM/yyyy', { locale: ptBR })}
+              {viewMode === 'monthly' 
+                ? `Vendas concluídas em ${format(new Date(selectedMonth + '-01'), 'MMMM/yyyy', { locale: ptBR })}`
+                : `Vendas concluídas em ${selectedMonth.split('-')[0]}`}
             </p>
           </div>
           <Badge variant="secondary" className="text-lg px-4 py-2">
@@ -460,7 +520,9 @@ const Kanban = () => {
       <div className="mt-8 space-y-4">
         <div className="flex items-center justify-between">
           <div>
-            <h2 className="text-2xl font-bold">Leads Inativos</h2>
+            <h2 className="text-2xl font-bold">
+              {viewMode === 'monthly' ? 'Leads Inativos do Mês' : 'Leads Inativos do Ano'}
+            </h2>
             <p className="text-sm text-muted-foreground">
               Leads sem atualização há mais de 30 dias, sem atividades futuras
             </p>
