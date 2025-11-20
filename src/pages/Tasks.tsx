@@ -39,6 +39,9 @@ const Tasks = () => {
   const { data: tasks, isLoading } = useQuery({
     queryKey: ["tasks", filters],
     queryFn: async () => {
+      const { data: { session: currentSession } } = await supabase.auth.getSession();
+      const currentUserId = currentSession?.user?.id;
+
       let query = supabase
         .from("tasks")
         .select(`
@@ -63,6 +66,27 @@ const Tasks = () => {
 
       const { data, error } = await query;
       if (error) throw error;
+
+      // For vendedores, filter tasks by their assignments
+      if (userRole === "vendedor" && currentUserId) {
+        const { data: myAssignments } = await supabase
+          .from("task_assignments")
+          .select("task_id")
+          .eq("user_id", currentUserId);
+
+        const myTaskIds = myAssignments?.map((a) => a.task_id) || [];
+        const filteredData = data?.filter((task) => myTaskIds.includes(task.id));
+
+        // Filter by search
+        if (filters.search) {
+          return filteredData?.filter(task => 
+            task.title.toLowerCase().includes(filters.search.toLowerCase()) ||
+            task.description?.toLowerCase().includes(filters.search.toLowerCase())
+          );
+        }
+
+        return filteredData;
+      }
       
       // Filter by search after fetching
       if (filters.search) {

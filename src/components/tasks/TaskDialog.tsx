@@ -35,6 +35,7 @@ export function TaskDialog({ open, onOpenChange, task }: TaskDialogProps) {
       title: "",
       description: "",
       assigned_to: "",
+      assignment_type: "individual",
       lead_id: "",
       due_date: "",
     },
@@ -97,7 +98,8 @@ export function TaskDialog({ open, onOpenChange, task }: TaskDialogProps) {
       const taskData = {
         title: data.title,
         description: data.description,
-        assigned_to: data.assigned_to,
+        assigned_to: data.assignment_type === "individual" ? data.assigned_to : null,
+        assignment_type: data.assignment_type,
         company_id: profile.company_id,
         created_by: session.session.user.id,
         lead_id: data.lead_id || null,
@@ -105,16 +107,63 @@ export function TaskDialog({ open, onOpenChange, task }: TaskDialogProps) {
         status: 'aberta',
       };
 
-      const { error } = await supabase.from("tasks").insert(taskData);
+      const { data: newTask, error } = await supabase
+        .from("tasks")
+        .insert(taskData)
+        .select()
+        .single();
+
       if (error) {
         console.error("Erro ao criar tarefa:", error);
         throw error;
       }
 
+      // If assignment_type is "todos", create task_assignments for all active users
+      if (data.assignment_type === "todos") {
+        const { data: users } = await supabase
+          .from("profiles")
+          .select("id")
+          .eq("company_id", profile.company_id)
+          .eq("active", true);
+
+        if (users && users.length > 0) {
+          const assignments = users.map((user) => ({
+            task_id: newTask.id,
+            user_id: user.id,
+            company_id: profile.company_id,
+            status: "pendente",
+          }));
+
+          const { error: assignError } = await supabase
+            .from("task_assignments")
+            .insert(assignments);
+
+          if (assignError) throw assignError;
+
+          // Update total_assigned count
+          await supabase
+            .from("tasks")
+            .update({ total_assigned: users.length })
+            .eq("id", newTask.id);
+        }
+      } else {
+        // For individual assignment, create a single task_assignment
+        await supabase
+          .from("task_assignments")
+          .insert({
+            task_id: newTask.id,
+            user_id: data.assigned_to,
+            company_id: profile.company_id,
+            status: "pendente",
+          });
+      }
+
       // Add note to lead if linked
       if (data.lead_id) {
         const assignedUser = companyUsers?.find(u => u.id === data.assigned_to);
-        const noteContent = `Tarefa criada: ${data.title} - Atribuída para ${assignedUser?.name || "vendedor"} - Prazo: ${data.due_date ? new Date(data.due_date).toLocaleDateString("pt-BR") : "Sem prazo"}`;
+        const noteContent = data.assignment_type === "todos" 
+          ? `Tarefa criada: ${data.title} - Atribuída para TODOS os vendedores - Prazo: ${data.due_date ? new Date(data.due_date).toLocaleDateString("pt-BR") : "Sem prazo"}`
+          : `Tarefa criada: ${data.title} - Atribuída para ${assignedUser?.name || "vendedor"} - Prazo: ${data.due_date ? new Date(data.due_date).toLocaleDateString("pt-BR") : "Sem prazo"}`;
         
         await supabase.from("lead_observations").insert({
           lead_id: data.lead_id,
@@ -126,6 +175,7 @@ export function TaskDialog({ open, onOpenChange, task }: TaskDialogProps) {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["tasks"] });
+      queryClient.invalidateQueries({ queryKey: ["lead-tasks"] });
       toast({ title: "Tarefa criada com sucesso!" });
       onOpenChange(false);
       reset();
@@ -150,6 +200,7 @@ export function TaskDialog({ open, onOpenChange, task }: TaskDialogProps) {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["tasks"] });
+      queryClient.invalidateQueries({ queryKey: ["lead-tasks"] });
       toast({ title: "Tarefa atualizada com sucesso!" });
       onOpenChange(false);
       reset();
@@ -167,7 +218,8 @@ export function TaskDialog({ open, onOpenChange, task }: TaskDialogProps) {
     if (task) {
       setValue("title", task.title);
       setValue("description", task.description || "");
-      setValue("assigned_to", task.assigned_to);
+      setValue("assigned_to", task.assigned_to || "");
+      setValue("assignment_type", task.assignment_type || "individual");
       setValue("lead_id", task.lead_id || "");
       setValue("due_date", task.due_date ? task.due_date.split("T")[0] : "");
     } else {
@@ -219,7 +271,23 @@ export function TaskDialog({ open, onOpenChange, task }: TaskDialogProps) {
             />
           </div>
 
-          <div className="grid grid-cols-2 gap-4">
+          <div className="space-y-2">
+            <Label>Tipo de Atribuição *</Label>
+            <Select
+              value={watch("assignment_type")}
+              onValueChange={(value) => setValue("assignment_type", value)}
+            >
+              <SelectTrigger>
+                <SelectValue placeholder="Selecione o tipo" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="individual">Vendedor específico</SelectItem>
+                <SelectItem value="todos">Todos os vendedores</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+
+          {watch("assignment_type") === "individual" && (
             <div className="space-y-2">
               <Label htmlFor="assigned_to">Atribuir para *</Label>
               <Select
@@ -238,15 +306,15 @@ export function TaskDialog({ open, onOpenChange, task }: TaskDialogProps) {
                 </SelectContent>
               </Select>
             </div>
+          )}
 
-            <div className="space-y-2">
-              <Label htmlFor="due_date">Prazo</Label>
-              <Input
-                id="due_date"
-                type="date"
-                {...register("due_date")}
-              />
-            </div>
+          <div className="space-y-2">
+            <Label htmlFor="due_date">Prazo</Label>
+            <Input
+              id="due_date"
+              type="date"
+              {...register("due_date")}
+            />
           </div>
 
           <div className="space-y-2">

@@ -944,9 +944,62 @@ export type Database = {
           },
         ]
       }
+      task_assignments: {
+        Row: {
+          company_id: string
+          completed_at: string | null
+          created_at: string
+          id: string
+          status: string
+          task_id: string
+          user_id: string
+        }
+        Insert: {
+          company_id: string
+          completed_at?: string | null
+          created_at?: string
+          id?: string
+          status?: string
+          task_id: string
+          user_id: string
+        }
+        Update: {
+          company_id?: string
+          completed_at?: string | null
+          created_at?: string
+          id?: string
+          status?: string
+          task_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "task_assignments_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "task_assignments_task_id_fkey"
+            columns: ["task_id"]
+            isOneToOne: false
+            referencedRelation: "tasks"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "task_assignments_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       tasks: {
         Row: {
           assigned_to: string
+          assignment_type: string
           company_id: string
           created_at: string
           created_by: string
@@ -956,10 +1009,13 @@ export type Database = {
           lead_id: string | null
           status: string
           title: string
+          total_assigned: number | null
+          total_completed: number | null
           updated_at: string
         }
         Insert: {
           assigned_to: string
+          assignment_type?: string
           company_id: string
           created_at?: string
           created_by: string
@@ -969,10 +1025,13 @@ export type Database = {
           lead_id?: string | null
           status?: string
           title: string
+          total_assigned?: number | null
+          total_completed?: number | null
           updated_at?: string
         }
         Update: {
           assigned_to?: string
+          assignment_type?: string
           company_id?: string
           created_at?: string
           created_by?: string
@@ -982,6 +1041,8 @@ export type Database = {
           lead_id?: string | null
           status?: string
           title?: string
+          total_assigned?: number | null
+          total_completed?: number | null
           updated_at?: string
         }
         Relationships: [

@@ -1,11 +1,11 @@
-import { useState } from "react";
-import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { useState, useEffect } from "react";
+import { useMutation, useQueryClient, useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
-import { CheckCircle2, Clock, Edit, Trash2, User, Link as LinkIcon, ChevronDown } from "lucide-react";
+import { CheckCircle2, Clock, Edit, Trash2, User, Link as LinkIcon, ChevronDown, Users } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { format, isPast, differenceInDays } from "date-fns";
 import { useNavigate } from "react-router-dom";
@@ -20,18 +20,42 @@ interface TaskCardProps {
 export function TaskCard({ task, onEdit, isGestor }: TaskCardProps) {
   const [isExpanded, setIsExpanded] = useState(false);
   const [isNotesDrawerOpen, setIsNotesDrawerOpen] = useState(false);
+  const [currentUserId, setCurrentUserId] = useState<string | null>(null);
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const navigate = useNavigate();
 
-  const getStatusBadge = (status: string) => {
-    const statusMap: Record<string, { label: string; variant: any }> = {
-      aberta: { label: "Aberta", variant: "default" },
-      em_atraso: { label: "Em Atraso", variant: "destructive" },
-      concluida: { label: "Concluída", variant: "outline" },
+  useEffect(() => {
+    const getUserId = async () => {
+      const { data: { session } } = await supabase.auth.getSession();
+      setCurrentUserId(session?.user?.id || null);
     };
-    return statusMap[status] || statusMap.aberta;
-  };
+    getUserId();
+  }, []);
+
+  // Fetch task assignments for this task
+  const { data: assignments } = useQuery({
+    queryKey: ["task-assignments", task.id],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("task_assignments")
+        .select(`
+          *,
+          user:profiles!task_assignments_user_id_fkey(id, name)
+        `)
+        .eq("task_id", task.id)
+        .order("created_at", { ascending: true });
+
+      if (error) throw error;
+      return data;
+    },
+    enabled: !!task.id,
+  });
+
+  // Get current user's assignment
+  const currentUserAssignment = assignments?.find(
+    (a) => a.user_id === currentUserId
+  );
 
   const getPriorityColor = (dueDate: string | null) => {
     if (!dueDate) return "border-muted";
@@ -44,28 +68,36 @@ export function TaskCard({ task, onEdit, isGestor }: TaskCardProps) {
 
   const handleStartTask = (e: React.MouseEvent) => {
     e.stopPropagation();
+    
     if (task.lead_id) {
       setIsNotesDrawerOpen(true);
     } else {
-      updateStatusMutation.mutate("em_atraso");
+      completeAssignmentMutation.mutate();
     }
   };
 
-  const updateStatusMutation = useMutation({
-    mutationFn: async (newStatus: string) => {
-      const { data: session } = await supabase.auth.getSession();
+  const completeAssignmentMutation = useMutation({
+    mutationFn: async () => {
+      if (!currentUserAssignment) {
+        throw new Error("Atribuição não encontrada");
+      }
+
       const { error } = await supabase
-        .from("tasks")
-        .update({ status: newStatus })
-        .eq("id", task.id);
+        .from("task_assignments")
+        .update({
+          status: "concluida",
+          completed_at: new Date().toISOString(),
+        })
+        .eq("id", currentUserAssignment.id);
 
       if (error) throw error;
 
       // Add note to lead if completed and linked
-      if (newStatus === "concluida" && task.lead_id) {
+      if (task.lead_id) {
+        const { data: { session } } = await supabase.auth.getSession();
         await supabase.from("lead_observations").insert({
           lead_id: task.lead_id,
-          user_id: session.session?.user.id,
+          user_id: session?.user?.id,
           content: `Tarefa concluída: ${task.title}`,
           note_type: "Tarefa concluída",
         });
@@ -73,14 +105,16 @@ export function TaskCard({ task, onEdit, isGestor }: TaskCardProps) {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["tasks"] });
+      queryClient.invalidateQueries({ queryKey: ["task-assignments"] });
+      queryClient.invalidateQueries({ queryKey: ["lead-tasks"] });
       if (task.lead_id) {
         queryClient.invalidateQueries({ queryKey: ["lead-notes", task.lead_id] });
       }
-      toast({ title: "Status atualizado!" });
+      toast({ title: "Tarefa concluída!" });
     },
     onError: (error: any) => {
       toast({
-        title: "Erro ao atualizar status",
+        title: "Erro ao concluir tarefa",
         description: error.message,
         variant: "destructive",
       });
@@ -94,6 +128,7 @@ export function TaskCard({ task, onEdit, isGestor }: TaskCardProps) {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["tasks"] });
+      queryClient.invalidateQueries({ queryKey: ["lead-tasks"] });
       toast({ title: "Tarefa excluída!" });
     },
     onError: (error: any) => {
@@ -105,18 +140,29 @@ export function TaskCard({ task, onEdit, isGestor }: TaskCardProps) {
     },
   });
 
-  const statusBadge = getStatusBadge(task.status);
-  const isOverdue = task.due_date && isPast(new Date(task.due_date)) && task.status !== "concluida";
+  // Determine if user can complete this task
+  const canComplete = isGestor || (currentUserAssignment?.status === "pendente");
+  const isCompleted = currentUserAssignment?.status === "concluida";
+  const isOverdue = task.due_date && isPast(new Date(task.due_date)) && !isCompleted;
 
   return (
     <Collapsible open={isExpanded} onOpenChange={setIsExpanded}>
-      <Card className={`border-l-4 ${getPriorityColor(task.due_date)}`}>
+      <Card className={`border-l-4 ${getPriorityColor(task.due_date)} ${isCompleted ? "opacity-60" : ""}`}>
         <CollapsibleTrigger asChild>
           <CardHeader className="p-3 cursor-pointer hover:bg-accent/50 transition-colors">
             <div className="flex items-start justify-between gap-2">
               <div className="flex-1 space-y-1">
                 <div className="flex items-center gap-2">
-                  <Badge variant={statusBadge.variant} className="text-xs">{statusBadge.label}</Badge>
+                  {isGestor && task.assignment_type === "todos" ? (
+                    <Badge variant="secondary" className="text-xs">
+                      <Users className="h-3 w-3 mr-1" />
+                      Progresso: {task.total_completed || 0}/{task.total_assigned || 0}
+                    </Badge>
+                  ) : (
+                    <Badge variant={isCompleted ? "default" : "secondary"} className="text-xs">
+                      {isCompleted ? "Concluída" : "Pendente"}
+                    </Badge>
+                  )}
                   {isOverdue && <Badge variant="destructive" className="text-xs">Atrasada</Badge>}
                 </div>
                 <h4 className="font-medium text-sm leading-tight line-clamp-2">{task.title}</h4>
@@ -143,9 +189,14 @@ export function TaskCard({ task, onEdit, isGestor }: TaskCardProps) {
             )}
 
             <div className="space-y-1.5 text-xs">
+              {task.assignment_type === "individual" && (
+                <div className="flex items-center gap-2 text-muted-foreground">
+                  <User className="h-3 w-3" />
+                  <span>{task.assigned_profile?.name || "Não atribuída"}</span>
+                </div>
+              )}
               <div className="flex items-center gap-2 text-muted-foreground">
-                <User className="h-3 w-3" />
-                <span>{task.assigned_profile?.name || "Não atribuída"}</span>
+                <span>Criado por: {task.creator_profile?.name || "Desconhecido"}</span>
               </div>
 
               {task.lead && (
@@ -164,32 +215,44 @@ export function TaskCard({ task, onEdit, isGestor }: TaskCardProps) {
               )}
             </div>
 
+            {/* Progress for gestores viewing "todos" tasks */}
+            {isGestor && task.assignment_type === "todos" && assignments && (
+              <div className="space-y-2 mt-3 p-3 bg-muted/50 rounded-lg">
+                <p className="text-sm font-medium">Progresso da Equipe:</p>
+                <div className="space-y-1 max-h-40 overflow-y-auto">
+                  {assignments.map((assignment: any) => (
+                    <div
+                      key={assignment.id}
+                      className="flex items-center justify-between text-xs"
+                    >
+                      <span>{assignment.user?.name || "Usuário"}</span>
+                      {assignment.status === "concluida" ? (
+                        <span className="text-green-600 flex items-center gap-1">
+                          <CheckCircle2 className="h-3 w-3" />
+                          {assignment.completed_at &&
+                            format(new Date(assignment.completed_at), "dd/MM HH:mm")}
+                        </span>
+                      ) : (
+                        <span className="text-muted-foreground">Pendente</span>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
             <div className="flex items-center justify-between gap-2 pt-1">
-              {task.status !== "concluida" && (
+              {!isCompleted && canComplete && (
                 <div className="flex gap-1.5 flex-1">
-                  {task.status === "aberta" && (
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      onClick={handleStartTask}
-                      className="flex-1 h-7 text-xs"
-                    >
-                      Iniciar
-                    </Button>
-                  )}
-                  {(task.status === "aberta" || task.status === "em_atraso") && (
-                    <Button
-                      size="sm"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        updateStatusMutation.mutate("concluida");
-                      }}
-                      className="flex-1 h-7 text-xs"
-                    >
-                      <CheckCircle2 className="h-3 w-3 mr-1" />
-                      Concluir
-                    </Button>
-                  )}
+                  <Button
+                    size="sm"
+                    onClick={handleStartTask}
+                    className="flex-1 h-7 text-xs"
+                    disabled={completeAssignmentMutation.isPending}
+                  >
+                    <CheckCircle2 className="h-3 w-3 mr-1" />
+                    Concluir
+                  </Button>
                 </div>
               )}
               

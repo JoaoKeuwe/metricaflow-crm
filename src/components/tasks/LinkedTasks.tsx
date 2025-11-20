@@ -25,6 +25,9 @@ export function LinkedTasks({ leadId }: LinkedTasksProps) {
   const { data: tasks, isLoading } = useQuery({
     queryKey: ["lead-tasks", leadId],
     queryFn: async () => {
+      const { data: { session } } = await supabase.auth.getSession();
+      const currentUserId = session?.user?.id;
+
       const { data, error } = await supabase
         .from("tasks")
         .select(`
@@ -37,6 +40,18 @@ export function LinkedTasks({ leadId }: LinkedTasksProps) {
         .order("created_at", { ascending: false });
 
       if (error) throw error;
+
+      // For vendedores, filter by their assignments
+      if (userRole === "vendedor" && currentUserId) {
+        const { data: myAssignments } = await supabase
+          .from("task_assignments")
+          .select("task_id")
+          .eq("user_id", currentUserId);
+
+        const myTaskIds = myAssignments?.map((a) => a.task_id) || [];
+        return data?.filter((task) => myTaskIds.includes(task.id));
+      }
+
       return data;
     },
   });
