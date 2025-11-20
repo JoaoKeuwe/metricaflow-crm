@@ -69,9 +69,16 @@ const handler = async (req: Request): Promise<Response> => {
       throw new Error("BREVO_FROM_EMAIL is required");
     }
     
-    console.log('Sending invite email:', { inviteId, email, role, companyName });
-
     const inviteUrl = `${appUrl}/accept-invite?token=${inviteId}`;
+    
+    console.log('🔗 Invite URL gerado:', inviteUrl);
+    console.log('📧 Brevo config:', { 
+      hasApiKey: !!brevoApiKey, 
+      from: brevoFromEmail,
+      name: brevoFromName,
+      clickTracking: false
+    });
+    console.log('Sending invite email:', { inviteId, email, role, companyName });
     
     const roleLabel = role === "gestor" ? "Gestor" : "Vendedor";
 
@@ -94,6 +101,9 @@ const handler = async (req: Request): Promise<Response> => {
           }
         ],
         subject: `Convite para ${companyName}`,
+        params: {
+          CLICK_ALL: false  // Desabilita tracking de links do Brevo
+        },
         htmlContent: `
           <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
             <h1 style="color: #333;">Você foi convidado!</h1>
