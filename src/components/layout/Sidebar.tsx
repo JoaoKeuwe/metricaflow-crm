@@ -36,6 +36,14 @@ const Sidebar = () => {
     enabled: !!session?.user?.id,
   });
 
+  /**
+   * UI-ONLY CHECK - Does not provide security!
+   * This role check is for UX optimization only.
+   * Actual security is enforced by:
+   * - Backend RLS policies
+   * - Edge Function authentication
+   * - Database SECURITY DEFINER functions
+   */
   const { data: userRole } = useQuery({
     queryKey: ["user-role", session?.user?.id],
     queryFn: async () => {

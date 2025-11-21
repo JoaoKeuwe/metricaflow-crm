@@ -27,6 +27,10 @@ const Tasks = () => {
     },
   });
 
+  /**
+   * UI-ONLY CHECK - Does not provide security!
+   * Backend validation via RLS policies is required.
+   */
   const { data: userRole } = useQuery({
     queryKey: ["user-role"],
     queryFn: async () => {

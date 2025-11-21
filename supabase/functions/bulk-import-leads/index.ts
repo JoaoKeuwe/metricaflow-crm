@@ -1,5 +1,6 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.58.0";
+import { mapDatabaseError, mapGenericError } from '../_shared/error-mapping.ts';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -131,10 +132,11 @@ serve(async (req) => {
           .single();
 
         if (insertError) {
+          const errorResponse = mapDatabaseError(insertError);
           results.errors++;
           results.error_details.push({
             lead: leadData,
-            error: 'Erro ao criar lead',
+            error: errorResponse.error,
           });
           continue;
         }
@@ -221,9 +223,9 @@ serve(async (req) => {
     );
 
   } catch (error: any) {
-    console.error('Erro na importação:', error);
+    const errorResponse = mapGenericError(error);
     return new Response(
-      JSON.stringify({ error: 'Erro ao processar importação. Verifique os dados e tente novamente.' }),
+      JSON.stringify(errorResponse),
       {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
         status: 400,

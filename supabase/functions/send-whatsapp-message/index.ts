@@ -1,5 +1,6 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.58.0";
+import { mapDatabaseError, mapApiError, mapGenericError } from '../_shared/error-mapping.ts';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -115,9 +116,14 @@ serve(async (req) => {
     );
 
     if (!evolutionResponse.ok) {
-      const errorText = await evolutionResponse.text();
-      console.error('Erro na Evolution API:', errorText);
-      throw new Error(`Falha ao enviar mensagem: ${evolutionResponse.statusText}`);
+      const apiError = mapApiError(evolutionResponse, 'WhatsApp');
+      return new Response(
+        JSON.stringify(apiError),
+        {
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          status: 400,
+        }
+      );
     }
 
     const evolutionData = await evolutionResponse.json();
@@ -142,8 +148,14 @@ serve(async (req) => {
       .single();
 
     if (messageError) {
-      console.error('Erro ao salvar mensagem:', messageError);
-      throw messageError;
+      const errorResponse = mapDatabaseError(messageError);
+      return new Response(
+        JSON.stringify(errorResponse),
+        {
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          status: 500,
+        }
+      );
     }
 
     return new Response(
@@ -159,9 +171,9 @@ serve(async (req) => {
     );
 
   } catch (error: any) {
-    console.error('Erro:', error);
+    const errorResponse = mapGenericError(error);
     return new Response(
-      JSON.stringify({ error: error.message }),
+      JSON.stringify(errorResponse),
       {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
         status: 400,

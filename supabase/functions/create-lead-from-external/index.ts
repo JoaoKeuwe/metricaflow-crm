@@ -1,5 +1,6 @@
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.58.0';
 import { checkRateLimit, getClientIP } from '../_shared/rate-limit.ts';
+import { mapDatabaseError, mapGenericError } from '../_shared/error-mapping.ts';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -214,7 +215,7 @@ Deno.serve(async (req) => {
       .single();
 
     if (leadError) {
-      console.error('Erro ao criar lead:', leadError);
+      const errorResponse = mapDatabaseError(leadError);
       
       await supabase.from('integration_logs').insert({
         company_id,
@@ -222,11 +223,11 @@ Deno.serve(async (req) => {
         source: 'api',
         payload,
         status: 'error',
-        error_message: leadError.message,
+        error_message: errorResponse.error,
       });
 
       return new Response(
-        JSON.stringify({ success: false, error: 'Erro ao criar lead. Verifique os dados e tente novamente.' }),
+        JSON.stringify(errorResponse),
         { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
@@ -253,12 +254,9 @@ Deno.serve(async (req) => {
     );
 
   } catch (error) {
-    console.error('Erro inesperado:', error);
+    const errorResponse = mapGenericError(error);
     return new Response(
-      JSON.stringify({ 
-        success: false, 
-        error: 'Erro interno do servidor. Contate o suporte se o problema persistir.' 
-      }),
+      JSON.stringify(errorResponse),
       { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
   }
