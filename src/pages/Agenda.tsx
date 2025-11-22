@@ -138,13 +138,16 @@ const Agenda = () => {
 
   const displayDays = useMemo(() => {
     if (viewMode === "month") {
-      return eachDayOfInterval({ start: periodStart, end: periodEnd });
-    } else if (viewMode === "workweek") {
-      return eachDayOfInterval({ start: periodStart, end: periodEnd });
+      // Para vista mensal, precisamos incluir os dias antes e depois para completar as semanas
+      const monthStart = startOfMonth(currentDate);
+      const monthEnd = endOfMonth(currentDate);
+      const calendarStart = startOfWeek(monthStart, { locale: ptBR, weekStartsOn: 0 });
+      const calendarEnd = endOfWeek(monthEnd, { locale: ptBR, weekStartsOn: 0 });
+      return eachDayOfInterval({ start: calendarStart, end: calendarEnd });
     } else {
       return eachDayOfInterval({ start: periodStart, end: periodEnd });
     }
-  }, [periodStart, periodEnd, viewMode]);
+  }, [currentDate, periodStart, periodEnd, viewMode]);
 
   const handlePrevious = () => {
     if (viewMode === "month") {
