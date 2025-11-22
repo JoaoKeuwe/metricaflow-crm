@@ -1,10 +1,29 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.58.0";
+import { z } from 'https://deno.land/x/zod@v3.22.4/mod.ts';
+import { mapDatabaseError, mapGenericError } from '../_shared/error-mapping.ts';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
+
+const WebhookDataSchema = z.object({
+  event: z.string(),
+  data: z.object({
+    key: z.object({
+      remoteJid: z.string().optional(),
+      fromMe: z.boolean().optional(),
+      id: z.string().optional(),
+    }).optional(),
+    message: z.object({
+      conversation: z.string().optional(),
+      extendedTextMessage: z.object({
+        text: z.string().optional(),
+      }).optional(),
+    }).optional(),
+  }).optional(),
+});
 
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
@@ -17,7 +36,18 @@ serve(async (req) => {
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
     );
 
-    const webhookData = await req.json();
+    const rawPayload = await req.json();
+    const validationResult = WebhookDataSchema.safeParse(rawPayload);
+
+    if (!validationResult.success) {
+      console.error('Webhook inválido:', validationResult.error.flatten());
+      return new Response(
+        JSON.stringify({ success: false, error: 'Payload inválido' }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 400 }
+      );
+    }
+
+    const webhookData = validationResult.data;
     console.log('Webhook recebido:', JSON.stringify(webhookData, null, 2));
 
     // Validar se é uma mensagem recebida
@@ -81,7 +111,14 @@ serve(async (req) => {
 
     if (saveError) {
       console.error('Erro ao salvar mensagem:', saveError);
-      throw saveError;
+      const errorResponse = mapDatabaseError(saveError);
+      return new Response(
+        JSON.stringify(errorResponse),
+        {
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          status: 500,
+        }
+      );
     }
 
     console.log('Mensagem salva:', savedMessage.id);
@@ -118,8 +155,9 @@ serve(async (req) => {
 
   } catch (error: any) {
     console.error('Erro no webhook:', error);
+    const errorResponse = mapGenericError(error);
     return new Response(
-      JSON.stringify({ error: error.message }),
+      JSON.stringify(errorResponse),
       {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
         status: 500,

@@ -1,4 +1,5 @@
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.58.0';
+import { z } from 'https://deno.land/x/zod@v3.22.4/mod.ts';
 import { checkRateLimit, getClientIP } from '../_shared/rate-limit.ts';
 import { mapDatabaseError, mapGenericError } from '../_shared/error-mapping.ts';
 
@@ -7,15 +8,17 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
-interface LeadPayload {
-  name: string;
-  email?: string;
-  phone?: string;
-  company?: string;
-  source?: string;
-  estimated_value?: number;
-  assigned_to?: string;
-}
+type LeadPayload = z.infer<typeof LeadPayloadSchema>;
+
+const LeadPayloadSchema = z.object({
+  name: z.string().trim().min(1, 'Nome é obrigatório').max(200, 'Nome muito longo'),
+  email: z.string().email('Email inválido').optional().or(z.literal('')),
+  phone: z.string().regex(/^\+?[1-9]\d{1,14}$/, 'Telefone inválido').optional().or(z.literal('')),
+  company: z.string().max(200, 'Nome da empresa muito longo').optional(),
+  source: z.string().max(100, 'Fonte muito longa').optional(),
+  estimated_value: z.number().nonnegative('Valor estimado deve ser positivo').optional(),
+  assigned_to: z.string().uuid('ID de usuário inválido').optional(),
+});
 
 Deno.serve(async (req) => {
   // Handle CORS preflight
@@ -93,53 +96,39 @@ Deno.serve(async (req) => {
       .update({ last_used_at: new Date().toISOString() })
       .eq('id', api_token_id);
 
-    // Parse do payload
-    const payload: LeadPayload = await req.json();
-    console.log('Payload recebido:', payload);
 
-    // Validações básicas
-    if (!payload.name || payload.name.trim().length === 0) {
-      const errorMsg = 'Campo "name" é obrigatório';
-      console.error(errorMsg);
+    // Parse and validate payload
+    const rawPayload = await req.json();
+    const validationResult = LeadPayloadSchema.safeParse(rawPayload);
+    
+    if (!validationResult.success) {
+      const errorMsg = validationResult.error.errors[0].message;
+      console.error('Validação falhou:', validationResult.error.flatten());
       
       await supabase.from('integration_logs').insert({
         company_id,
         api_token_id,
         source: 'api',
-        payload,
+        payload: rawPayload,
         status: 'error',
         error_message: errorMsg,
       });
 
       return new Response(
-        JSON.stringify({ success: false, error: errorMsg }),
+        JSON.stringify({ 
+          success: false, 
+          error: errorMsg,
+          details: validationResult.error.flatten().fieldErrors
+        }),
         { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
 
-    // Validar email se fornecido
-    if (payload.email) {
-      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-      if (!emailRegex.test(payload.email)) {
-        const errorMsg = 'Email inválido';
-        console.error(errorMsg, payload.email);
-        
-        await supabase.from('integration_logs').insert({
-          company_id,
-          api_token_id,
-          source: 'api',
-          payload,
-          status: 'error',
-          error_message: errorMsg,
-        });
+    const payload = validationResult.data;
+    console.log('Payload validado:', payload);
 
-        return new Response(
-          JSON.stringify({ success: false, error: errorMsg }),
-          { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-        );
-      }
-
-      // Verificar duplicidade por email
+    // Verificar duplicidade por email se fornecido
+    if (payload.email && payload.email.trim().length > 0) {
       const { data: existingLead } = await supabase
         .from('leads')
         .select('id')
@@ -155,7 +144,7 @@ Deno.serve(async (req) => {
           company_id,
           api_token_id,
           source: 'api',
-          payload,
+          payload: rawPayload,
           status: 'error',
           error_message: errorMsg,
           lead_id: existingLead.id,
@@ -174,7 +163,7 @@ Deno.serve(async (req) => {
 
     // Normalizar telefone (remover caracteres não numéricos)
     let normalizedPhone = payload.phone;
-    if (normalizedPhone) {
+    if (normalizedPhone && normalizedPhone.trim().length > 0) {
       normalizedPhone = normalizedPhone.replace(/\D/g, '');
     }
 

@@ -1,5 +1,6 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.58.0";
+import { z } from 'https://deno.land/x/zod@v3.22.4/mod.ts';
 import { mapDatabaseError, mapApiError, mapGenericError } from '../_shared/error-mapping.ts';
 
 const corsHeaders = {
@@ -7,13 +8,15 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
-interface SendMessageRequest {
-  lead_id?: string;
-  phone: string;
-  message: string;
-  media_url?: string;
-  media_type?: string;
-}
+const SendMessageSchema = z.object({
+  lead_id: z.string().uuid('ID de lead inválido').optional(),
+  phone: z.string().min(1, 'Telefone é obrigatório').regex(/^\+?[\d\s\-()]+$/, 'Formato de telefone inválido'),
+  message: z.string().min(1, 'Mensagem é obrigatória').max(4096, 'Mensagem muito longa (máximo 4096 caracteres)'),
+  media_url: z.string().url('URL de mídia inválida').optional(),
+  media_type: z.string().optional(),
+});
+
+type SendMessageRequest = z.infer<typeof SendMessageSchema>;
 
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
@@ -50,17 +53,15 @@ serve(async (req) => {
       throw new Error('Perfil não encontrado');
     }
 
-    const { lead_id, phone, message, media_url, media_type }: SendMessageRequest = await req.json();
+    const rawPayload = await req.json();
+    const validationResult = SendMessageSchema.safeParse(rawPayload);
 
-    // Validar dados
-    if (!phone || !message) {
-      throw new Error('Telefone e mensagem são obrigatórios');
+    if (!validationResult.success) {
+      const errorMsg = validationResult.error.errors[0].message;
+      throw new Error(errorMsg);
     }
 
-    // Validar comprimento da mensagem (max 4096 caracteres)
-    if (message.length > 4096) {
-      throw new Error('Mensagem muito longa. Máximo 4096 caracteres');
-    }
+    const { lead_id, phone, message, media_url, media_type } = validationResult.data;
 
     // Validar caracteres perigosos (prevenir XSS)
     const dangerousPatterns = /<script|javascript:|onerror=|onclick=|<iframe/i;

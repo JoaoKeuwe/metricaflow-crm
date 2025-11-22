@@ -1,9 +1,23 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { z } from 'https://deno.land/x/zod@v3.22.4/mod.ts';
+import { mapGenericError } from '../_shared/error-mapping.ts';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
+
+const LeadAnalysisSchema = z.object({
+  lead: z.object({
+    nome: z.string().min(1, 'Nome do lead é obrigatório'),
+    telefone: z.string().optional(),
+    cidade: z.string().optional(),
+    estado: z.string().optional(),
+    site: z.string().optional(),
+    notas: z.string().optional(),
+    status: z.string().optional(),
+  }),
+});
 
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
@@ -11,14 +25,22 @@ serve(async (req) => {
   }
 
   try {
-    const { lead } = await req.json();
+    const rawPayload = await req.json();
+    const validationResult = LeadAnalysisSchema.safeParse(rawPayload);
     
-    if (!lead?.nome) {
+    if (!validationResult.success) {
+      const errorMsg = validationResult.error.errors[0].message;
       return new Response(
-        JSON.stringify({ error: 'Lead inválido' }),
+        JSON.stringify({ 
+          success: false,
+          error: errorMsg,
+          details: validationResult.error.flatten().fieldErrors
+        }),
         { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
+
+    const { lead } = validationResult.data;
 
     const LOVABLE_API_KEY = Deno.env.get('LOVABLE_API_KEY');
     if (!LOVABLE_API_KEY) {
@@ -140,11 +162,9 @@ Retorne APENAS o JSON, sem markdown ou texto extra.`;
 
   } catch (error) {
     console.error('Erro ao analisar lead:', error);
+    const errorResponse = mapGenericError(error);
     return new Response(
-      JSON.stringify({ 
-        error: error instanceof Error ? error.message : 'Erro desconhecido',
-        success: false 
-      }),
+      JSON.stringify({ ...errorResponse, success: false }),
       { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
   }

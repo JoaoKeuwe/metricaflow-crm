@@ -1,5 +1,6 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.58.0";
+import { z } from 'https://deno.land/x/zod@v3.22.4/mod.ts';
 import { mapDatabaseError, mapGenericError } from '../_shared/error-mapping.ts';
 
 const corsHeaders = {
@@ -7,22 +8,24 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
-interface LeadImport {
-  name: string;
-  email?: string;
-  phone: string;
-  company?: string;
-  source?: string;
-  estimated_value?: number;
-}
+const LeadImportSchema = z.object({
+  name: z.string().trim().min(1, 'Nome é obrigatório').max(200, 'Nome muito longo'),
+  email: z.string().email('Email inválido').optional().or(z.literal('')),
+  phone: z.string().min(1, 'Telefone é obrigatório'),
+  company: z.string().max(200, 'Nome da empresa muito longo').optional(),
+  source: z.string().max(100, 'Fonte muito longa').optional(),
+  estimated_value: z.number().nonnegative('Valor estimado deve ser positivo').optional(),
+});
 
-interface BulkImportRequest {
-  leads: LeadImport[];
-  auto_prospect?: boolean;
-  message_template?: string;
-  campaign_name?: string;
-  delay_seconds?: number;
-}
+const BulkImportRequestSchema = z.object({
+  leads: z.array(LeadImportSchema).min(1, 'Nenhum lead fornecido').max(100, 'Máximo de 100 leads por importação'),
+  auto_prospect: z.boolean().optional().default(false),
+  message_template: z.string().max(4096, 'Template de mensagem muito longo').optional(),
+  campaign_name: z.string().max(200, 'Nome de campanha muito longo').optional(),
+  delay_seconds: z.number().int().min(5).max(300).optional().default(15),
+});
+
+type BulkImportRequest = z.infer<typeof BulkImportRequestSchema>;
 
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
@@ -59,21 +62,21 @@ serve(async (req) => {
       throw new Error('Perfil não encontrado');
     }
 
+    const rawPayload = await req.json();
+    const validationResult = BulkImportRequestSchema.safeParse(rawPayload);
+
+    if (!validationResult.success) {
+      const errorMsg = validationResult.error.errors[0].message;
+      throw new Error(errorMsg);
+    }
+
     const { 
       leads, 
-      auto_prospect = false, 
+      auto_prospect, 
       message_template,
       campaign_name,
-      delay_seconds = 15 
-    }: BulkImportRequest = await req.json();
-
-    if (!leads || leads.length === 0) {
-      throw new Error('Nenhum lead fornecido');
-    }
-
-    if (leads.length > 100) {
-      throw new Error('Máximo de 100 leads por importação');
-    }
+      delay_seconds 
+    } = validationResult.data;
 
     console.log(`Importando ${leads.length} leads...`);
 
@@ -88,16 +91,6 @@ serve(async (req) => {
     // Processar cada lead
     for (const leadData of leads) {
       try {
-        // Validar dados obrigatórios
-        if (!leadData.name || !leadData.phone) {
-          results.errors++;
-          results.error_details.push({
-            lead: leadData,
-            error: 'Nome e telefone são obrigatórios',
-          });
-          continue;
-        }
-
         // Limpar telefone
         const cleanPhone = leadData.phone.replace(/\D/g, '');
 

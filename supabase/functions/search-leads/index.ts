@@ -1,6 +1,8 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.58.0";
+import { z } from 'https://deno.land/x/zod@v3.22.4/mod.ts';
 import { checkRateLimit, getClientIP } from "../_shared/rate-limit.ts";
+import { mapGenericError } from "../_shared/error-mapping.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -26,6 +28,10 @@ function extractPhoneBR(text: string): string | null {
   // Normaliza: remove espaços, pontos, hífens
   return match[0].replace(/[\s.\-()]/g, "");
 }
+
+const SearchQuerySchema = z.object({
+  query: z.string().min(1, 'Query é obrigatória').max(500, 'Query muito longa'),
+});
 
 serve(async (req) => {
   if (req.method === "OPTIONS") {
@@ -64,7 +70,18 @@ serve(async (req) => {
       );
     }
 
-    const { query } = await req.json();
+    const rawPayload = await req.json();
+    const validationResult = SearchQuerySchema.safeParse(rawPayload);
+
+    if (!validationResult.success) {
+      const errorMsg = validationResult.error.errors[0].message;
+      return new Response(
+        JSON.stringify({ success: false, error: errorMsg }),
+        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    const { query } = validationResult.data;
     const SERPER_API_KEY = Deno.env.get("SERPER_API_KEY");
 
     if (!SERPER_API_KEY) {
@@ -341,11 +358,9 @@ serve(async (req) => {
     );
   } catch (error) {
     console.error("Erro na busca de leads:", error);
+    const errorResponse = mapGenericError(error);
     return new Response(
-      JSON.stringify({
-        success: false,
-        error: error instanceof Error ? error.message : "Erro desconhecido",
-      }),
+      JSON.stringify(errorResponse),
       {
         status: 500,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
