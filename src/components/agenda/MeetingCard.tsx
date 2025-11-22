@@ -11,9 +11,10 @@ import { getUserColor } from "@/lib/userColors";
 interface MeetingCardProps {
   meeting: any;
   onRefetch: () => void;
+  compact?: boolean;
 }
 
-const MeetingCard = ({ meeting, onRefetch }: MeetingCardProps) => {
+const MeetingCard = ({ meeting, onRefetch, compact = false }: MeetingCardProps) => {
   const [detailOpen, setDetailOpen] = useState(false);
   const clickTimeRef = useRef<number>(0);
   const hasDraggedRef = useRef<boolean>(false);
@@ -34,6 +35,37 @@ const MeetingCard = ({ meeting, onRefetch }: MeetingCardProps) => {
   const organizerParticipant = meeting.meeting_participants?.find((p: any) => p.is_organizer);
   const userColor = organizerParticipant ? getUserColor(organizerParticipant.user_id) : getUserColor("default");
 
+  // Modo compacto para vista mensal
+  if (compact) {
+    return (
+      <>
+        <div
+          onClick={(e) => {
+            e.stopPropagation();
+            setDetailOpen(true);
+          }}
+          className={cn(
+            "text-xs rounded px-1.5 py-0.5 mb-0.5 cursor-pointer border-l-2",
+            "hover:shadow-sm transition-all truncate",
+            userColor.bg,
+            userColor.border,
+            userColor.text
+          )}
+        >
+          <span className="font-medium">{format(new Date(meeting.start_time), "HH:mm")}</span> {meeting.title}
+        </div>
+
+        <MeetingDetailDialog
+          meeting={meeting}
+          open={detailOpen}
+          onOpenChange={setDetailOpen}
+          onRefetch={onRefetch}
+        />
+      </>
+    );
+  }
+
+  // Modo normal para vista semanal
   const getStatusBorderColor = (status: string) => {
     switch (status) {
       case "agendada":
