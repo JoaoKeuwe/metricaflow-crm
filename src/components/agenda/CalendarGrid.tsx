@@ -15,6 +15,7 @@ interface CalendarGridProps {
   meetings: any[];
   isLoading: boolean;
   onRefetch: () => void;
+  viewMode?: "week" | "workweek" | "month";
 }
 
 interface DroppableSlotProps {
@@ -39,7 +40,7 @@ const DroppableSlot = ({ id, children }: DroppableSlotProps) => {
   );
 };
 
-const CalendarGrid = ({ weekDays, meetings, isLoading, onRefetch }: CalendarGridProps) => {
+const CalendarGrid = ({ weekDays, meetings, isLoading, onRefetch, viewMode = "week" }: CalendarGridProps) => {
   const hours = Array.from({ length: 24 }, (_, i) => i); // 0h às 23h
   const today = format(new Date(), "yyyy-MM-dd");
   const [activeMeeting, setActiveMeeting] = useState<any>(null);
@@ -153,12 +154,14 @@ const CalendarGrid = ({ weekDays, meetings, isLoading, onRefetch }: CalendarGrid
     );
   }
 
+  const gridCols = viewMode === "month" ? "grid-cols-8" : weekDays.length === 5 ? "grid-cols-6" : "grid-cols-8";
+
   return (
     <DndContext onDragStart={handleDragStart} onDragEnd={handleDragEnd}>
       <div className="min-w-full">
         {/* Header com dias da semana - fixo no topo */}
         <div className="sticky top-0 z-10 bg-background border-b border-border">
-          <div className="grid grid-cols-8">
+          <div className={cn("grid", gridCols)}>
             <div className="w-16 border-r border-border" /> {/* Coluna de horários */}
             {weekDays.map((day) => (
               <div key={day.toString()} className="text-center py-2 border-r border-border last:border-r-0">
@@ -180,34 +183,59 @@ const CalendarGrid = ({ weekDays, meetings, isLoading, onRefetch }: CalendarGrid
 
         {/* Grid de horários */}
         <div className="relative">
-          {hours.map((hour) => (
-            <div 
-              key={hour} 
-              className="grid grid-cols-8 border-b border-border"
-              style={{ minHeight: '60px' }}
-            >
-              <div className="w-16 text-right pr-2 pt-1 text-xs text-muted-foreground border-r border-border">
-                {hour}:00
-              </div>
+          {viewMode === "month" ? (
+            // Vista mensal simplificada
+            <div className={cn("grid", gridCols, "border-b border-border min-h-[500px]")}>
+              <div className="w-16 border-r border-border" />
               {weekDays.map((day) => {
-                const dayMeetings = getMeetingsForDateTime(day, hour);
-                const dropId = `day-${format(day, "yyyy-MM-dd")}-hour-${hour}`;
+                const dayMeetings = meetings.filter((meeting) => {
+                  const meetingDate = new Date(meeting.start_time);
+                  return format(meetingDate, "yyyy-MM-dd") === format(day, "yyyy-MM-dd");
+                });
                 return (
-                  <DroppableSlot key={dropId} id={dropId}>
-                    <div className="space-y-1 p-1">
-                      {dayMeetings.map((meeting) => (
-                        <MeetingCard
-                          key={meeting.id}
-                          meeting={meeting}
-                          onRefetch={onRefetch}
-                        />
-                      ))}
-                    </div>
-                  </DroppableSlot>
+                  <div key={day.toString()} className="border-r border-border p-2 space-y-1">
+                    {dayMeetings.map((meeting) => (
+                      <MeetingCard
+                        key={meeting.id}
+                        meeting={meeting}
+                        onRefetch={onRefetch}
+                      />
+                    ))}
+                  </div>
                 );
               })}
             </div>
-          ))}
+          ) : (
+            // Vista semanal com horários
+            hours.map((hour) => (
+              <div 
+                key={hour} 
+                className={cn("grid", gridCols, "border-b border-border")}
+                style={{ minHeight: '60px' }}
+              >
+                <div className="w-16 text-right pr-2 pt-1 text-xs text-muted-foreground border-r border-border">
+                  {hour}:00
+                </div>
+                {weekDays.map((day) => {
+                  const dayMeetings = getMeetingsForDateTime(day, hour);
+                  const dropId = `day-${format(day, "yyyy-MM-dd")}-hour-${hour}`;
+                  return (
+                    <DroppableSlot key={dropId} id={dropId}>
+                      <div className="space-y-1 p-1">
+                        {dayMeetings.map((meeting) => (
+                          <MeetingCard
+                            key={meeting.id}
+                            meeting={meeting}
+                            onRefetch={onRefetch}
+                          />
+                        ))}
+                      </div>
+                    </DroppableSlot>
+                  );
+                })}
+              </div>
+            ))
+          )}
         </div>
       </div>
 
