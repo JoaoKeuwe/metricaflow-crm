@@ -9,6 +9,7 @@ import { formatDistanceToNow, format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { useNavigate } from "react-router-dom";
 import { useToast } from "@/hooks/use-toast";
+import MeetingNotifications from "./MeetingNotifications";
 
 const Header = () => {
   const navigate = useNavigate();
@@ -139,6 +140,8 @@ const Header = () => {
           <Users className="mr-2 h-4 w-4" />
           Usuários: {userCount}/{userLimit}
         </Badge>
+
+        <MeetingNotifications />
 
         <Popover>
           <PopoverTrigger asChild>

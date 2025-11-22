@@ -30,8 +30,8 @@ const DroppableSlot = ({ id, children }: DroppableSlotProps) => {
     <div
       ref={setNodeRef}
       className={cn(
-        "p-1.5 border-l border-border/50 relative min-h-[80px] transition-colors",
-        isOver && "bg-primary/10 ring-2 ring-primary ring-inset"
+        "p-2 border-l border-border/50 relative min-h-[90px] transition-colors",
+        isOver && "bg-primary/5 ring-2 ring-primary/30 ring-inset"
       )}
     >
       {children}
@@ -157,20 +157,22 @@ const CalendarGrid = ({ weekDays, meetings, isLoading, onRefetch }: CalendarGrid
 
   return (
     <DndContext onDragStart={handleDragStart} onDragEnd={handleDragEnd}>
-      <Card className="overflow-hidden">
+      <Card className="overflow-hidden shadow-sm">
         <div className="overflow-x-auto">
-          <div className="min-w-[800px]">
+          <div className="min-w-[900px]">
           {/* Header com dias da semana */}
-          <div className="grid grid-cols-8 border-b border-border/50 bg-background">
-            <div className="p-4 text-sm font-medium text-muted-foreground">Horário</div>
+          <div className="grid grid-cols-8 border-b-2 border-border bg-muted/30">
+            <div className="p-4 text-sm font-semibold text-muted-foreground">Horário</div>
             {weekDays.map((day) => (
-              <div key={day.toString()} className="p-4 text-center border-l border-border/50">
-                <div className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
-                  {format(day, "EEE", { locale: ptBR })}
+              <div key={day.toString()} className="p-4 text-center border-l border-border">
+                <div className="text-xs font-bold uppercase tracking-wider text-muted-foreground mb-1">
+                  {format(day, "EEEE", { locale: ptBR })}
                 </div>
                 <div className={cn(
-                  "text-2xl font-bold mt-1.5 inline-flex items-center justify-center",
-                  isToday(day) && "w-10 h-10 rounded-full bg-[#1a73e8] text-white"
+                  "text-2xl font-bold inline-flex items-center justify-center transition-all",
+                  isToday(day) 
+                    ? "w-11 h-11 rounded-full bg-primary text-primary-foreground shadow-md" 
+                    : "text-foreground"
                 )}>
                   {format(day, "dd", { locale: ptBR })}
                 </div>
@@ -179,16 +181,16 @@ const CalendarGrid = ({ weekDays, meetings, isLoading, onRefetch }: CalendarGrid
           </div>
 
           {/* Grid de horários */}
-          <div className="divide-y divide-border/50">
+          <div className="divide-y divide-border">
             {hours.map((hour, index) => (
               <div 
                 key={hour} 
                 className={cn(
-                  "grid grid-cols-8 min-h-[80px]",
-                  index % 2 === 0 && "bg-muted/20"
+                  "grid grid-cols-8 min-h-[90px]",
+                  index % 2 === 0 && "bg-muted/10"
                 )}
               >
-                <div className="p-3 text-xs text-muted-foreground font-medium border-r border-border/50">
+                <div className="p-3 text-sm text-muted-foreground font-semibold border-r border-border flex items-start">
                   {hour}:00
                 </div>
                 {weekDays.map((day) => {
@@ -217,11 +219,11 @@ const CalendarGrid = ({ weekDays, meetings, isLoading, onRefetch }: CalendarGrid
 
       <DragOverlay>
         {activeMeeting ? (
-          <div className="p-2.5 rounded-md border border-l-4 text-xs bg-background shadow-lg opacity-90">
-            <p className="font-semibold">{activeMeeting.title}</p>
-            <div className="flex items-center gap-1 text-muted-foreground mt-1">
-              <Clock className="h-3 w-3" />
-              <span>
+          <div className="p-3 rounded-lg border-l-4 border-primary bg-background shadow-2xl opacity-95 min-w-[200px]">
+            <p className="font-bold text-sm mb-2">{activeMeeting.title}</p>
+            <div className="flex items-center gap-2 text-muted-foreground">
+              <Clock className="h-3.5 w-3.5" />
+              <span className="text-xs font-medium">
                 {format(new Date(activeMeeting.start_time), "HH:mm")} - {format(new Date(activeMeeting.end_time), "HH:mm")}
               </span>
             </div>
