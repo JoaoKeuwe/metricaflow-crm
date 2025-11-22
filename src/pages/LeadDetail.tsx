@@ -18,11 +18,12 @@ import {
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { ArrowLeft, Plus, FileDown, CalendarClock } from "lucide-react";
+import { ArrowLeft, Plus, FileDown, CalendarClock, Pencil, Save, X } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { format } from "date-fns";
 import jsPDF from "jspdf";
 import { LinkedTasks } from "@/components/tasks/LinkedTasks";
+import { LeadValuesList } from "@/components/leads/LeadValuesList";
 import { noteFormSchema, NoteFormData } from "@/lib/schemas";
 import {
   Dialog,
@@ -65,6 +66,16 @@ const LeadDetail = () => {
   const [customNoteType, setCustomNoteType] = useState("");
   const [returnDate, setReturnDate] = useState<Date>();
   const [noteErrors, setNoteErrors] = useState<Partial<Record<keyof NoteFormData, string>>>({});
+  const [isEditing, setIsEditing] = useState(false);
+  const [editFormData, setEditFormData] = useState({
+    name: "",
+    email: "",
+    phone: "",
+    company: "",
+    status: "",
+    source: "",
+    assigned_to: "",
+  });
 
   const { data: lead, isLoading } = useQuery({
     queryKey: ["lead", id],
@@ -118,6 +129,101 @@ const LeadDetail = () => {
       return data?.role;
     },
   });
+
+  const { data: teamMembers } = useQuery({
+    queryKey: ["team-members", lead?.company_id],
+    queryFn: async () => {
+      if (!lead?.company_id) return [];
+      
+      const { data } = await supabase
+        .from("profiles")
+        .select("id, name")
+        .eq("company_id", lead.company_id)
+        .eq("active", true)
+        .order("name");
+      
+      return data || [];
+    },
+    enabled: !!lead?.company_id && isEditing,
+  });
+
+  const { data: currentUser } = useQuery({
+    queryKey: ["current-user"],
+    queryFn: async () => {
+      const { data: { session } } = await supabase.auth.getSession();
+      return session?.user;
+    },
+  });
+
+  const canEdit = userRole === "gestor" || userRole === "gestor_owner" || (lead?.assigned_to === currentUser?.id);
+
+  const updateLeadMutation = useMutation({
+    mutationFn: async (data: typeof editFormData) => {
+      const { error } = await supabase
+        .from("leads")
+        .update({
+          name: data.name,
+          email: data.email || null,
+          phone: data.phone || null,
+          company: data.company || null,
+          status: data.status,
+          source: data.source || null,
+          assigned_to: data.assigned_to || null,
+        })
+        .eq("id", id);
+
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["lead", id] });
+      setIsEditing(false);
+      toast({ title: "Lead atualizado com sucesso!" });
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Erro ao atualizar lead",
+        description: error.message,
+        variant: "destructive",
+      });
+    },
+  });
+
+  const handleStartEdit = () => {
+    setEditFormData({
+      name: lead?.name || "",
+      email: lead?.email || "",
+      phone: lead?.phone || "",
+      company: lead?.company || "",
+      status: lead?.status || "",
+      source: lead?.source || "",
+      assigned_to: lead?.assigned_to || "",
+    });
+    setIsEditing(true);
+  };
+
+  const handleCancelEdit = () => {
+    setIsEditing(false);
+    setEditFormData({
+      name: "",
+      email: "",
+      phone: "",
+      company: "",
+      status: "",
+      source: "",
+      assigned_to: "",
+    });
+  };
+
+  const handleSaveEdit = () => {
+    if (!editFormData.name.trim()) {
+      toast({
+        title: "Nome é obrigatório",
+        variant: "destructive",
+      });
+      return;
+    }
+    updateLeadMutation.mutate(editFormData);
+  };
 
   const addNoteMutation = useMutation({
     mutationFn: async (data: NoteFormData) => {
@@ -332,14 +438,43 @@ const LeadDetail = () => {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center gap-4">
-        <Button variant="ghost" size="icon" onClick={() => navigate("/leads")}>
-          <ArrowLeft className="h-4 w-4" />
-        </Button>
-        <div>
-          <h1 className="text-3xl font-bold">{lead.name}</h1>
-          <p className="text-muted-foreground mt-1">Detalhes do Lead</p>
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-4">
+          <Button variant="ghost" size="icon" onClick={() => navigate("/leads")}>
+            <ArrowLeft className="h-4 w-4" />
+          </Button>
+          <div>
+            <h1 className="text-3xl font-bold">{lead.name}</h1>
+            <p className="text-muted-foreground mt-1">Detalhes do Lead</p>
+          </div>
         </div>
+        {canEdit && !isEditing && (
+          <Button onClick={handleStartEdit}>
+            <Pencil className="h-4 w-4 mr-2" />
+            Editar Lead
+          </Button>
+        )}
+        {isEditing && (
+          <div className="flex gap-2">
+            <Button onClick={handleSaveEdit} disabled={updateLeadMutation.isPending}>
+              {updateLeadMutation.isPending ? (
+                <>
+                  <LoadingSpinner className="mr-2 h-4 w-4" />
+                  Salvando...
+                </>
+              ) : (
+                <>
+                  <Save className="h-4 w-4 mr-2" />
+                  Salvar
+                </>
+              )}
+            </Button>
+            <Button variant="outline" onClick={handleCancelEdit} disabled={updateLeadMutation.isPending}>
+              <X className="h-4 w-4 mr-2" />
+              Cancelar
+            </Button>
+          </div>
+        )}
       </div>
 
       <div className="grid gap-6 md:grid-cols-2">
@@ -349,20 +484,53 @@ const LeadDetail = () => {
           </CardHeader>
           <CardContent className="space-y-4">
             <div>
-              <Label className="text-muted-foreground">Nome</Label>
-              <p className="font-medium">{lead.name}</p>
+              <Label className="text-muted-foreground">Nome *</Label>
+              {isEditing ? (
+                <Input
+                  value={editFormData.name}
+                  onChange={(e) => setEditFormData({ ...editFormData, name: e.target.value })}
+                  placeholder="Nome do lead"
+                />
+              ) : (
+                <p className="font-medium">{lead.name}</p>
+              )}
             </div>
             <div>
               <Label className="text-muted-foreground">Email</Label>
-              <p className="font-medium">{lead.email || "—"}</p>
+              {isEditing ? (
+                <Input
+                  type="email"
+                  value={editFormData.email}
+                  onChange={(e) => setEditFormData({ ...editFormData, email: e.target.value })}
+                  placeholder="email@exemplo.com"
+                />
+              ) : (
+                <p className="font-medium">{lead.email || "—"}</p>
+              )}
             </div>
             <div>
               <Label className="text-muted-foreground">Telefone</Label>
-              <p className="font-medium">{lead.phone || "—"}</p>
+              {isEditing ? (
+                <Input
+                  value={editFormData.phone}
+                  onChange={(e) => setEditFormData({ ...editFormData, phone: e.target.value })}
+                  placeholder="(00) 00000-0000"
+                />
+              ) : (
+                <p className="font-medium">{lead.phone || "—"}</p>
+              )}
             </div>
             <div>
               <Label className="text-muted-foreground">Empresa</Label>
-              <p className="font-medium">{lead.company || "—"}</p>
+              {isEditing ? (
+                <Input
+                  value={editFormData.company}
+                  onChange={(e) => setEditFormData({ ...editFormData, company: e.target.value })}
+                  placeholder="Nome da empresa"
+                />
+              ) : (
+                <p className="font-medium">{lead.company || "—"}</p>
+              )}
             </div>
           </CardContent>
         </Card>
@@ -374,31 +542,75 @@ const LeadDetail = () => {
           <CardContent className="space-y-4">
             <div>
               <Label className="text-muted-foreground">Status</Label>
-              <div className="mt-1">
-                <Badge className={statusColors[lead.status]}>{lead.status}</Badge>
-              </div>
+              {isEditing ? (
+                <Select
+                  value={editFormData.status}
+                  onValueChange={(value) => setEditFormData({ ...editFormData, status: value })}
+                >
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="novo">Novo</SelectItem>
+                    <SelectItem value="contato_feito">Contato Feito</SelectItem>
+                    <SelectItem value="proposta">Proposta</SelectItem>
+                    <SelectItem value="negociacao">Negociação</SelectItem>
+                    <SelectItem value="ganho">Ganho</SelectItem>
+                    <SelectItem value="perdido">Perdido</SelectItem>
+                  </SelectContent>
+                </Select>
+              ) : (
+                <div className="mt-1">
+                  <Badge className={statusColors[lead.status]}>{lead.status}</Badge>
+                </div>
+              )}
             </div>
             <div>
               <Label className="text-muted-foreground">Origem</Label>
-              <p className="font-medium">{lead.source || "—"}</p>
-            </div>
-            <div>
-              <Label className="text-muted-foreground">Valor Estimado</Label>
-              <p className="font-medium">
-                {lead.estimated_value
-                  ? `R$ ${Number(lead.estimated_value).toLocaleString("pt-BR", {
-                      minimumFractionDigits: 2,
-                    })}`
-                  : "—"}
-              </p>
+              {isEditing ? (
+                <Input
+                  value={editFormData.source}
+                  onChange={(e) => setEditFormData({ ...editFormData, source: e.target.value })}
+                  placeholder="Ex: Site, Indicação, etc."
+                />
+              ) : (
+                <p className="font-medium">{lead.source || "—"}</p>
+              )}
             </div>
             <div>
               <Label className="text-muted-foreground">Responsável</Label>
-              <p className="font-medium">{lead.profiles?.name || "—"}</p>
+              {isEditing ? (
+                <Select
+                  value={editFormData.assigned_to}
+                  onValueChange={(value) => setEditFormData({ ...editFormData, assigned_to: value })}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Selecione um responsável" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {teamMembers?.map((member: any) => (
+                      <SelectItem key={member.id} value={member.id}>
+                        {member.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              ) : (
+                <p className="font-medium">{lead.profiles?.name || "—"}</p>
+              )}
             </div>
           </CardContent>
         </Card>
       </div>
+
+      <Card>
+        <CardHeader>
+          <CardTitle>Valores do Lead</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <LeadValuesList leadId={id!} companyId={lead.company_id} />
+        </CardContent>
+      </Card>
 
       <Tabs defaultValue="notes" className="w-full">
         <TabsList>

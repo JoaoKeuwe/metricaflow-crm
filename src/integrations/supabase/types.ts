@@ -410,6 +410,60 @@ export type Database = {
           },
         ]
       }
+      lead_values: {
+        Row: {
+          amount: number
+          company_id: string
+          created_at: string | null
+          created_by: string | null
+          id: string
+          lead_id: string
+          name: string
+          notes: string | null
+          updated_at: string | null
+          value_type: string
+        }
+        Insert: {
+          amount: number
+          company_id: string
+          created_at?: string | null
+          created_by?: string | null
+          id?: string
+          lead_id: string
+          name: string
+          notes?: string | null
+          updated_at?: string | null
+          value_type: string
+        }
+        Update: {
+          amount?: number
+          company_id?: string
+          created_at?: string | null
+          created_by?: string | null
+          id?: string
+          lead_id?: string
+          name?: string
+          notes?: string | null
+          updated_at?: string | null
+          value_type?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "lead_values_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "lead_values_lead_id_fkey"
+            columns: ["lead_id"]
+            isOneToOne: false
+            referencedRelation: "leads"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       leads: {
         Row: {
           assigned_to: string | null

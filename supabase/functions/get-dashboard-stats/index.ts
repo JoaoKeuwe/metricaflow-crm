@@ -50,8 +50,8 @@ Deno.serve(async (req) => {
       totalLeadsResult,
       wonLeadsResult,
       pendingLeadsResult,
-      estimatedValueResult,
-      convertedValueResult,
+      leadValuesResult,
+      wonLeadValuesResult,
       statusDataResult,
       sourceDataResult,
       funnelDataResult,
@@ -60,6 +60,7 @@ Deno.serve(async (req) => {
       closedLeadsWithTimeResult,
       lostLeadsResult,
       activeLeadsForForecastResult,
+      activeLeadValuesForForecastResult,
       scheduledMeetingsResult,
       completedMeetingsResult,
       tasksResult,
@@ -75,11 +76,27 @@ Deno.serve(async (req) => {
       // Pending leads
       buildQuery(supabaseClient.from('leads').select('*', { count: 'exact', head: true }).in('status', ['novo', 'contato_feito', 'proposta', 'negociacao'])),
       
-      // Estimated value
-      buildQuery(supabaseClient.from('leads').select('estimated_value')),
+      // Lead values (all)
+      buildQuery(supabaseClient.from('lead_values').select(`
+        *,
+        leads!inner (
+          id,
+          status,
+          assigned_to,
+          created_at
+        )
+      `)),
       
-      // Converted value
-      buildQuery(supabaseClient.from('leads').select('estimated_value').eq('status', 'ganho')),
+      // Won lead values
+      buildQuery(supabaseClient.from('lead_values').select(`
+        *,
+        leads!inner (
+          id,
+          status,
+          assigned_to,
+          created_at
+        )
+      `).eq('leads.status', 'ganho')),
       
       // Status distribution
       buildQuery(supabaseClient.from('leads').select('status')),
@@ -103,7 +120,18 @@ Deno.serve(async (req) => {
       buildQuery(supabaseClient.from('leads').select('motivo_perda').eq('status', 'perdido')),
 
       // Active leads for forecast
-      buildQuery(supabaseClient.from('leads').select('status, estimated_value').in('status', ['novo', 'contato_feito', 'proposta', 'negociacao'])),
+      buildQuery(supabaseClient.from('leads').select('id, status').in('status', ['novo', 'contato_feito', 'proposta', 'negociacao'])),
+
+      // Active lead values for forecast
+      buildQuery(supabaseClient.from('lead_values').select(`
+        *,
+        leads!inner (
+          id,
+          status,
+          assigned_to,
+          created_at
+        )
+      `).in('leads.status', ['novo', 'contato_feito', 'proposta', 'negociacao'])),
 
       // Scheduled meetings
       buildQuery(supabaseClient.from('meetings').select('*', { count: 'exact', head: true }).neq('status', 'cancelada')),
@@ -139,13 +167,17 @@ Deno.serve(async (req) => {
     const qualificationRate = totalLeads > 0 ? ((qualifiedLeads / totalLeads) * 100).toFixed(1) : '0.0';
     const winRate = opportunities > 0 ? ((wonLeads / opportunities) * 100).toFixed(1) : '0.0';
 
-    const totalEstimatedValue = estimatedValueResult.data?.reduce((sum: number, lead: any) => 
-      sum + (Number(lead.estimated_value) || 0), 0) || 0;
+    // Calculate values from lead_values table
+    const totalEstimatedValue = leadValuesResult.data?.reduce((sum: number, value: any) => 
+      sum + (Number(value.amount) || 0), 0) || 0;
 
-    const totalConvertedValue = convertedValueResult.data?.reduce((sum: number, lead: any) => 
-      sum + (Number(lead.estimated_value) || 0), 0) || 0;
+    const totalConvertedValue = wonLeadValuesResult.data?.reduce((sum: number, value: any) => 
+      sum + (Number(value.amount) || 0), 0) || 0;
 
-    const averageTicket = wonLeads > 0 ? totalConvertedValue / wonLeads : 0;
+    // Calculate unique won leads for average ticket
+    const uniqueWonLeadIds = new Set(wonLeadValuesResult.data?.map((v: any) => v.lead_id) || []);
+    const wonLeadsWithValues = uniqueWonLeadIds.size;
+    const averageTicket = wonLeadsWithValues > 0 ? totalConvertedValue / wonLeadsWithValues : 0;
 
     // Calculate average time in funnel
     const avgTimeInFunnel = closedLeadsWithTimeResult.data?.length > 0
@@ -179,10 +211,10 @@ Deno.serve(async (req) => {
       'negociacao': 0.70
     };
 
-    const forecast = activeLeadsForForecastResult.data?.reduce((sum: number, lead: any) => {
-      const value = Number(lead.estimated_value) || 0;
-      const probability = probabilityMap[lead.status] || 0;
-      return sum + (value * probability);
+    const forecast = activeLeadValuesForForecastResult.data?.reduce((sum: number, value: any) => {
+      const amount = Number(value.amount) || 0;
+      const probability = probabilityMap[value.leads.status] || 0;
+      return sum + (amount * probability);
     }, 0) || 0;
 
     // Calculate total activities
