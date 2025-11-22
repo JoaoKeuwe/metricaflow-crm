@@ -2,10 +2,11 @@ import { format } from "date-fns";
 import { Clock, Users, UserCircle } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
-import { useState } from "react";
+import { useState, useRef } from "react";
 import MeetingDetailDialog from "./MeetingDetailDialog";
 import { useDraggable } from "@dnd-kit/core";
 import { CSS } from "@dnd-kit/utilities";
+import { getUserColor } from "@/lib/userColors";
 
 interface MeetingCardProps {
   meeting: any;
@@ -14,6 +15,8 @@ interface MeetingCardProps {
 
 const MeetingCard = ({ meeting, onRefetch }: MeetingCardProps) => {
   const [detailOpen, setDetailOpen] = useState(false);
+  const clickTimeRef = useRef<number>(0);
+  const hasDraggedRef = useRef<boolean>(false);
   
   const { attributes, listeners, setNodeRef, transform, isDragging } = useDraggable({
     id: meeting.id,
@@ -26,6 +29,10 @@ const MeetingCard = ({ meeting, onRefetch }: MeetingCardProps) => {
     transform: CSS.Translate.toString(transform),
     opacity: isDragging ? 0.5 : 1,
   };
+
+  // Determina a cor baseada no primeiro participante (organizador)
+  const organizerParticipant = meeting.meeting_participants?.find((p: any) => p.is_organizer);
+  const userColor = organizerParticipant ? getUserColor(organizerParticipant.user_id) : getUserColor("default");
 
   const getStatusBorderColor = (status: string) => {
     switch (status) {
@@ -60,44 +67,68 @@ const MeetingCard = ({ meeting, onRefetch }: MeetingCardProps) => {
         style={style}
         {...attributes}
         {...listeners}
-        onClick={(e) => {
-          // Só abre o dialog se não estiver arrastando
-          if (!isDragging) {
-            setDetailOpen(true);
+        onMouseDown={() => {
+          clickTimeRef.current = Date.now();
+          hasDraggedRef.current = false;
+        }}
+        onMouseMove={() => {
+          if (clickTimeRef.current > 0) {
+            hasDraggedRef.current = true;
           }
         }}
+        onClick={(e) => {
+          const clickDuration = Date.now() - clickTimeRef.current;
+          // Só abre o dialog se foi um clique rápido (menos de 200ms) e não arrastou
+          if (!isDragging && !hasDraggedRef.current && clickDuration < 200) {
+            e.stopPropagation();
+            setDetailOpen(true);
+          }
+          clickTimeRef.current = 0;
+          hasDraggedRef.current = false;
+        }}
         className={cn(
-          "p-2 rounded-md border border-l-4 cursor-grab active:cursor-grabbing text-xs",
-          "bg-background hover:shadow-md transition-shadow",
-          getStatusBorderColor(meeting.status),
-          isDragging && "shadow-lg z-50 opacity-50"
+          "p-2.5 rounded-lg border-l-4 cursor-grab active:cursor-grabbing",
+          "hover:shadow-md transition-all",
+          userColor.bg,
+          userColor.border,
+          userColor.text,
+          isDragging && "shadow-lg opacity-50 cursor-grabbing"
         )}
       >
-        <div className="flex items-start justify-between gap-1 mb-1">
-          <p className="font-semibold line-clamp-1 text-[11px]">{meeting.title}</p>
-          <Badge variant="secondary" className={cn("text-[9px] px-1 py-0 shrink-0", getStatusBadgeColor(meeting.status))}>
-            {meeting.status}
+        <div className="flex items-start justify-between gap-2 mb-1.5">
+          <p className="font-semibold line-clamp-2 text-sm flex-1">{meeting.title}</p>
+          <Badge variant="secondary" className={cn("text-[10px] px-1.5 py-0.5 shrink-0", getStatusBadgeColor(meeting.status))}>
+            {meeting.status === "agendada" ? "Agendada" : meeting.status === "realizada" ? "Realizada" : "Cancelada"}
           </Badge>
         </div>
         
-        <div className="flex items-center gap-1 text-muted-foreground mb-0.5">
-          <Clock className="h-2.5 w-2.5" />
-          <span className="text-[10px]">
+        <div className="flex items-center gap-1.5 mb-1">
+          <Clock className="h-3.5 w-3.5" />
+          <span className="text-xs font-medium">
             {format(new Date(meeting.start_time), "HH:mm")} - {format(new Date(meeting.end_time), "HH:mm")}
           </span>
         </div>
 
         {meeting.lead && (
-          <div className="flex items-center gap-1 text-muted-foreground mb-0.5">
-            <UserCircle className="h-2.5 w-2.5" />
-            <span className="line-clamp-1 text-[10px]">{meeting.lead.name}</span>
+          <div className="flex items-center gap-1.5 mb-1">
+            <UserCircle className="h-3.5 w-3.5" />
+            <span className="line-clamp-1 text-xs">{meeting.lead.name}</span>
           </div>
         )}
 
         {meeting.meeting_participants && meeting.meeting_participants.length > 0 && (
-          <div className="flex items-center gap-1 text-muted-foreground">
-            <Users className="h-2.5 w-2.5" />
-            <span className="text-[10px]">{meeting.meeting_participants.length} participante(s)</span>
+          <div className="flex items-center gap-1.5">
+            <Users className="h-3.5 w-3.5" />
+            <div className="flex items-center gap-1 flex-wrap">
+              {meeting.meeting_participants.slice(0, 3).map((p: any, idx: number) => (
+                <span key={p.user_id} className="text-xs">
+                  {p.profile?.name?.split(' ')[0]}{idx < Math.min(2, meeting.meeting_participants.length - 1) ? ',' : ''}
+                </span>
+              ))}
+              {meeting.meeting_participants.length > 3 && (
+                <span className="text-xs">+{meeting.meeting_participants.length - 3}</span>
+              )}
+            </div>
           </div>
         )}
       </div>

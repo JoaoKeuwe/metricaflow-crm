@@ -190,6 +190,17 @@ const MeetingDialog = ({ open, onOpenChange, leads, users, onSuccess, meeting }:
             note_type: "Reunião agendada",
           });
         }
+
+        // Criar notificação para todos os participantes
+        const participantNames = values.participantIds
+          .map(id => users.find(u => u.id === id)?.name)
+          .filter(Boolean)
+          .join(", ");
+
+        toast({
+          title: "Reunião criada com sucesso!",
+          description: `Notificação enviada para: ${participantNames}`,
+        });
       }
 
       onSuccess();
