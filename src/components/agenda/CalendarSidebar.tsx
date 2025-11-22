@@ -1,12 +1,10 @@
 import { Button } from "@/components/ui/button";
 import { Calendar } from "@/components/ui/calendar";
-import { Card } from "@/components/ui/card";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
 import { Plus } from "lucide-react";
 import { ptBR } from "date-fns/locale";
 import { getUserColor } from "@/lib/userColors";
-import { useState } from "react";
 
 interface CalendarSidebarProps {
   currentDate: Date;
@@ -26,9 +24,9 @@ const CalendarSidebar = ({
   onUserToggle,
 }: CalendarSidebarProps) => {
   return (
-    <div className="w-64 border-r border-border bg-background flex flex-col h-full">
+    <div className="w-64 border-r border-border bg-background flex flex-col h-full overflow-y-auto">
       {/* Botão Criar */}
-      <div className="p-4">
+      <div className="p-4 border-b border-border">
         <Button 
           onClick={onCreateMeeting}
           className="w-full justify-start gap-2 shadow-sm"
@@ -40,7 +38,7 @@ const CalendarSidebar = ({
       </div>
 
       {/* Mini Calendário */}
-      <div className="px-2 pb-4">
+      <div className="p-4 border-b border-border">
         <Calendar
           mode="single"
           selected={currentDate}
@@ -51,7 +49,7 @@ const CalendarSidebar = ({
       </div>
 
       {/* Minhas Agendas */}
-      <div className="px-4 pb-4 flex-1 overflow-y-auto">
+      <div className="p-4">
         <h3 className="text-sm font-semibold mb-3">Minhas agendas</h3>
         <div className="space-y-2">
           {users.map((user) => {
