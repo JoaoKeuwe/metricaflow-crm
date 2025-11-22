@@ -224,16 +224,29 @@ const Kanban = () => {
         // Excluir perdidos do kanban principal
         if (lead.status === 'perdido') return false;
         
+        // Lead criado/atualizado no ano
+        const updatedDate = new Date(lead.updated_at);
+        const createdDate = new Date(lead.created_at);
+        
+        const wasUpdatedThisYear = updatedDate.getFullYear() === year;
+        const wasCreatedThisYear = createdDate.getFullYear() === year;
+        
         // Incluir leads fechados do ano
         if (lead.status === 'fechado') {
-          const updatedDate = new Date(lead.updated_at);
-          return updatedDate.getFullYear() === year;
+          return wasUpdatedThisYear;
+        }
+        
+        // Incluir leads que foram criados ou atualizados no ano
+        if (wasCreatedThisYear || wasUpdatedThisYear) {
+          return true;
         }
         
         // Incluir leads com atividade agendada no ano
         if (lead.nextActivityDate) {
           const activityDate = new Date(lead.nextActivityDate);
-          return activityDate.getFullYear() === year;
+          if (activityDate.getFullYear() === year) {
+            return true;
+          }
         }
         
         return false;
@@ -247,16 +260,29 @@ const Kanban = () => {
         // Excluir perdidos do kanban principal
         if (lead.status === 'perdido') return false;
         
+        // Lead criado/atualizado no mês
+        const updatedDate = new Date(lead.updated_at);
+        const createdDate = new Date(lead.created_at);
+        
+        const wasUpdatedThisMonth = updatedDate >= monthStart && updatedDate <= monthEnd;
+        const wasCreatedThisMonth = createdDate >= monthStart && createdDate <= monthEnd;
+        
         // Incluir leads fechados do mês
         if (lead.status === 'fechado') {
-          const updatedDate = new Date(lead.updated_at);
-          return updatedDate >= monthStart && updatedDate <= monthEnd;
+          return wasUpdatedThisMonth;
+        }
+        
+        // Incluir leads que foram criados ou atualizados no mês
+        if (wasCreatedThisMonth || wasUpdatedThisMonth) {
+          return true;
         }
         
         // Incluir leads com atividade agendada no mês
         if (lead.nextActivityDate) {
           const activityDate = new Date(lead.nextActivityDate);
-          return activityDate >= monthStart && activityDate <= monthEnd;
+          if (activityDate >= monthStart && activityDate <= monthEnd) {
+            return true;
+          }
         }
         
         return false;
@@ -455,12 +481,12 @@ const Kanban = () => {
         <div className="flex items-center justify-between">
           <div>
             <h2 className="text-2xl font-bold">
-              {viewMode === 'monthly' ? 'Fechados do Mês' : 'Fechados do Ano'}
+              Vendas concluídas em {selectedMonth.split('-')[0]}
             </h2>
             <p className="text-sm text-muted-foreground">
               {viewMode === 'monthly' 
-                ? `Vendas concluídas em ${format(new Date(selectedMonth + '-01'), 'MMMM/yyyy', { locale: ptBR })}`
-                : `Vendas concluídas em ${selectedMonth.split('-')[0]}`}
+                ? `Fechadas em ${format(new Date(selectedMonth + '-01'), 'MMMM/yyyy', { locale: ptBR })}`
+                : `Todas as vendas fechadas no ano de ${selectedMonth.split('-')[0]}`}
             </p>
           </div>
           <Badge variant="secondary" className="text-lg px-4 py-2">
@@ -510,7 +536,9 @@ const Kanban = () => {
           ))}
           {closedLeads.length === 0 && (
             <div className="col-span-full text-center py-8 text-muted-foreground">
-              Nenhuma venda fechada neste mês
+              {viewMode === 'monthly' 
+                ? 'Nenhuma venda fechada neste mês'
+                : `Nenhuma venda fechada em ${selectedMonth.split('-')[0]}`}
             </div>
           )}
         </div>
@@ -521,10 +549,12 @@ const Kanban = () => {
         <div className="flex items-center justify-between">
           <div>
             <h2 className="text-2xl font-bold">
-              {viewMode === 'monthly' ? 'Leads Inativos do Mês' : 'Leads Inativos do Ano'}
+              Leads inativos do {selectedMonth.split('-')[0]}
             </h2>
             <p className="text-sm text-muted-foreground">
-              Leads sem atualização há mais de 30 dias, sem atividades futuras
+              {viewMode === 'monthly'
+                ? `Sem atualização há mais de 30 dias em ${format(new Date(selectedMonth + '-01'), 'MMMM/yyyy', { locale: ptBR })}`
+                : `Leads sem atualização há mais de 30 dias no ano de ${selectedMonth.split('-')[0]}`}
             </p>
           </div>
           <Badge variant="destructive" className="text-lg px-4 py-2">
@@ -569,7 +599,9 @@ const Kanban = () => {
           ))}
           {lostLeads.length === 0 && (
             <div className="col-span-full text-center py-8 text-muted-foreground">
-              Nenhum lead inativo
+              {viewMode === 'monthly'
+                ? 'Nenhum lead inativo neste mês'
+                : `Nenhum lead inativo em ${selectedMonth.split('-')[0]}`}
             </div>
           )}
         </div>
