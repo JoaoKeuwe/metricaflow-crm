@@ -16,7 +16,7 @@ interface MeetingCardProps {
 
 const MeetingCard = ({ meeting, onRefetch, compact = false }: MeetingCardProps) => {
   const [detailOpen, setDetailOpen] = useState(false);
-  const clickTimeRef = useRef<number>(0);
+  const pointerStartRef = useRef<{ x: number; y: number } | null>(null);
   const hasDraggedRef = useRef<boolean>(false);
   
   const { attributes, listeners, setNodeRef, transform, isDragging } = useDraggable({
@@ -99,22 +99,25 @@ const MeetingCard = ({ meeting, onRefetch, compact = false }: MeetingCardProps) 
         style={style}
         {...attributes}
         {...listeners}
-        onMouseDown={() => {
-          clickTimeRef.current = Date.now();
+        onPointerDown={(e) => {
+          pointerStartRef.current = { x: e.clientX, y: e.clientY };
           hasDraggedRef.current = false;
         }}
-        onMouseMove={() => {
-          if (clickTimeRef.current > 0) {
-            hasDraggedRef.current = true;
+        onPointerMove={(e) => {
+          if (pointerStartRef.current) {
+            const dx = Math.abs(e.clientX - pointerStartRef.current.x);
+            const dy = Math.abs(e.clientY - pointerStartRef.current.y);
+            if (dx > 4 || dy > 4) {
+              hasDraggedRef.current = true;
+            }
           }
         }}
         onClick={(e) => {
-          const clickDuration = Date.now() - clickTimeRef.current;
-          if (!isDragging && !hasDraggedRef.current && clickDuration < 200) {
+          if (!isDragging && !hasDraggedRef.current) {
             e.stopPropagation();
             setDetailOpen(true);
           }
-          clickTimeRef.current = 0;
+          pointerStartRef.current = null;
           hasDraggedRef.current = false;
         }}
         className={cn(

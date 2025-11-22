@@ -4,7 +4,16 @@ import { Card } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { cn } from "@/lib/utils";
 import MeetingCard from "./MeetingCard";
-import { DndContext, DragEndEvent, DragOverlay, useDroppable } from "@dnd-kit/core";
+import { 
+  DndContext, 
+  DragEndEvent, 
+  DragOverlay, 
+  useDroppable,
+  PointerSensor,
+  useSensor,
+  useSensors,
+  closestCorners,
+} from "@dnd-kit/core";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
 import { useState } from "react";
@@ -46,6 +55,14 @@ const CalendarGrid = ({ weekDays, meetings, isLoading, onRefetch, viewMode = "we
   const today = format(new Date(), "yyyy-MM-dd");
   const [activeMeeting, setActiveMeeting] = useState<any>(null);
   const [optimisticMeetings, setOptimisticMeetings] = useState<any[]>([]);
+
+  const sensors = useSensors(
+    useSensor(PointerSensor, {
+      activationConstraint: {
+        distance: 8,
+      },
+    })
+  );
 
   const getMeetingsForDateTime = (date: Date, hour: number) => {
     const allMeetings = optimisticMeetings.length > 0 ? optimisticMeetings : meetings;
@@ -237,13 +254,18 @@ const CalendarGrid = ({ weekDays, meetings, isLoading, onRefetch, viewMode = "we
   const gridCols = weekDays.length === 5 ? "grid-cols-5" : "grid-cols-7";
 
   return (
-    <DndContext onDragStart={handleDragStart} onDragEnd={handleDragEnd}>
+    <DndContext 
+      sensors={sensors}
+      collisionDetection={closestCorners}
+      onDragStart={handleDragStart} 
+      onDragEnd={handleDragEnd}
+    >
       <div className="min-w-full">
         {/* Header com dias da semana - fixo no topo */}
         <div className="sticky top-0 z-10 bg-background border-b border-border">
           <div className="flex">
             {/* Coluna de horários vazia no header */}
-            <div className="w-16 flex-shrink-0 border-r border-border" />
+            <div className="w-12 flex-shrink-0 border-r border-border" />
             {/* Grid de dias */}
             <div className={cn("grid flex-1", gridCols)}>
               {weekDays.map((day) => (
@@ -274,7 +296,7 @@ const CalendarGrid = ({ weekDays, meetings, isLoading, onRefetch, viewMode = "we
               style={{ minHeight: '60px' }}
             >
               {/* Coluna de horários fixa */}
-              <div className="w-16 flex-shrink-0 text-right pr-2 pt-1 text-xs text-muted-foreground border-r border-border">
+              <div className="w-12 flex-shrink-0 text-right pr-1 pt-1 text-xs text-muted-foreground border-r border-border">
                 {hour}:00
               </div>
               {/* Grid de slots para os dias */}
