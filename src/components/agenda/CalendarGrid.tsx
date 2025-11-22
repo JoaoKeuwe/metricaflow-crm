@@ -242,7 +242,7 @@ const CalendarGrid = ({ weekDays, meetings, isLoading, onRefetch, viewMode = "we
         {/* Header com dias da semana - fixo no topo */}
         <div className="sticky top-0 z-10 bg-background border-b border-border">
           <div className={cn("grid", gridCols)}>
-            <div className="w-16 border-r border-border" /> {/* Coluna de horários */}
+            <div className="w-12 border-r border-border" /> {/* Coluna de horários */}
             {weekDays.map((day) => (
               <div key={day.toString()} className="text-center py-2 border-r border-border last:border-r-0">
                 <div className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
@@ -269,7 +269,7 @@ const CalendarGrid = ({ weekDays, meetings, isLoading, onRefetch, viewMode = "we
               className={cn("grid", gridCols, "border-b border-border")}
               style={{ minHeight: '60px' }}
             >
-              <div className="w-16 text-right pr-2 pt-1 text-xs text-muted-foreground border-r border-border">
+              <div className="w-12 text-right pr-1 pt-1 text-xs text-muted-foreground border-r border-border">
                 {hour}:00
               </div>
               {weekDays.map((day) => {
