@@ -234,30 +234,34 @@ const CalendarGrid = ({ weekDays, meetings, isLoading, onRefetch, viewMode = "we
   }
 
   // Vista semanal com horários
-  const gridCols = weekDays.length === 5 ? "grid-cols-6" : "grid-cols-8";
+  const gridCols = weekDays.length === 5 ? "grid-cols-5" : "grid-cols-7";
 
   return (
     <DndContext onDragStart={handleDragStart} onDragEnd={handleDragEnd}>
       <div className="min-w-full">
         {/* Header com dias da semana - fixo no topo */}
         <div className="sticky top-0 z-10 bg-background border-b border-border">
-          <div className={cn("grid", gridCols)}>
-            <div className="w-12 border-r border-border" /> {/* Coluna de horários */}
-            {weekDays.map((day) => (
-              <div key={day.toString()} className="text-center py-2 border-r border-border last:border-r-0">
-                <div className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
-                  {format(day, "EEE", { locale: ptBR })}
+          <div className="flex">
+            {/* Coluna de horários vazia no header */}
+            <div className="w-16 flex-shrink-0 border-r border-border" />
+            {/* Grid de dias */}
+            <div className={cn("grid flex-1", gridCols)}>
+              {weekDays.map((day) => (
+                <div key={day.toString()} className="text-center py-2 border-r border-border last:border-r-0">
+                  <div className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
+                    {format(day, "EEE", { locale: ptBR })}
+                  </div>
+                  <div className={cn(
+                    "text-2xl font-normal mt-1 inline-flex items-center justify-center",
+                    isToday(day) 
+                      ? "w-12 h-12 rounded-full bg-primary text-primary-foreground" 
+                      : "text-foreground"
+                  )}>
+                    {format(day, "dd")}
+                  </div>
                 </div>
-                <div className={cn(
-                  "text-2xl font-normal mt-1 inline-flex items-center justify-center",
-                  isToday(day) 
-                    ? "w-12 h-12 rounded-full bg-primary text-primary-foreground" 
-                    : "text-foreground"
-                )}>
-                  {format(day, "dd")}
-                </div>
-              </div>
-            ))}
+              ))}
+            </div>
           </div>
         </div>
 
@@ -266,38 +270,42 @@ const CalendarGrid = ({ weekDays, meetings, isLoading, onRefetch, viewMode = "we
           {hours.map((hour) => (
             <div 
               key={hour} 
-              className={cn("grid", gridCols, "border-b border-border")}
+              className="flex border-b border-border"
               style={{ minHeight: '60px' }}
             >
-              <div className="w-12 text-right pr-1 pt-1 text-xs text-muted-foreground border-r border-border">
+              {/* Coluna de horários fixa */}
+              <div className="w-16 flex-shrink-0 text-right pr-2 pt-1 text-xs text-muted-foreground border-r border-border">
                 {hour}:00
               </div>
-              {weekDays.map((day) => {
-                const dayMeetings = getMeetingsForDateTime(day, hour);
-                const dropId = `day-${format(day, "yyyy-MM-dd")}-hour-${hour}`;
-                return (
-                  <DroppableSlot key={dropId} id={dropId}>
-                    <div 
-                      className="space-y-1 p-1 h-full cursor-pointer"
-                      onClick={() => {
-                        if (dayMeetings.length === 0 && onDayClick) {
-                          const clickedDate = new Date(day);
-                          clickedDate.setHours(hour, 0, 0, 0);
-                          onDayClick(clickedDate);
-                        }
-                      }}
-                    >
-                      {dayMeetings.map((meeting) => (
-                        <MeetingCard
-                          key={meeting.id}
-                          meeting={meeting}
-                          onRefetch={onRefetch}
-                        />
-                      ))}
-                    </div>
-                  </DroppableSlot>
-                );
-              })}
+              {/* Grid de slots para os dias */}
+              <div className={cn("grid flex-1", gridCols)}>
+                {weekDays.map((day) => {
+                  const dayMeetings = getMeetingsForDateTime(day, hour);
+                  const dropId = `day-${format(day, "yyyy-MM-dd")}-hour-${hour}`;
+                  return (
+                    <DroppableSlot key={dropId} id={dropId}>
+                      <div 
+                        className="space-y-1 p-1 h-full cursor-pointer min-h-[60px]"
+                        onClick={() => {
+                          if (dayMeetings.length === 0 && onDayClick) {
+                            const clickedDate = new Date(day);
+                            clickedDate.setHours(hour, 0, 0, 0);
+                            onDayClick(clickedDate);
+                          }
+                        }}
+                      >
+                        {dayMeetings.map((meeting) => (
+                          <MeetingCard
+                            key={meeting.id}
+                            meeting={meeting}
+                            onRefetch={onRefetch}
+                          />
+                        ))}
+                      </div>
+                    </DroppableSlot>
+                  );
+                })}
+              </div>
             </div>
           ))}
         </div>
