@@ -95,3 +95,6 @@ verify_jwt = true
 
 [functions.seed-demo-data]
 verify_jwt = true
+
+[functions.create-demo-account]
+verify_jwt = false
