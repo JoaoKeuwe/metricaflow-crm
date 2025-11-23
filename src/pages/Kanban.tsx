@@ -212,8 +212,8 @@ const Kanban = () => {
     const lead = monthLeads?.find((l: any) => l.id === leadId);
     if (!lead || lead.status === newStatus) return;
 
-    // If dragging to "ganho" (fechado), open confirmation dialog
-    if (newStatus === "ganho") {
+    // If dragging to "fechado" column, open confirmation dialog
+    if (newStatus === "fechado") {
       setLeadToClose(lead);
       setClosedLeadDialogOpen(true);
       return;
