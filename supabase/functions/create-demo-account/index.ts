@@ -66,6 +66,45 @@ Deno.serve(async (req) => {
 
     console.log('Empresa criada:', companyId);
 
+    // Criar 5 vendedores
+    console.log('Criando 5 vendedores...');
+    const vendedores = [];
+    const nomeVendedores = ['Carlos Mendes', 'Ana Paula Silva', 'Roberto Costa', 'Julia Santos', 'Pedro Oliveira'];
+    
+    for (let i = 0; i < 5; i++) {
+      const { data: vendedorData, error: vendedorError } = await supabaseAdmin.auth.admin.createUser({
+        email: `vendedor${i + 1}@workflow360.com`,
+        password: 'Demo@2024',
+        email_confirm: true,
+        user_metadata: {
+          name: nomeVendedores[i],
+          company_id: companyId,
+          role: 'vendedor'
+        }
+      });
+
+      if (vendedorError) {
+        console.error(`Erro ao criar vendedor ${i + 1}:`, vendedorError);
+        continue;
+      }
+
+      vendedores.push(vendedorData.user.id);
+
+      // Aguardar perfil ser criado
+      await new Promise(resolve => setTimeout(resolve, 500));
+
+      // Criar role de vendedor
+      await supabaseAdmin.from('user_roles').insert({
+        user_id: vendedorData.user.id,
+        role: 'vendedor'
+      });
+
+      console.log(`Vendedor ${i + 1} criado:`, vendedorData.user.id);
+    }
+
+    const allUsers = [userId, ...vendedores];
+    console.log(`Total de usuários: ${allUsers.length}`);
+
     // Dados de exemplo
     const empresas = ['Tech Solutions', 'Marketing Pro', 'Consultoria XYZ', 'Design Studio', 'E-commerce Plus'];
     const nomes = ['João Silva', 'Maria Santos', 'Pedro Oliveira', 'Ana Costa', 'Carlos Souza', 'Julia Lima', 'Roberto Alves', 'Fernanda Rocha'];
@@ -83,7 +122,7 @@ Deno.serve(async (req) => {
 
     console.log('Gerando 300 leads...');
 
-    // Criar 300 leads distribuídos pelos últimos 12 meses
+    // Criar 300 leads distribuídos pelos últimos 12 meses e entre os vendedores
     const leads = [];
     const statusDistribution = {
       'novo': 50,
@@ -95,20 +134,42 @@ Deno.serve(async (req) => {
       'perdido': 40
     };
 
+    // Distribuir leads entre usuários (com performance variada)
+    const getUserWithPerformance = () => {
+      const rand = Math.random();
+      if (rand < 0.3) return allUsers[0]; // Gestor tem 30%
+      if (rand < 0.5) return allUsers[1]; // Top performer tem 20%
+      if (rand < 0.7) return allUsers[2]; // Bom performer tem 20%
+      if (rand < 0.85) return allUsers[3]; // Mid performer tem 15%
+      if (rand < 0.95) return allUsers[4]; // Mid performer tem 10%
+      return allUsers[5]; // Low performer tem 5%
+    };
+
     for (const [status, count] of Object.entries(statusDistribution)) {
       for (let i = 0; i < count; i++) {
         const createdDate = getRandomDate(365, 0);
+        const assignedUser = getUserWithPerformance();
+        
+        // Ajustar distribuição de status por performance
+        let finalStatus = status;
+        if (assignedUser === allUsers[5] && status === 'fechado' && Math.random() > 0.3) {
+          finalStatus = 'perdido'; // Low performer perde mais
+        }
+        if (assignedUser === allUsers[1] && status === 'perdido' && Math.random() > 0.5) {
+          finalStatus = 'fechado'; // Top performer fecha mais
+        }
+        
         const lead = {
           company_id: companyId,
-          assigned_to: userId,
+          assigned_to: assignedUser,
           name: random(nomes),
-          email: `${random(nomes).toLowerCase().replace(' ', '.')}@example.com`,
+          email: `${random(nomes).toLowerCase().replace(' ', '.')}${i}@example.com`,
           phone: `(11) 9${Math.floor(Math.random() * 9000 + 1000)}-${Math.floor(Math.random() * 9000 + 1000)}`,
           company: random(empresas),
           source: random(fontes),
-          status: status,
-          qualificado: ['qualificado', 'proposta', 'negociacao', 'fechado'].includes(status),
-          motivo_perda: status === 'perdido' ? random(motivosPerdas) : null,
+          status: finalStatus,
+          qualificado: ['qualificado', 'proposta', 'negociacao', 'fechado'].includes(finalStatus),
+          motivo_perda: finalStatus === 'perdido' ? random(motivosPerdas) : null,
           created_at: createdDate.toISOString(),
           updated_at: createdDate.toISOString()
         };
@@ -119,7 +180,7 @@ Deno.serve(async (req) => {
     const { data: insertedLeads, error: leadsError } = await supabaseAdmin
       .from('leads')
       .insert(leads)
-      .select('id, status, created_at');
+      .select('id, status, created_at, assigned_to');
 
     if (leadsError) throw leadsError;
     console.log(`${insertedLeads.length} leads criados`);
@@ -167,7 +228,7 @@ Deno.serve(async (req) => {
         const obsDate = new Date(leadDate.getTime() + i * 7 * 24 * 60 * 60 * 1000);
         observations.push({
           lead_id: lead.id,
-          user_id: userId,
+          user_id: lead.assigned_to, // Usar o usuário atribuído ao lead
           content: `Observação ${i + 1} para o lead. ${random(noteTypes)}.`,
           note_type: random(noteTypes),
           created_at: obsDate.toISOString()
@@ -196,7 +257,7 @@ Deno.serve(async (req) => {
       meetings.push({
         company_id: companyId,
         lead_id: lead.id,
-        created_by: userId,
+        created_by: lead.assigned_to, // Quem criou é quem está atribuído
         title: `Reunião com ${lead.id}`,
         description: 'Reunião de apresentação e alinhamento',
         start_time: startTime.toISOString(),
@@ -209,14 +270,14 @@ Deno.serve(async (req) => {
     const { data: insertedMeetings, error: meetingsError } = await supabaseAdmin
       .from('meetings')
       .insert(meetings)
-      .select('id');
+      .select('id, created_by');
     if (meetingsError) throw meetingsError;
     console.log(`${insertedMeetings.length} reuniões criadas`);
 
-    // Adicionar participantes
+    // Adicionar participantes (criador da reunião)
     const participants = insertedMeetings.map(m => ({
       meeting_id: m.id,
-      user_id: userId,
+      user_id: m.created_by,
       is_organizer: true
     }));
     await supabaseAdmin.from('meeting_participants').insert(participants);
@@ -234,8 +295,8 @@ Deno.serve(async (req) => {
       tasks.push({
         company_id: companyId,
         lead_id: lead.id,
-        assigned_to: userId,
-        created_by: userId,
+        assigned_to: lead.assigned_to, // Atribuir ao responsável pelo lead
+        created_by: lead.assigned_to,
         title: `Tarefa ${i + 1}`,
         description: 'Descrição da tarefa',
         due_date: dueDate.toISOString(),
@@ -262,7 +323,7 @@ Deno.serve(async (req) => {
       
       reminders.push({
         lead_id: lead.id,
-        user_id: userId,
+        user_id: lead.assigned_to, // Atribuir ao responsável pelo lead
         description: `Lembrete ${i + 1}`,
         reminder_date: reminderDate.toISOString(),
         completed: isCompleted
@@ -283,7 +344,15 @@ Deno.serve(async (req) => {
           email: demoEmail,
           password: demoPassword
         },
+        vendedores: [
+          { email: 'vendedor1@workflow360.com', password: 'Demo@2024', nome: 'Carlos Mendes' },
+          { email: 'vendedor2@workflow360.com', password: 'Demo@2024', nome: 'Ana Paula Silva' },
+          { email: 'vendedor3@workflow360.com', password: 'Demo@2024', nome: 'Roberto Costa' },
+          { email: 'vendedor4@workflow360.com', password: 'Demo@2024', nome: 'Julia Santos' },
+          { email: 'vendedor5@workflow360.com', password: 'Demo@2024', nome: 'Pedro Oliveira' }
+        ],
         stats: {
+          users: allUsers.length,
           leads: insertedLeads.length,
           values: leadValues.length,
           observations: observations.length,
