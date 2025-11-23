@@ -1,6 +1,7 @@
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import CompanySettings from "@/components/company/CompanySettings";
-import { Building2, User } from "lucide-react";
+import DemoDataSettings from "@/components/company/DemoDataSettings";
+import { Building2, User, Database } from "lucide-react";
 
 const Settings = () => {
   return (
@@ -20,6 +21,10 @@ const Settings = () => {
             <User className="h-4 w-4" />
             Meu Perfil
           </TabsTrigger>
+          <TabsTrigger value="demo" className="flex items-center gap-2">
+            <Database className="h-4 w-4" />
+            Dados Demo
+          </TabsTrigger>
         </TabsList>
 
         <TabsContent value="company" className="mt-6">
@@ -30,6 +35,10 @@ const Settings = () => {
           <div className="text-muted-foreground">
             Configurações de perfil em desenvolvimento...
           </div>
+        </TabsContent>
+
+        <TabsContent value="demo" className="mt-6">
+          <DemoDataSettings />
         </TabsContent>
       </Tabs>
     </div>
