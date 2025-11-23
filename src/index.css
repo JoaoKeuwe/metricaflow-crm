@@ -156,22 +156,42 @@ All colors MUST be HSL.
     --glow-spread: -10px;
     
     /* Shadows with glow effect */
-    --shadow-glow-sm: 0 0 10px hsl(229 100% 69% / 0.2);
-    --shadow-glow-md: 0 0 20px hsl(229 100% 69% / 0.3), 0 4px 6px rgb(0 0 0 / 0.1);
-    --shadow-glow-lg: 0 0 40px hsl(229 100% 69% / 0.4), 0 10px 15px rgb(0 0 0 / 0.1);
+    --shadow-glow-sm: 0 0 10px hsl(229 92% 62% / 0.2);
+    --shadow-glow-md: 0 0 20px hsl(229 92% 62% / 0.3), 0 4px 6px rgb(0 0 0 / 0.1);
+    --shadow-glow-lg: 0 0 40px hsl(229 92% 62% / 0.4), 0 10px 15px rgb(0 0 0 / 0.1);
     
     /* Card effects */
     --card-blur: blur(10px);
     --card-backdrop: rgba(255, 255, 255, 0.05);
     
     /* Border glow */
-    --border-glow: 0 0 10px hsl(229 100% 69% / 0.5);
+    --border-glow: 0 0 10px hsl(229 92% 62% / 0.5);
+    
+    /* Chart colors - Paleta Futurista */
+    --chart-1: 229 92% 62%; /* Azul elétrico primário */
+    --chart-2: 270 70% 68%; /* Roxo neon */
+    --chart-3: 195 85% 62%; /* Ciano vibrante */
+    --chart-4: 290 80% 65%; /* Magenta tech */
+    --chart-5: 180 75% 58%; /* Turquesa neon */
+    --chart-6: 250 85% 70%; /* Azul-roxo */
+    --chart-7: 210 90% 65%; /* Azul céu elétrico */
+    --chart-8: 260 75% 72%; /* Lilás brilhante */
   }
 
   .theme-futurista.dark {
     --grid-opacity: 0.15;
     --glow-blur: 60px;
     --card-backdrop: rgba(255, 255, 255, 0.02);
+    
+    /* Chart colors dark - mais brilhantes */
+    --chart-1: 229 95% 68%; 
+    --chart-2: 270 75% 72%; 
+    --chart-3: 195 88% 68%; 
+    --chart-4: 290 85% 70%; 
+    --chart-5: 180 80% 65%; 
+    --chart-6: 250 88% 75%; 
+    --chart-7: 210 92% 70%; 
+    --chart-8: 260 80% 76%;
   }
 }
 
@@ -188,8 +208,8 @@ All colors MUST be HSL.
   /* Futurista grid background */
   body.theme-futurista {
     background-image: 
-      linear-gradient(hsl(var(--border)) 1px, transparent 1px),
-      linear-gradient(90deg, hsl(var(--border)) 1px, transparent 1px);
+      linear-gradient(hsl(var(--border) / 0.4) 1px, transparent 1px),
+      linear-gradient(90deg, hsl(var(--border) / 0.4) 1px, transparent 1px);
     background-size: var(--grid-size) var(--grid-size);
     background-position: -1px -1px;
     letter-spacing: 0.015em;
@@ -199,52 +219,104 @@ All colors MUST be HSL.
     content: '';
     position: fixed;
     inset: 0;
-    background: radial-gradient(circle at 50% 0%, hsl(229 100% 69% / 0.05) 0%, transparent 50%),
-                radial-gradient(circle at 0% 50%, hsl(270 70% 75% / 0.03) 0%, transparent 50%);
+    background: radial-gradient(circle at 50% 0%, hsl(229 92% 62% / 0.06) 0%, transparent 50%),
+                radial-gradient(circle at 0% 50%, hsl(270 70% 68% / 0.04) 0%, transparent 50%);
     pointer-events: none;
     z-index: 0;
+  }
+  
+  body.theme-futurista.dark::before {
+    background: radial-gradient(circle at 50% 0%, hsl(229 92% 62% / 0.08) 0%, transparent 50%),
+                radial-gradient(circle at 100% 100%, hsl(270 70% 68% / 0.06) 0%, transparent 50%);
   }
   
   /* Futurista card styles */
   body.theme-futurista .card,
   body.theme-futurista [class*="Card"] {
     border-radius: 1rem;
-    background: linear-gradient(135deg, 
-      rgba(255, 255, 255, 0.1) 0%, 
-      rgba(255, 255, 255, 0.05) 100%
-    );
-    backdrop-filter: blur(10px);
-    -webkit-backdrop-filter: blur(10px);
-    border: 1px solid rgba(255, 255, 255, 0.1);
+    background: hsl(var(--card));
+    border: 1px solid hsl(var(--border));
     box-shadow: 
-      0 8px 32px 0 rgba(31, 38, 135, 0.15),
-      0 0 20px hsl(229 100% 69% / 0.1);
+      0 4px 16px 0 rgba(31, 38, 135, 0.1),
+      0 0 15px hsl(229 92% 62% / 0.08);
   }
   
   body.theme-futurista .card:hover,
   body.theme-futurista [class*="Card"]:hover {
-    border-color: hsl(229 100% 69% / 0.3);
+    border-color: hsl(229 92% 62% / 0.25);
     box-shadow: 
-      0 8px 32px 0 rgba(31, 38, 135, 0.2),
-      0 0 30px hsl(229 100% 69% / 0.2);
+      0 4px 20px 0 rgba(31, 38, 135, 0.15),
+      0 0 20px hsl(229 92% 62% / 0.15);
   }
   
   /* Futurista button styles */
-  body.theme-futurista button[class*="primary"],
-  body.theme-futurista .btn-primary {
-    background: linear-gradient(135deg, hsl(229 100% 69%), hsl(270 70% 75%));
+  body.theme-futurista button[class*="bg-primary"],
+  body.theme-futurista .btn-primary,
+  body.theme-futurista [data-variant="default"] {
+    background: linear-gradient(135deg, hsl(229 92% 62%), hsl(270 70% 68%)) !important;
+    color: hsl(220 50% 10%) !important;
+    font-weight: 600;
     box-shadow: 
-      0 4px 15px hsl(229 100% 69% / 0.3),
-      inset 0 -2px 10px rgba(0, 0, 0, 0.2);
+      0 4px 12px hsl(229 92% 62% / 0.25),
+      inset 0 1px 0 rgba(255, 255, 255, 0.2);
+    border: none !important;
     position: relative;
     overflow: hidden;
+    transition: all 0.3s ease;
   }
   
-  body.theme-futurista button[class*="primary"]:hover,
-  body.theme-futurista .btn-primary:hover {
+  body.theme-futurista button[class*="bg-primary"]:hover,
+  body.theme-futurista .btn-primary:hover,
+  body.theme-futurista [data-variant="default"]:hover {
     box-shadow: 
-      0 6px 20px hsl(229 100% 69% / 0.5),
-      inset 0 -2px 10px rgba(0, 0, 0, 0.2);
+      0 6px 18px hsl(229 92% 62% / 0.4),
+      inset 0 1px 0 rgba(255, 255, 255, 0.3);
+    transform: translateY(-1px);
+  }
+  
+  /* Futurista secondary buttons */
+  body.theme-futurista button[class*="bg-secondary"],
+  body.theme-futurista [data-variant="secondary"] {
+    background: hsl(var(--secondary)) !important;
+    color: hsl(220 50% 10%) !important;
+    font-weight: 500;
+    border: 1px solid hsl(217 80% 72% / 0.3) !important;
+  }
+  
+  /* Futurista outline buttons */
+  body.theme-futurista button[class*="border"],
+  body.theme-futurista [data-variant="outline"] {
+    background: hsl(var(--background)) !important;
+    color: hsl(var(--foreground)) !important;
+    border: 1.5px solid hsl(229 92% 62% / 0.4) !important;
+    font-weight: 500;
+  }
+  
+  body.theme-futurista button[class*="border"]:hover,
+  body.theme-futurista [data-variant="outline"]:hover {
+    background: hsl(229 92% 62% / 0.1) !important;
+    border-color: hsl(229 92% 62% / 0.6) !important;
+  }
+  
+  /* Futurista títulos */
+  body.theme-futurista h1,
+  body.theme-futurista h2,
+  body.theme-futurista h3,
+  body.theme-futurista h4,
+  body.theme-futurista h5,
+  body.theme-futurista h6 {
+    color: hsl(var(--foreground));
+    font-weight: 600;
+    letter-spacing: -0.02em;
+  }
+  
+  /* Futurista badges */
+  body.theme-futurista [class*="badge"],
+  body.theme-futurista [class*="Badge"] {
+    background: linear-gradient(135deg, hsl(229 92% 62% / 0.15), hsl(270 70% 68% / 0.15));
+    color: hsl(229 92% 48%);
+    border: 1px solid hsl(229 92% 62% / 0.3);
+    font-weight: 500;
   }
 }
 
@@ -360,37 +432,34 @@ All colors MUST be HSL.
   /* Futurista Premium Utilities */
   .cyber-glow {
     box-shadow: 
-      0 0 10px hsl(229 100% 69% / 0.3),
-      0 0 20px hsl(229 100% 69% / 0.2),
-      0 0 30px hsl(229 100% 69% / 0.1);
+      0 0 10px hsl(229 92% 62% / 0.3),
+      0 0 20px hsl(229 92% 62% / 0.2),
+      0 0 30px hsl(229 92% 62% / 0.1);
   }
   
   .cyber-glow-intense {
     box-shadow: 
-      0 0 20px hsl(229 100% 69% / 0.5),
-      0 0 40px hsl(229 100% 69% / 0.3),
-      0 0 60px hsl(229 100% 69% / 0.2),
-      inset 0 0 20px hsl(229 100% 69% / 0.1);
+      0 0 20px hsl(229 92% 62% / 0.5),
+      0 0 40px hsl(229 92% 62% / 0.3),
+      0 0 60px hsl(229 92% 62% / 0.2),
+      inset 0 0 20px hsl(229 92% 62% / 0.1);
   }
   
   .premium-card {
-    background: linear-gradient(135deg, 
-      rgba(255, 255, 255, 0.1) 0%, 
-      rgba(255, 255, 255, 0.05) 100%
-    );
+    background: hsl(var(--card));
     backdrop-filter: blur(10px);
     -webkit-backdrop-filter: blur(10px);
-    border: 1px solid rgba(255, 255, 255, 0.1);
+    border: 1px solid hsl(var(--border));
     box-shadow: 
-      0 8px 32px 0 rgba(31, 38, 135, 0.15),
-      0 0 20px hsl(229 100% 69% / 0.1);
+      0 8px 32px 0 rgba(31, 38, 135, 0.12),
+      0 0 20px hsl(229 92% 62% / 0.08);
   }
   
   .premium-card:hover {
-    border-color: hsl(229 100% 69% / 0.3);
+    border-color: hsl(229 92% 62% / 0.3);
     box-shadow: 
-      0 8px 32px 0 rgba(31, 38, 135, 0.2),
-      0 0 30px hsl(229 100% 69% / 0.2);
+      0 8px 32px 0 rgba(31, 38, 135, 0.18),
+      0 0 30px hsl(229 92% 62% / 0.15);
   }
   
   .cyber-line-vertical {
@@ -407,15 +476,17 @@ All colors MUST be HSL.
     background: linear-gradient(
       180deg,
       transparent,
-      hsl(229 100% 69% / 0.3),
+      hsl(229 92% 62% / 0.3),
       transparent
     );
   }
   
   .futurista-button {
-    background: linear-gradient(135deg, hsl(229 100% 69%), hsl(270 70% 75%));
+    background: linear-gradient(135deg, hsl(229 92% 62%), hsl(270 70% 68%));
+    color: hsl(220 50% 10%);
+    font-weight: 600;
     box-shadow: 
-      0 4px 15px hsl(229 100% 69% / 0.3),
+      0 4px 15px hsl(229 92% 62% / 0.3),
       inset 0 -2px 10px rgba(0, 0, 0, 0.2);
     position: relative;
     overflow: hidden;
@@ -436,7 +507,7 @@ All colors MUST be HSL.
   
   .futurista-button:hover {
     box-shadow: 
-      0 6px 20px hsl(229 100% 69% / 0.5),
+      0 6px 20px hsl(229 92% 62% / 0.5),
       inset 0 -2px 10px rgba(0, 0, 0, 0.2);
   }
 }
