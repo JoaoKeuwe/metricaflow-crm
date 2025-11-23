@@ -141,7 +141,7 @@ const Sidebar = () => {
   }];
 
   const navItems = allNavItems.filter(item => !item.requiresOwnerOrGestor || isOwnerOrGestor);
-  return <nav className="bg-card border-b border-border flex items-center justify-between px-6 py-3 sticky top-0 z-50 w-full">
+  return <nav className="fixed top-0 left-0 right-0 h-16 bg-card border-b border-border flex items-center justify-between px-6 z-50">
       <div className="flex items-center gap-6">
         <div className="flex items-center gap-3">
           {profile?.company?.logo_url ? (
@@ -178,5 +178,7 @@ const Sidebar = () => {
         Sair
       </Button>
     </nav>;
+};
+export default Sidebar;
 };
 export default Sidebar;

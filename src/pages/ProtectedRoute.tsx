@@ -45,9 +45,11 @@ const ProtectedRoute = ({ children }: ProtectedRouteProps) => {
   }
 
   return (
-    <div className="flex flex-col h-screen bg-background overflow-hidden">
+    <div className="min-h-screen bg-background">
       <Sidebar />
-      <main className="flex-1 overflow-y-auto p-6">{children}</main>
+      <div className="pt-16">
+        <main className="min-h-[calc(100vh-4rem)] overflow-y-auto p-6">{children}</main>
+      </div>
     </div>
   );
 };

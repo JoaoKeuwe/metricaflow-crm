@@ -25,7 +25,6 @@ import ReportSettings from "./pages/ReportSettings";
 import Goals from "./pages/Goals";
 import NotFound from "./pages/NotFound";
 import Sidebar from "./components/layout/Sidebar";
-import Header from "./components/layout/Header";
 import ProtectedRoute from "./pages/ProtectedRoute";
 import OnboardingTour from "./components/onboarding/OnboardingTour";
 import WhatsAppButton from "./components/support/WhatsAppButton";
@@ -47,11 +46,10 @@ const DemoLayout = ({ children }: { children: React.ReactNode }) => {
   useTheme();
   
   return (
-    <div className="flex h-screen bg-background overflow-hidden">
+    <div className="min-h-screen bg-background">
       <Sidebar />
-      <div className="flex-1 flex flex-col">
-        <Header />
-        <main className="flex-1 overflow-y-auto p-6">{children}</main>
+      <div className="pt-16">
+        <main className="min-h-[calc(100vh-4rem)] overflow-y-auto p-6">{children}</main>
       </div>
       <OnboardingTour />
       <WhatsAppButton />
