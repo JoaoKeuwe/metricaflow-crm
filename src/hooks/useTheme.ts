@@ -57,11 +57,25 @@ export const applyTheme = (themeName: ThemeName) => {
 
   // Apply CSS variables with smooth transition
   const root = document.documentElement;
+  const body = document.body;
   root.style.transition = 'all 300ms ease-in-out';
 
   Object.entries(colors).forEach(([key, value]) => {
     root.style.setProperty(`--${key}`, value);
   });
+
+  // Remove all theme classes first
+  body.classList.remove('theme-moderno', 'theme-classico', 'theme-vibrante', 'theme-minimalista', 'theme-rosa', 'theme-neon', 'theme-futurista');
+  
+  // Add specific theme class
+  body.classList.add(`theme-${themeName}`);
+
+  // Apply theme-specific font family
+  if (themeName === 'futurista') {
+    root.style.setProperty('--font-sans', 'Plus Jakarta Sans, Inter, sans-serif');
+  } else {
+    root.style.setProperty('--font-sans', 'Poppins, Inter, sans-serif');
+  }
 
   // Remove transition after applying
   setTimeout(() => {
