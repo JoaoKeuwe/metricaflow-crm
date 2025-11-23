@@ -12,6 +12,7 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/comp
 import { useToast } from "@/hooks/use-toast";
 import { Eye, MessageCircle, Clock, Building2, Mail, Phone } from "lucide-react";
 import { KanbanFilters } from "@/components/leads/KanbanFilters";
+import { ClosedLeadDialog } from "@/components/leads/ClosedLeadDialog";
 import { getDaysInCurrentStage, getAgeBadgeVariant, getTimePeriod, formatDaysAgo } from "@/lib/utils";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
@@ -75,6 +76,8 @@ const Kanban = () => {
   const [searchTerm, setSearchTerm] = useState("");
   const [closedSearchTerm, setClosedSearchTerm] = useState("");
   const [lostSearchTerm, setLostSearchTerm] = useState("");
+  const [closedLeadDialogOpen, setClosedLeadDialogOpen] = useState(false);
+  const [leadToClose, setLeadToClose] = useState<any>(null);
 
   const { data: session } = useQuery({
     queryKey: ["session"],
@@ -208,6 +211,13 @@ const Kanban = () => {
 
     const lead = monthLeads?.find((l: any) => l.id === leadId);
     if (!lead || lead.status === newStatus) return;
+
+    // If dragging to "ganho" (fechado), open confirmation dialog
+    if (newStatus === "ganho") {
+      setLeadToClose(lead);
+      setClosedLeadDialogOpen(true);
+      return;
+    }
 
     updateStatusMutation.mutate({ id: leadId, status: newStatus });
   };
@@ -427,12 +437,24 @@ const Kanban = () => {
           ))}
         </div>
       ) : (
-        <DndContext
-          sensors={sensors}
-          collisionDetection={closestCorners}
-          onDragStart={handleDragStart}
-          onDragEnd={handleDragEnd}
-        >
+      <DndContext
+        sensors={sensors}
+        collisionDetection={closestCorners}
+        onDragStart={handleDragStart}
+        onDragEnd={handleDragEnd}
+      >
+        {leadToClose && (
+          <ClosedLeadDialog
+            open={closedLeadDialogOpen}
+            onOpenChange={setClosedLeadDialogOpen}
+            leadId={leadToClose.id}
+            leadName={leadToClose.name}
+            companyId={leadToClose.company_id}
+            onConfirm={() => {
+              queryClient.invalidateQueries({ queryKey: ["leads"] });
+            }}
+          />
+        )}
           <div className="flex gap-4 overflow-x-auto pb-4">
             {visibleColumns.map((column, index) => {
               const columnLeads = filteredMonthLeads
