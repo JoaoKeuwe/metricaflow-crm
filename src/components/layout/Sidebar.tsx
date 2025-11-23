@@ -141,56 +141,42 @@ const Sidebar = () => {
   }];
 
   const navItems = allNavItems.filter(item => !item.requiresOwnerOrGestor || isOwnerOrGestor);
-  return <aside className={`${isCollapsed ? 'w-16' : 'w-64'} bg-card border-r border-border flex flex-col sticky top-0 h-screen z-30 min-h-0 transition-all duration-300`}>
-      <div className={`${isCollapsed ? 'p-2' : 'p-6'} border-b border-border flex items-center justify-center relative`}>
-        {!isCollapsed && (
-          <>
-            {profile?.company?.logo_url ? (
-              <img 
-                src={profile.company.logo_url} 
-                alt={profile.company.name || "Logo"} 
-                className="h-12 w-auto object-contain"
-              />
-            ) : (
-              <h1 className="text-2xl font-bold bg-gradient-to-r from-primary to-purple-600 bg-clip-text text-transparent">
-                {profile?.company?.system_name || "Pro"}
-              </h1>
-            )}
-          </>
-        )}
-        <Button
-          variant="ghost"
-          size="icon"
-          onClick={toggleSidebar}
-          className={`${isCollapsed ? 'relative' : 'absolute right-2'} hover:bg-muted`}
-        >
-          {isCollapsed ? <ChevronRight className="h-4 w-4" /> : <ChevronLeft className="h-4 w-4" />}
-        </Button>
+  return <nav className="bg-card border-b border-border flex items-center justify-between px-6 py-3 z-30 sticky top-0">
+      <div className="flex items-center gap-6">
+        <div className="flex items-center gap-3">
+          {profile?.company?.logo_url ? (
+            <img 
+              src={profile.company.logo_url} 
+              alt={profile.company.name || "Logo"} 
+              className="h-8 w-auto object-contain"
+            />
+          ) : (
+            <h1 className="text-xl font-bold bg-gradient-to-r from-primary to-purple-600 bg-clip-text text-transparent">
+              {profile?.company?.system_name || "Pro"}
+            </h1>
+          )}
+        </div>
+
+        <div className="flex items-center gap-1">
+          {navItems.map(item => <NavLink 
+            key={item.to} 
+            to={item.to} 
+            className={({isActive}) => `flex items-center gap-2 px-4 py-2 rounded-lg transition-all ${isActive ? "bg-primary text-primary-foreground shadow-md" : "text-muted-foreground hover:bg-muted hover:text-foreground"}`}
+          >
+              <item.icon className="h-4 w-4 flex-shrink-0" />
+              <span className="font-medium text-sm">{item.label}</span>
+            </NavLink>)}
+        </div>
       </div>
 
-      <nav className={`flex-1 min-h-0 overflow-y-auto ${isCollapsed ? 'p-2' : 'p-4'} space-y-2`}>
-        {navItems.map(item => <NavLink 
-          key={item.to} 
-          to={item.to} 
-          className={({isActive}) => `flex items-center ${isCollapsed ? 'justify-center px-2' : 'gap-3 px-4'} py-3 rounded-lg transition-all ${isActive ? "bg-primary text-primary-foreground shadow-md" : "text-muted-foreground hover:bg-muted hover:text-foreground"}`}
-          title={isCollapsed ? item.label : undefined}
-        >
-            <item.icon className="h-5 w-5 flex-shrink-0" />
-            {!isCollapsed && <span className="font-medium">{item.label}</span>}
-          </NavLink>)}
-      </nav>
-
-      <div className={`${isCollapsed ? 'p-2' : 'p-4'} border-t border-border`}>
-        <Button 
-          variant="ghost" 
-          className={`w-full ${isCollapsed ? 'justify-center px-2' : 'justify-start gap-3'}`} 
-          onClick={handleLogout}
-          title={isCollapsed ? "Sair" : undefined}
-        >
-          <LogOut className="h-5 w-5 flex-shrink-0" />
-          {!isCollapsed && "Sair"}
-        </Button>
-      </div>
-    </aside>;
+      <Button 
+        variant="ghost" 
+        className="gap-2" 
+        onClick={handleLogout}
+      >
+        <LogOut className="h-4 w-4" />
+        Sair
+      </Button>
+    </nav>;
 };
 export default Sidebar;
