@@ -46,71 +46,10 @@ Deno.serve(async (req) => {
 
     const companyId = profile.company_id;
 
-    // Parse request body
-    const body = await req.json().catch(() => ({})) as DemoDataRequest;
-    const shouldCreateUsers = body.createUsers ?? true;
-    const userCount = Math.min(15, Math.max(1, body.userCount ?? 5));
-
     console.log(`Starting demo data generation for company: ${companyId}`);
-    console.log(`Will create ${shouldCreateUsers ? userCount : 0} users`);
 
-    // Create fictional users if requested
-    let createdUsersCount = 0;
-    if (shouldCreateUsers) {
-      console.log(`Creating ${userCount} fictional users...`);
-      
-      const fictionalNames = [
-        'Carlos Silva', 'Ana Costa', 'Pedro Santos', 'Mariana Oliveira',
-        'Rafael Souza', 'Juliana Lima', 'Fernando Alves', 'Beatriz Rocha',
-        'Lucas Pereira', 'Camila Ferreira', 'Diego Martins', 'Larissa Mendes',
-        'Thiago Ribeiro', 'Patrícia Gomes', 'Bruno Cardoso'
-      ];
+    // Usuários fictícios não são criados automaticamente nesta função.
 
-      const roles = ['vendedor', 'gestor', 'vendedor', 'vendedor', 'vendedor']; // Mix de roles
-
-      for (let i = 0; i < userCount; i++) {
-        const name = fictionalNames[i % fictionalNames.length];
-        const email = `demo.${name.toLowerCase().replace(/\s+/g, '.')}@vvm.demo`;
-        const password = 'Demo@123456';
-        const role = roles[i % roles.length];
-
-        try {
-          // Create user in Auth
-          const { data: newUser, error: createError } = await supabase.auth.admin.createUser({
-            email,
-            password,
-            email_confirm: true,
-            user_metadata: {
-              name,
-              company_id: companyId,
-              role
-            }
-          });
-
-          if (createError) {
-            console.error(`Error creating user ${name}:`, createError);
-            continue;
-          }
-
-          if (newUser.user) {
-            // Create role
-            await supabase
-              .from('user_roles')
-              .insert({
-                user_id: newUser.user.id,
-                role
-              });
-
-            createdUsersCount++;
-            console.log(`✓ User created: ${name} (${role})`);
-          }
-        } catch (err) {
-          console.error(`Error creating user ${name}:`, err);
-        }
-      }
-
-      console.log(`Created ${createdUsersCount} fictional users`);
-    }
 
     // Arrays de dados fictícios
     const empresas = [
@@ -552,8 +491,6 @@ Deno.serve(async (req) => {
         success: true,
         message: 'Dados demo gerados com sucesso!',
         stats: {
-          usersCreated: createdUsersCount,
-          totalUsers: companyUsers.length,
           leads: createdLeads.length,
           leadValues: leadValuesToInsert.length,
           observations: observationsToInsert.length,
