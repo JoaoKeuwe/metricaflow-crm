@@ -1,69 +1,38 @@
-import confetti from 'canvas-confetti';
+// Celebrações usando CSS animations e toast ao invés de canvas-confetti
+import { toast } from 'sonner';
 
 export type CelebrationType = 'small' | 'medium' | 'large' | 'mega';
 
+// Trigger visual celebration usando CSS e toast
 export function triggerConfetti(type: CelebrationType) {
-  const duration = type === 'mega' ? 5000 : type === 'large' ? 3000 : 2000;
-  const animationEnd = Date.now() + duration;
+  const message = getCelebrationMessage(type);
   
-  const colors = ['#8B5CF6', '#EC4899', '#F59E0B', '#10B981', '#3B82F6'];
-
-  function randomInRange(min: number, max: number) {
-    return Math.random() * (max - min) + min;
-  }
-
-  const frame = () => {
-    const timeLeft = animationEnd - Date.now();
-
-    if (timeLeft <= 0) return;
-
-    const particleCount = type === 'mega' ? 8 : type === 'large' ? 5 : 3;
-
-    confetti({
-      particleCount,
-      angle: randomInRange(55, 125),
-      spread: randomInRange(50, 100),
-      origin: { x: randomInRange(0.1, 0.9), y: Math.random() - 0.2 },
-      colors,
-      startVelocity: type === 'mega' ? 60 : type === 'large' ? 45 : 30,
-      ticks: type === 'mega' ? 400 : 300,
-    });
-
-    requestAnimationFrame(frame);
-  };
-
-  frame();
+  // Criar elemento de celebração temporário com animação CSS
+  const celebration = document.createElement('div');
+  celebration.className = 'fixed inset-0 pointer-events-none z-50 flex items-center justify-center';
+  celebration.innerHTML = `
+    <div class="animate-in zoom-in-50 fade-in duration-500">
+      <div class="text-6xl font-bold text-primary animate-bounce">
+        ${message}
+      </div>
+    </div>
+  `;
+  
+  document.body.appendChild(celebration);
+  
+  // Toast de celebração
+  toast.success(message, {
+    duration: type === 'mega' ? 5000 : type === 'large' ? 3000 : 2000,
+  });
+  
+  // Remover após animação
+  setTimeout(() => {
+    celebration.remove();
+  }, type === 'mega' ? 5000 : type === 'large' ? 3000 : 2000);
 }
 
 export function triggerFireworks() {
-  const duration = 3000;
-  const animationEnd = Date.now() + duration;
-  const defaults = { startVelocity: 30, spread: 360, ticks: 60, zIndex: 9999 };
-
-  function randomInRange(min: number, max: number) {
-    return Math.random() * (max - min) + min;
-  }
-
-  const interval = setInterval(function() {
-    const timeLeft = animationEnd - Date.now();
-
-    if (timeLeft <= 0) {
-      return clearInterval(interval);
-    }
-
-    const particleCount = 50 * (timeLeft / duration);
-
-    confetti({
-      ...defaults,
-      particleCount,
-      origin: { x: randomInRange(0.1, 0.3), y: Math.random() - 0.2 }
-    });
-    confetti({
-      ...defaults,
-      particleCount,
-      origin: { x: randomInRange(0.7, 0.9), y: Math.random() - 0.2 }
-    });
-  }, 250);
+  triggerConfetti('mega');
 }
 
 export function getCelebrationType(saleValue: number): CelebrationType {

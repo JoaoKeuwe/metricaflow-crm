@@ -27,7 +27,7 @@ export const useTheme = () => {
         .eq('id', profile.company_id)
         .single();
 
-      return company?.theme as ThemeName || 'moderno';
+      return company?.theme as ThemeName || 'futurista';
     },
     staleTime: 1000 * 60 * 5, // 5 minutes
   });
@@ -35,16 +35,13 @@ export const useTheme = () => {
   // Apply theme
   useEffect(() => {
     if (!themeData) {
-      // Try to apply cached theme while loading
-      const cached = localStorage.getItem(THEME_CACHE_KEY);
-      if (cached) {
-        applyTheme(cached as ThemeName);
-      }
+      // Apply default futurista theme while loading
+      applyTheme('futurista');
       return;
     }
 
-    applyTheme(themeData);
-    localStorage.setItem(THEME_CACHE_KEY, themeData);
+    applyTheme('futurista');
+    localStorage.setItem(THEME_CACHE_KEY, 'futurista');
   }, [themeData]);
 
   return { theme: themeData, isLoading };
@@ -65,17 +62,13 @@ export const applyTheme = (themeName: ThemeName) => {
   });
 
   // Remove all theme classes first
-  body.classList.remove('theme-moderno', 'theme-classico', 'theme-vibrante', 'theme-minimalista', 'theme-rosa', 'theme-neon', 'theme-futurista');
+  body.classList.remove('theme-futurista');
   
   // Add specific theme class
-  body.classList.add(`theme-${themeName}`);
+  body.classList.add('theme-futurista');
 
-  // Apply theme-specific font family
-  if (themeName === 'futurista') {
-    root.style.setProperty('--font-sans', 'Plus Jakarta Sans, Inter, sans-serif');
-  } else {
-    root.style.setProperty('--font-sans', 'Poppins, Inter, sans-serif');
-  }
+  // Apply theme-specific font family (futurista)
+  root.style.setProperty('--font-sans', 'Plus Jakarta Sans, Inter, sans-serif');
 
   // Remove transition after applying
   setTimeout(() => {
