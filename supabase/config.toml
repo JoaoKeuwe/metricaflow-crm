@@ -98,3 +98,6 @@ verify_jwt = true
 
 [functions.create-demo-account]
 verify_jwt = false
+
+[functions.create-demo-salespeople]
+verify_jwt = true
