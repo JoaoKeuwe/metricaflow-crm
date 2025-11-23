@@ -1,7 +1,6 @@
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import Sidebar from "@/components/layout/Sidebar";
-import Header from "@/components/layout/Header";
 
 interface ProtectedRouteProps {
   children: React.ReactNode;
@@ -48,7 +47,6 @@ const ProtectedRoute = ({ children }: ProtectedRouteProps) => {
   return (
     <div className="flex flex-col h-screen bg-background overflow-hidden">
       <Sidebar />
-      <Header />
       <main className="flex-1 overflow-y-auto p-6">{children}</main>
     </div>
   );
