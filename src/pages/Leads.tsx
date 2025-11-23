@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useMemo, useCallback, lazy, Suspense } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
@@ -7,6 +7,7 @@ import { Label } from "@/components/ui/label";
 import { Skeleton } from "@/components/ui/skeleton";
 import { LoadingSpinner } from "@/components/ui/loading-spinner";
 import { useRealtimeLeads } from "@/hooks/useRealtimeLeads";
+import { useDebounce } from "@/hooks/useDebounce";
 import {
   Dialog,
   DialogContent,
@@ -14,13 +15,6 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 import {
   Tabs,
   TabsContent,
@@ -46,8 +40,12 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { startOfMonth, endOfMonth, subMonths, startOfDay, endOfDay } from "date-fns";
 import { LeadFilters } from "@/components/leads/LeadFilters";
-import { LeadStats } from "@/components/leads/LeadStats";
+import { LeadTableRow } from "@/components/leads/LeadTableRow";
+import { PaginationControls } from "@/components/leads/PaginationControls";
 import { leadFormSchema, LeadFormData } from "@/lib/schemas";
+
+// Lazy load LeadStats
+const LeadStats = lazy(() => import("@/components/leads/LeadStats").then(m => ({ default: m.LeadStats })));
 
 const statusColors: Record<string, string> = {
   novo: "bg-blue-500",
@@ -62,9 +60,6 @@ const Leads = () => {
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const navigate = useNavigate();
-  
-  // Hook centralizado de realtime
-  useRealtimeLeads();
   
   const [open, setOpen] = useState(false);
   const [formErrors, setFormErrors] = useState<Partial<Record<keyof LeadFormData, string>>>({});
@@ -84,6 +79,16 @@ const Leads = () => {
   const [statusFilter, setStatusFilter] = useState("all");
   const [responsibleFilter, setResponsibleFilter] = useState("all");
   const [isPeriodOpen, setIsPeriodOpen] = useState(true);
+  
+  // Estados de paginação
+  const [page, setPage] = useState(1);
+  const pageSize = 50;
+  
+  // Debounce no searchTerm
+  const debouncedSearchTerm = useDebounce(searchTerm, 300);
+  
+  // Hook centralizado de realtime com queryKey específico
+  useRealtimeLeads(["leads", page, period, debouncedSearchTerm, statusFilter, responsibleFilter]);
 
   const { data: profile } = useQuery({
     queryKey: ["profile"],
@@ -102,6 +107,8 @@ const Leads = () => {
       if (error) throw error;
       return data;
     },
+    staleTime: 30 * 60 * 1000, // 30 minutos
+    gcTime: 60 * 60 * 1000, // 1 hora
   });
 
   const { data: userRole } = useQuery({
@@ -122,6 +129,8 @@ const Leads = () => {
 
       return data?.role;
     },
+    staleTime: 30 * 60 * 1000, // 30 minutos
+    gcTime: 60 * 60 * 1000, // 1 hora
   });
 
   // Buscar todos vendedores e gestores da empresa para o Select de atribuição
@@ -153,6 +162,8 @@ const Leads = () => {
       return data;
     },
     enabled: !!profile?.company_id,
+    staleTime: 10 * 60 * 1000, // 10 minutos
+    gcTime: 20 * 60 * 1000, // 20 minutos
   });
 
   // Função para calcular intervalo de datas com base no período
@@ -180,23 +191,24 @@ const Leads = () => {
     }
   };
 
-  const { data: leads, isLoading: isLoadingLeads } = useQuery({
-    queryKey: ["leads", period, searchTerm, statusFilter, responsibleFilter],
+  // Query de leads com paginação
+  const { data: leadsData, isLoading: isLoadingLeads } = useQuery({
+    queryKey: ["leads", page, period, debouncedSearchTerm, statusFilter, responsibleFilter],
     queryFn: async () => {
       const { start, end } = getDateRange(period);
       
       let query = supabase
         .from("leads")
-        .select("*, profiles(name)");
+        .select("*, profiles(name)", { count: "exact" });
 
       // Filtro temporal
       if (start) query = query.gte("created_at", start.toISOString());
       if (end) query = query.lte("created_at", end.toISOString());
 
       // Filtro de busca (nome, email, telefone, empresa)
-      if (searchTerm) {
+      if (debouncedSearchTerm) {
         query = query.or(
-          `name.ilike.%${searchTerm}%,email.ilike.%${searchTerm}%,phone.ilike.%${searchTerm}%,company.ilike.%${searchTerm}%`
+          `name.ilike.%${debouncedSearchTerm}%,email.ilike.%${debouncedSearchTerm}%,phone.ilike.%${debouncedSearchTerm}%,company.ilike.%${debouncedSearchTerm}%`
         );
       }
 
@@ -214,13 +226,72 @@ const Leads = () => {
         }
       }
 
-      query = query.order("created_at", { ascending: false });
+      // Paginação
+      const from = (page - 1) * pageSize;
+      const to = from + pageSize - 1;
+      
+      query = query
+        .order("created_at", { ascending: false })
+        .range(from, to);
+
+      const { data, error, count } = await query;
+      if (error) throw error;
+      
+      return {
+        leads: data || [],
+        count: count || 0,
+      };
+    },
+    staleTime: 2 * 60 * 1000, // 2 minutos
+    gcTime: 5 * 60 * 1000, // 5 minutos
+  });
+
+  const leads = leadsData?.leads || [];
+  const totalCount = leadsData?.count || 0;
+  const totalPages = Math.ceil(totalCount / pageSize);
+  
+  // Query agregada para LeadStats
+  const { data: leadStats, isLoading: isLoadingStats } = useQuery({
+    queryKey: ["lead-stats", period, debouncedSearchTerm, statusFilter, responsibleFilter],
+    queryFn: async () => {
+      const { start, end } = getDateRange(period);
+      
+      let query = supabase
+        .from("leads")
+        .select("status, estimated_value");
+
+      // Aplicar mesmos filtros
+      if (start) query = query.gte("created_at", start.toISOString());
+      if (end) query = query.lte("created_at", end.toISOString());
+      if (debouncedSearchTerm) {
+        query = query.or(
+          `name.ilike.%${debouncedSearchTerm}%,email.ilike.%${debouncedSearchTerm}%,phone.ilike.%${debouncedSearchTerm}%,company.ilike.%${debouncedSearchTerm}%`
+        );
+      }
+      if (statusFilter && statusFilter !== "all") {
+        query = query.eq("status", statusFilter);
+      }
+      if (responsibleFilter && responsibleFilter !== "all") {
+        if (responsibleFilter === "unassigned") {
+          query = query.is("assigned_to", null);
+        } else {
+          query = query.eq("assigned_to", responsibleFilter);
+        }
+      }
 
       const { data, error } = await query;
       if (error) throw error;
+      
       return data || [];
     },
+    staleTime: 2 * 60 * 1000,
+    gcTime: 5 * 60 * 1000,
   });
+  
+  // Reset page quando filtros mudarem
+  const handleFilterChange = useCallback(() => {
+    setPage(1);
+  }, []);
 
   const normalizePhone = (phone: string) => {
     return phone.replace(/\D/g, "");
@@ -345,7 +416,7 @@ const Leads = () => {
   const isGestor = userRole === "gestor" || userRole === "gestor_owner";
   const canEditAssignment = isGestor;
 
-  // Renderizar a tabela de leads
+  // Renderizar a tabela de leads com componente otimizado
   const renderLeadsTable = () => {
     if (isLoadingLeads) {
       return (
@@ -378,55 +449,17 @@ const Leads = () => {
         <TableBody>
           {leads && leads.length > 0 ? (
             leads.map((lead: any) => (
-              <TableRow key={lead.id}>
-                <TableCell className="font-medium">{lead.name}</TableCell>
-                <TableCell>{lead.email || "—"}</TableCell>
-                <TableCell>{lead.phone || "—"}</TableCell>
-                <TableCell>{lead.company || "—"}</TableCell>
-                <TableCell>
-                  {canEditAssignment ? (
-                    <Select
-                      value={lead.assigned_to || "unassigned"}
-                      onValueChange={(value) => {
-                        const newAssignedTo = value === "unassigned" ? null : value;
-                        updateLeadAssignment.mutate({
-                          leadId: lead.id,
-                          assignedTo: newAssignedTo,
-                        });
-                      }}
-                      disabled={updateLeadAssignment.isPending}
-                    >
-                      <SelectTrigger className="w-[180px]">
-                        <SelectValue placeholder="Não atribuído" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="unassigned">Não atribuído</SelectItem>
-                        {users?.map((user) => (
-                          <SelectItem key={user.id} value={user.id}>
-                            {user.name}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  ) : (
-                    <span>{lead.profiles?.name || "Não atribuído"}</span>
-                  )}
-                </TableCell>
-                <TableCell>
-                  <Badge className={statusColors[lead.status]}>
-                    {lead.status}
-                  </Badge>
-                </TableCell>
-                <TableCell>
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    onClick={() => navigate(`/lead/${lead.id}`)}
-                  >
-                    <Eye className="h-4 w-4" />
-                  </Button>
-                </TableCell>
-              </TableRow>
+              <LeadTableRow
+                key={lead.id}
+                lead={lead}
+                canEditAssignment={canEditAssignment}
+                users={users}
+                onAssignmentChange={(leadId, assignedTo) => {
+                  updateLeadAssignment.mutate({ leadId, assignedTo });
+                }}
+                isUpdating={updateLeadAssignment.isPending}
+                statusColors={statusColors}
+              />
             ))
           ) : (
             <TableRow>
@@ -587,11 +620,20 @@ const Leads = () => {
       {/* Filtros */}
       <LeadFilters
         searchTerm={searchTerm}
-        onSearchChange={setSearchTerm}
+        onSearchChange={(value) => {
+          setSearchTerm(value);
+          handleFilterChange();
+        }}
         statusFilter={statusFilter}
-        onStatusChange={setStatusFilter}
+        onStatusChange={(value) => {
+          setStatusFilter(value);
+          handleFilterChange();
+        }}
         responsibleFilter={responsibleFilter}
-        onResponsibleChange={setResponsibleFilter}
+        onResponsibleChange={(value) => {
+          setResponsibleFilter(value);
+          handleFilterChange();
+        }}
         users={users}
         canFilterByResponsible={isGestor}
       />
@@ -617,7 +659,10 @@ const Leads = () => {
 
           <CollapsibleContent>
             <div className="border-t p-4">
-              <Tabs defaultValue="all" value={period} onValueChange={setPeriod}>
+              <Tabs defaultValue="all" value={period} onValueChange={(value) => {
+                setPeriod(value);
+                handleFilterChange();
+              }}>
                 <TabsList className="grid w-full grid-cols-4 lg:w-auto">
                   <TabsTrigger value="all">Todos</TabsTrigger>
                   <TabsTrigger value="this-month">Este Mês</TabsTrigger>
@@ -627,24 +672,64 @@ const Leads = () => {
 
                 {/* Estatísticas */}
                 <div className="mt-6">
-                  <LeadStats leads={leads || []} period={period} />
+                  <Suspense fallback={<Skeleton className="h-32 w-full" />}>
+                    {!isLoadingStats && leadStats && (
+                      <LeadStats leads={leadStats} period={period} />
+                    )}
+                  </Suspense>
                 </div>
 
                 {/* Conteúdo das tabs */}
-                <TabsContent value="all" className="mt-6">
+                <TabsContent value="all" className="mt-6 space-y-4">
                   {renderLeadsTable()}
+                  {totalPages > 1 && (
+                    <PaginationControls
+                      currentPage={page}
+                      totalPages={totalPages}
+                      onPageChange={setPage}
+                      totalCount={totalCount}
+                      pageSize={pageSize}
+                    />
+                  )}
                 </TabsContent>
 
-                <TabsContent value="this-month" className="mt-6">
+                <TabsContent value="this-month" className="mt-6 space-y-4">
                   {renderLeadsTable()}
+                  {totalPages > 1 && (
+                    <PaginationControls
+                      currentPage={page}
+                      totalPages={totalPages}
+                      onPageChange={setPage}
+                      totalCount={totalCount}
+                      pageSize={pageSize}
+                    />
+                  )}
                 </TabsContent>
 
-                <TabsContent value="last-month" className="mt-6">
+                <TabsContent value="last-month" className="mt-6 space-y-4">
                   {renderLeadsTable()}
+                  {totalPages > 1 && (
+                    <PaginationControls
+                      currentPage={page}
+                      totalPages={totalPages}
+                      onPageChange={setPage}
+                      totalCount={totalCount}
+                      pageSize={pageSize}
+                    />
+                  )}
                 </TabsContent>
 
-                <TabsContent value="last-3-months" className="mt-6">
+                <TabsContent value="last-3-months" className="mt-6 space-y-4">
                   {renderLeadsTable()}
+                  {totalPages > 1 && (
+                    <PaginationControls
+                      currentPage={page}
+                      totalPages={totalPages}
+                      onPageChange={setPage}
+                      totalCount={totalCount}
+                      pageSize={pageSize}
+                    />
+                  )}
                 </TabsContent>
               </Tabs>
             </div>
