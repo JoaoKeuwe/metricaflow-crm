@@ -16,6 +16,8 @@ export default {
       fontFamily: {
         sans: ['Poppins', 'Inter', 'sans-serif'],
         poppins: ['Poppins', 'sans-serif'],
+        jakarta: ['Plus Jakarta Sans', 'Poppins', 'sans-serif'],
+        inter: ['Inter', 'sans-serif'],
       },
       colors: {
         border: "hsl(var(--border))",
