@@ -62,7 +62,7 @@ export function TaskCard({ task, onEdit, isGestor }: TaskCardProps) {
     
     const days = differenceInDays(new Date(dueDate), new Date());
     if (days < 0 || days === 0) return "border-destructive";
-    if (days <= 3) return "border-amber-500";
+    if (days <= 3) return "border-accent";
     return "border-primary";
   };
 
