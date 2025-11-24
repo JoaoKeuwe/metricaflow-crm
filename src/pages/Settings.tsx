@@ -1,7 +1,8 @@
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import CompanySettings from "@/components/company/CompanySettings";
 import DemoDataSettings from "@/components/company/DemoDataSettings";
-import { Building2, User, Database } from "lucide-react";
+import { GamificationSettings } from "@/components/gamification/GamificationSettings";
+import { Building2, User, Database, Trophy } from "lucide-react";
 
 const Settings = () => {
   return (
@@ -21,6 +22,10 @@ const Settings = () => {
             <User className="h-4 w-4" />
             Meu Perfil
           </TabsTrigger>
+          <TabsTrigger value="gamification" className="flex items-center gap-2">
+            <Trophy className="h-4 w-4" />
+            Gamificação
+          </TabsTrigger>
           <TabsTrigger value="demo" className="flex items-center gap-2">
             <Database className="h-4 w-4" />
             Dados Demo
@@ -35,6 +40,10 @@ const Settings = () => {
           <div className="text-muted-foreground">
             Configurações de perfil em desenvolvimento...
           </div>
+        </TabsContent>
+
+        <TabsContent value="gamification" className="mt-6">
+          <GamificationSettings />
         </TabsContent>
 
         <TabsContent value="demo" className="mt-6">

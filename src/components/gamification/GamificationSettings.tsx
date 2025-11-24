@@ -18,6 +18,15 @@ const EVENT_LABELS: Record<string, string> = {
   observation_added: "Observação Adicionada",
 };
 
+const DEFAULT_POINTS: Record<string, number> = {
+  lead_created: 10,
+  lead_qualified: 15,
+  proposal_sent: 25,
+  sale_closed: 100,
+  meeting_scheduled: 20,
+  observation_added: 3,
+};
+
 interface SettingEdit {
   event_type: string;
   points: number;
@@ -48,7 +57,23 @@ export function GamificationSettings() {
         .eq("company_id", profile.company_id);
 
       if (error) throw error;
-      return data;
+      
+      // Merge with default values for events that don't have settings yet
+      const allEvents = Object.keys(EVENT_LABELS);
+      const mergedSettings = allEvents.map(event_type => {
+        const existingSetting = data?.find(s => s.event_type === event_type);
+        return {
+          id: existingSetting?.id || `default-${event_type}`,
+          event_type,
+          points: existingSetting?.points ?? DEFAULT_POINTS[event_type],
+          company_id: profile.company_id,
+          updated_at: existingSetting?.updated_at,
+          updated_by: existingSetting?.updated_by,
+          isDefault: !existingSetting
+        };
+      });
+      
+      return mergedSettings;
     },
   });
 
@@ -136,14 +161,14 @@ export function GamificationSettings() {
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: index * 0.1 }}
           >
-            <Card className="p-4">
+            <Card className="premium-card p-6 border-l-4 border-primary">
               <div className="flex items-center justify-between gap-4">
                 <div className="flex-1">
-                  <Label className="text-base font-semibold">
+                  <Label className="text-lg font-bold text-foreground">
                     {EVENT_LABELS[setting.event_type] || setting.event_type}
                   </Label>
-                  <p className="text-sm text-muted-foreground">
-                    Tipo: {setting.event_type}
+                  <p className="text-sm text-muted-foreground mt-1">
+                    {setting.isDefault && <span className="text-accent">(Valor padrão)</span>}
                   </p>
                 </div>
 
@@ -154,7 +179,7 @@ export function GamificationSettings() {
                       min="0"
                       value={editValue}
                       onChange={(e) => setEditValue(parseInt(e.target.value) || 0)}
-                      className="w-24"
+                      className="w-24 bg-background/50 border-primary/30"
                       autoFocus
                     />
                     <Button
@@ -162,6 +187,7 @@ export function GamificationSettings() {
                       variant="default"
                       onClick={() => handleSave(setting.event_type)}
                       disabled={updateMutation.isPending}
+                      className="h-9 w-9"
                     >
                       <Save className="h-4 w-4" />
                     </Button>
@@ -170,20 +196,24 @@ export function GamificationSettings() {
                       variant="ghost"
                       onClick={handleCancel}
                       disabled={updateMutation.isPending}
+                      className="h-9 w-9"
                     >
                       <X className="h-4 w-4" />
                     </Button>
                   </div>
                 ) : (
-                  <div className="flex items-center gap-2">
-                    <span className="text-2xl font-bold text-primary min-w-[60px] text-right">
-                      {setting.points}
-                    </span>
-                    <span className="text-muted-foreground">pts</span>
+                  <div className="flex items-center gap-3">
+                    <div className="text-right">
+                      <span className="text-3xl font-bold bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent">
+                        {setting.points}
+                      </span>
+                      <span className="text-sm text-muted-foreground ml-1">pts</span>
+                    </div>
                     <Button
                       size="icon"
                       variant="ghost"
                       onClick={() => handleEdit(setting.event_type, setting.points)}
+                      className="h-9 w-9 hover:bg-primary/10"
                     >
                       <Pencil className="h-4 w-4" />
                     </Button>
@@ -195,10 +225,10 @@ export function GamificationSettings() {
         ))}
       </div>
 
-      <Card className="p-4 bg-muted/50">
-        <p className="text-sm text-muted-foreground">
-          <strong>Nota:</strong> Para vendas fechadas, além da pontuação base, é adicionado 1 ponto
-          a cada R$ 1.000 do valor estimado da venda.
+      <Card className="premium-card p-6 bg-accent/10 border-accent/30">
+        <p className="text-sm text-muted-foreground leading-relaxed">
+          <strong className="text-accent">Bônus em Vendas:</strong> Para vendas fechadas, além da pontuação base configurada, 
+          é adicionado automaticamente <strong>1 ponto extra para cada R$ 1.000</strong> do valor estimado da venda.
         </p>
       </Card>
     </div>
