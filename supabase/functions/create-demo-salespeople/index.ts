@@ -43,13 +43,13 @@ Deno.serve(async (req) => {
 
     console.log(`Creating 5 demo salespeople for company: ${companyId}`);
 
-    // Vendedores fictícios
+    // Vendedores fictícios com avatares
     const salespeople = [
-      { name: 'Ana Paula Silva', email: 'ana.silva@demo.com', password: 'Demo@2024' },
-      { name: 'Carlos Eduardo Santos', email: 'carlos.santos@demo.com', password: 'Demo@2024' },
-      { name: 'Juliana Oliveira', email: 'juliana.oliveira@demo.com', password: 'Demo@2024' },
-      { name: 'Roberto Ferreira', email: 'roberto.ferreira@demo.com', password: 'Demo@2024' },
-      { name: 'Marina Costa', email: 'marina.costa@demo.com', password: 'Demo@2024' }
+      { name: 'Ana Paula Silva', email: 'ana.silva@demo.com', password: 'Demo@2024', avatar_url: 'https://i.pravatar.cc/150?img=47' },
+      { name: 'Carlos Eduardo Santos', email: 'carlos.santos@demo.com', password: 'Demo@2024', avatar_url: 'https://i.pravatar.cc/150?img=12' },
+      { name: 'Juliana Oliveira', email: 'juliana.oliveira@demo.com', password: 'Demo@2024', avatar_url: 'https://i.pravatar.cc/150?img=32' },
+      { name: 'Roberto Ferreira', email: 'roberto.ferreira@demo.com', password: 'Demo@2024', avatar_url: 'https://i.pravatar.cc/150?img=51' },
+      { name: 'Marina Costa', email: 'marina.costa@demo.com', password: 'Demo@2024', avatar_url: 'https://i.pravatar.cc/150?img=44' }
     ];
 
     const createdUsers = [];
@@ -96,6 +96,7 @@ Deno.serve(async (req) => {
           id: authUser.user.id,
           company_id: companyId,
           name: person.name,
+          avatar_url: person.avatar_url,
           active: true
         });
 
