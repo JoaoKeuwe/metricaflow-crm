@@ -1,9 +1,10 @@
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Trophy, Award, Medal, TrendingUp } from "lucide-react";
-import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 
 interface VendedorData {
   vendedor: string;
+  avatar?: string | null;
   leads: number;
   convertidos: number;
   taxa: number;
@@ -78,6 +79,7 @@ export const ProductivityRankingCard = ({ vendedores }: ProductivityRankingCardP
                   </div>
                   
                   <Avatar className="h-10 w-10">
+                    <AvatarImage src={vendedor.avatar || undefined} alt={vendedor.vendedor} />
                     <AvatarFallback>
                       {vendedor.vendedor.split(' ').map(n => n[0]).join('').substring(0, 2).toUpperCase()}
                     </AvatarFallback>

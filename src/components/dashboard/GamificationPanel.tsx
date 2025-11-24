@@ -2,13 +2,14 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Trophy, Target, TrendingUp, Zap, Star, Award, Medal, Crown } from "lucide-react";
 import { Progress } from "@/components/ui/progress";
-import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 
 interface SalesPersonScore {
   id: string;
   name: string;
+  avatar: string | null;
   points: number;
   leadsCreated: number;
   leadsConverted: number;
@@ -27,7 +28,7 @@ export function GamificationPanel() {
 
       const { data: profiles } = await supabase
         .from('profiles')
-        .select('id, name');
+        .select('id, name, avatar_url');
 
       const { data: leads } = await supabase
         .from('leads')
@@ -69,6 +70,7 @@ export function GamificationPanel() {
         return {
           id: profile.id,
           name: profile.name || 'Sem nome',
+          avatar: profile.avatar_url || null,
           points,
           leadsCreated: userLeads.length,
           leadsConverted: convertedLeads.length,
@@ -139,6 +141,7 @@ export function GamificationPanel() {
                 <div className="flex flex-col items-center gap-2">
                   <div className="relative">
                     <Avatar className="h-16 w-16 border-4 border-gray-400">
+                      <AvatarImage src={topThree[1].avatar || undefined} alt={topThree[1].name} />
                       <AvatarFallback className="bg-gray-100 text-gray-700 text-lg font-bold">
                         {topThree[1].name.substring(0, 2).toUpperCase()}
                       </AvatarFallback>
@@ -165,6 +168,7 @@ export function GamificationPanel() {
                 <div className="flex flex-col items-center gap-2">
                   <div className="relative">
                     <Avatar className="h-20 w-20 border-4 border-yellow-500 shadow-lg shadow-yellow-500/50">
+                      <AvatarImage src={topThree[0].avatar || undefined} alt={topThree[0].name} />
                       <AvatarFallback className="bg-yellow-50 text-yellow-700 text-xl font-bold">
                         {topThree[0].name.substring(0, 2).toUpperCase()}
                       </AvatarFallback>
@@ -191,6 +195,7 @@ export function GamificationPanel() {
                 <div className="flex flex-col items-center gap-2">
                   <div className="relative">
                     <Avatar className="h-16 w-16 border-4 border-amber-600">
+                      <AvatarImage src={topThree[2].avatar || undefined} alt={topThree[2].name} />
                       <AvatarFallback className="bg-amber-50 text-amber-700 text-lg font-bold">
                         {topThree[2].name.substring(0, 2).toUpperCase()}
                       </AvatarFallback>
@@ -265,6 +270,7 @@ export function GamificationPanel() {
                     {index + 4}
                   </div>
                   <Avatar className="h-10 w-10">
+                    <AvatarImage src={person.avatar || undefined} alt={person.name} />
                     <AvatarFallback className="text-sm">
                       {person.name.substring(0, 2).toUpperCase()}
                     </AvatarFallback>

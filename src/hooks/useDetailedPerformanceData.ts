@@ -36,7 +36,7 @@ export const useDetailedPerformanceData = (
       // Buscar leads com informações do vendedor (limitando para evitar URLs longas)
       const { data: leads } = await supabase
         .from("leads")
-        .select("id, assigned_to, status, profiles(name), created_at, updated_at")
+        .select("id, assigned_to, status, profiles(name, avatar_url), created_at, updated_at")
         .eq("company_id", profile.company_id)
         .gte("created_at", dateRange.start)
         .lte("created_at", dateRange.end)
@@ -57,6 +57,7 @@ export const useDetailedPerformanceData = (
           leads: number;
           convertidos: number;
           name: string;
+          avatar: string | null;
           observacoes: number;
           tempoTotal: number;
           countFechados: number;
@@ -72,6 +73,7 @@ export const useDetailedPerformanceData = (
             leads: 0,
             convertidos: 0,
             name: lead.profiles?.name || "Sem vendedor",
+            avatar: lead.profiles?.avatar_url || null,
             observacoes: 0,
             tempoTotal: 0,
             countFechados: 0,
@@ -103,6 +105,7 @@ export const useDetailedPerformanceData = (
 
       return Object.values(salesStats).map((stats) => ({
         vendedor: stats.name,
+        avatar: stats.avatar,
         leads: stats.leads,
         convertidos: stats.convertidos,
         taxa:
