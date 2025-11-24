@@ -62,8 +62,8 @@ export function TaskCard({ task, onEdit, isGestor }: TaskCardProps) {
     
     const days = differenceInDays(new Date(dueDate), new Date());
     if (days < 0 || days === 0) return "border-destructive";
-    if (days <= 3) return "border-yellow-500";
-    return "border-green-500";
+    if (days <= 3) return "border-amber-500";
+    return "border-primary";
   };
 
   const handleStartTask = (e: React.MouseEvent) => {
@@ -227,7 +227,7 @@ export function TaskCard({ task, onEdit, isGestor }: TaskCardProps) {
                     >
                       <span>{assignment.user?.name || "Usuário"}</span>
                       {assignment.status === "concluida" ? (
-                        <span className="text-green-600 flex items-center gap-1">
+                        <span className="text-primary flex items-center gap-1">
                           <CheckCircle2 className="h-3 w-3" />
                           {assignment.completed_at &&
                             format(new Date(assignment.completed_at), "dd/MM HH:mm")}
