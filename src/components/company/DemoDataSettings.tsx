@@ -9,6 +9,7 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 const DemoDataSettings = () => {
   const [loading, setLoading] = useState(false);
   const [loadingSalespeople, setLoadingSalespeople] = useState(false);
+  const [loadingAvatars, setLoadingAvatars] = useState(false);
   const { toast } = useToast();
 
   const handleGenerateDemoData = async () => {
@@ -68,6 +69,33 @@ const DemoDataSettings = () => {
     }
   };
 
+  const handleUpdateAvatars = async () => {
+    setLoadingAvatars(true);
+    try {
+      const { data, error } = await supabase.functions.invoke('update-demo-avatars');
+
+      if (error) throw error;
+
+      if (data.success) {
+        toast({
+          title: "Sucesso!",
+          description: data.message,
+        });
+      } else {
+        throw new Error(data.error || 'Erro ao atualizar avatares');
+      }
+    } catch (error: any) {
+      console.error('Error updating avatars:', error);
+      toast({
+        title: "Erro",
+        description: error.message || "Não foi possível atualizar os avatares",
+        variant: "destructive",
+      });
+    } finally {
+      setLoadingAvatars(false);
+    }
+  };
+
   return (
     <div className="space-y-6">
       <Card>
@@ -112,6 +140,25 @@ const DemoDataSettings = () => {
                 <>
                   <Database className="mr-2 h-4 w-4" />
                   Criar Time de Vendedores Demo
+                </>
+              )}
+            </Button>
+            
+            <Button
+              onClick={handleUpdateAvatars}
+              disabled={loadingAvatars}
+              size="lg"
+              variant="outline"
+            >
+              {loadingAvatars ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Atualizando...
+                </>
+              ) : (
+                <>
+                  <Users className="mr-2 h-4 w-4" />
+                  Adicionar Fotos aos Vendedores
                 </>
               )}
             </Button>

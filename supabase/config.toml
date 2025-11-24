@@ -101,3 +101,6 @@ verify_jwt = false
 
 [functions.create-demo-salespeople]
 verify_jwt = true
+
+[functions.update-demo-avatars]
+verify_jwt = true
