@@ -359,25 +359,48 @@ const Auth = () => {
           </Card>
         </div>
 
-        {/* Right Side - Decorative Planet */}
-        <div className="hidden lg:flex lg:w-1/2 relative overflow-hidden items-end justify-center">
-          <div className="absolute inset-0 bg-gradient-to-br from-background via-primary/5 to-accent/10" />
-          <div className="absolute inset-0 opacity-20" style={{
-            backgroundImage: `linear-gradient(hsl(var(--primary) / 0.1) 1px, transparent 1px), linear-gradient(90deg, hsl(var(--primary) / 0.1) 1px, transparent 1px)`,
-            backgroundSize: '50px 50px'
-          }} />
-          <div className="absolute -bottom-1/3 left-1/2 -translate-x-1/2 w-[600px] h-[600px]">
-            <div className="absolute inset-0 rounded-full bg-gradient-to-br from-primary/30 via-accent/20 to-transparent blur-3xl" />
-            <div className="absolute inset-8 rounded-full bg-gradient-to-br from-primary/40 via-accent/30 to-primary/20 border border-primary/30 shadow-2xl">
-              <div className="absolute inset-0 rounded-full bg-gradient-to-tr from-transparent via-accent/20 to-primary/30" />
-              <div className="absolute top-1/4 left-1/4 w-32 h-32 rounded-full bg-white/10 blur-2xl" />
-            </div>
-            <div className="absolute inset-0 rounded-full border-2 border-primary/20 animate-pulse" style={{ animationDuration: '3s' }} />
+      {/* Right Side - Decorative Planet */}
+      <div className="hidden lg:flex lg:w-1/2 relative overflow-hidden items-end justify-center bg-gradient-to-br from-[#0F1624] via-[#0F1624] to-[#1a1f35]">
+        {/* Grid Pattern - Futuristic */}
+        <div className="absolute inset-0 opacity-10" style={{
+          backgroundImage: `linear-gradient(to right, #5D7BFF 1px, transparent 1px), linear-gradient(to bottom, #5D7BFF 1px, transparent 1px)`,
+          backgroundSize: '40px 40px'
+        }} />
+        
+        {/* Cyber Lines */}
+        <div className="absolute top-0 left-1/4 w-px h-full bg-gradient-to-b from-transparent via-primary/30 to-transparent" />
+        <div className="absolute top-0 right-1/3 w-px h-full bg-gradient-to-b from-transparent via-accent/20 to-transparent" />
+        
+        {/* Planet Circle - Half visible with futuristic glow */}
+        <div className="absolute -bottom-1/3 left-1/2 -translate-x-1/2 w-[650px] h-[650px]">
+          {/* Outer Glow - Blue Electric */}
+          <div className="absolute inset-0 rounded-full bg-gradient-to-br from-primary/40 via-accent/30 to-transparent blur-[100px] animate-pulse" style={{ animationDuration: '4s' }} />
+          
+          {/* Main Planet - Electric Blue Core */}
+          <div className="absolute inset-12 rounded-full bg-gradient-to-br from-primary/50 via-accent/40 to-primary/30 border-2 border-primary/40 shadow-2xl shadow-primary/20">
+            {/* Inner Gradient Layers */}
+            <div className="absolute inset-0 rounded-full bg-gradient-to-tr from-transparent via-accent/30 to-transparent" />
+            <div className="absolute inset-0 rounded-full bg-gradient-to-bl from-primary/20 via-transparent to-accent/20" />
+            
+            {/* Neon Shine Effect */}
+            <div className="absolute top-1/4 left-1/4 w-40 h-40 rounded-full bg-[#8FAEFF]/20 blur-3xl" />
+            <div className="absolute top-1/3 right-1/3 w-32 h-32 rounded-full bg-primary/30 blur-2xl" />
           </div>
-          <div className="absolute top-1/4 left-1/4 w-2 h-2 rounded-full bg-accent/60 animate-pulse" />
-          <div className="absolute top-1/3 right-1/4 w-1.5 h-1.5 rounded-full bg-primary/60 animate-pulse" style={{ animationDelay: '1s' }} />
-          <div className="absolute bottom-1/3 left-1/3 w-2.5 h-2.5 rounded-full bg-accent/40 animate-pulse" style={{ animationDelay: '2s' }} />
+          
+          {/* Animated Rings */}
+          <div className="absolute inset-0 rounded-full border-2 border-primary/30 animate-pulse" style={{ animationDuration: '3s' }} />
+          <div className="absolute inset-6 rounded-full border border-accent/20 animate-pulse" style={{ animationDuration: '2.5s', animationDelay: '0.5s' }} />
+          
+          {/* Glow Ring */}
+          <div className="absolute inset-0 rounded-full shadow-[0_0_100px_rgba(93,123,255,0.4)]" />
         </div>
+
+        {/* Floating Particles - Futuristic Colors */}
+        <div className="absolute top-1/4 left-1/4 w-2 h-2 rounded-full bg-accent shadow-[0_0_10px_rgba(143,174,255,0.8)] animate-pulse" />
+        <div className="absolute top-1/3 right-1/4 w-1.5 h-1.5 rounded-full bg-primary shadow-[0_0_8px_rgba(93,123,255,0.8)] animate-pulse" style={{ animationDelay: '1s' }} />
+        <div className="absolute bottom-1/3 left-1/3 w-2.5 h-2.5 rounded-full bg-accent/80 shadow-[0_0_12px_rgba(143,174,255,0.6)] animate-pulse" style={{ animationDelay: '2s' }} />
+        <div className="absolute top-1/2 right-1/3 w-1 h-1 rounded-full bg-primary/60 shadow-[0_0_6px_rgba(93,123,255,0.6)] animate-pulse" style={{ animationDelay: '1.5s' }} />
+      </div>
       </div>
     );
   }
@@ -560,23 +583,46 @@ const Auth = () => {
       </div>
 
       {/* Right Side - Decorative Planet */}
-      <div className="hidden lg:flex lg:w-1/2 relative overflow-hidden items-end justify-center">
-        <div className="absolute inset-0 bg-gradient-to-br from-background via-primary/5 to-accent/10" />
-        <div className="absolute inset-0 opacity-20" style={{
-          backgroundImage: `linear-gradient(hsl(var(--primary) / 0.1) 1px, transparent 1px), linear-gradient(90deg, hsl(var(--primary) / 0.1) 1px, transparent 1px)`,
-          backgroundSize: '50px 50px'
+      <div className="hidden lg:flex lg:w-1/2 relative overflow-hidden items-end justify-center bg-gradient-to-br from-[#0F1624] via-[#0F1624] to-[#1a1f35]">
+        {/* Grid Pattern - Futuristic */}
+        <div className="absolute inset-0 opacity-10" style={{
+          backgroundImage: `linear-gradient(to right, #5D7BFF 1px, transparent 1px), linear-gradient(to bottom, #5D7BFF 1px, transparent 1px)`,
+          backgroundSize: '40px 40px'
         }} />
-        <div className="absolute -bottom-1/3 left-1/2 -translate-x-1/2 w-[600px] h-[600px]">
-          <div className="absolute inset-0 rounded-full bg-gradient-to-br from-primary/30 via-accent/20 to-transparent blur-3xl" />
-          <div className="absolute inset-8 rounded-full bg-gradient-to-br from-primary/40 via-accent/30 to-primary/20 border border-primary/30 shadow-2xl">
-            <div className="absolute inset-0 rounded-full bg-gradient-to-tr from-transparent via-accent/20 to-primary/30" />
-            <div className="absolute top-1/4 left-1/4 w-32 h-32 rounded-full bg-white/10 blur-2xl" />
+        
+        {/* Cyber Lines */}
+        <div className="absolute top-0 left-1/4 w-px h-full bg-gradient-to-b from-transparent via-primary/30 to-transparent" />
+        <div className="absolute top-0 right-1/3 w-px h-full bg-gradient-to-b from-transparent via-accent/20 to-transparent" />
+        
+        {/* Planet Circle - Half visible with futuristic glow */}
+        <div className="absolute -bottom-1/3 left-1/2 -translate-x-1/2 w-[650px] h-[650px]">
+          {/* Outer Glow - Blue Electric */}
+          <div className="absolute inset-0 rounded-full bg-gradient-to-br from-primary/40 via-accent/30 to-transparent blur-[100px] animate-pulse" style={{ animationDuration: '4s' }} />
+          
+          {/* Main Planet - Electric Blue Core */}
+          <div className="absolute inset-12 rounded-full bg-gradient-to-br from-primary/50 via-accent/40 to-primary/30 border-2 border-primary/40 shadow-2xl shadow-primary/20">
+            {/* Inner Gradient Layers */}
+            <div className="absolute inset-0 rounded-full bg-gradient-to-tr from-transparent via-accent/30 to-transparent" />
+            <div className="absolute inset-0 rounded-full bg-gradient-to-bl from-primary/20 via-transparent to-accent/20" />
+            
+            {/* Neon Shine Effect */}
+            <div className="absolute top-1/4 left-1/4 w-40 h-40 rounded-full bg-[#8FAEFF]/20 blur-3xl" />
+            <div className="absolute top-1/3 right-1/3 w-32 h-32 rounded-full bg-primary/30 blur-2xl" />
           </div>
-          <div className="absolute inset-0 rounded-full border-2 border-primary/20 animate-pulse" style={{ animationDuration: '3s' }} />
+          
+          {/* Animated Rings */}
+          <div className="absolute inset-0 rounded-full border-2 border-primary/30 animate-pulse" style={{ animationDuration: '3s' }} />
+          <div className="absolute inset-6 rounded-full border border-accent/20 animate-pulse" style={{ animationDuration: '2.5s', animationDelay: '0.5s' }} />
+          
+          {/* Glow Ring */}
+          <div className="absolute inset-0 rounded-full shadow-[0_0_100px_rgba(93,123,255,0.4)]" />
         </div>
-        <div className="absolute top-1/4 left-1/4 w-2 h-2 rounded-full bg-accent/60 animate-pulse" />
-        <div className="absolute top-1/3 right-1/4 w-1.5 h-1.5 rounded-full bg-primary/60 animate-pulse" style={{ animationDelay: '1s' }} />
-        <div className="absolute bottom-1/3 left-1/3 w-2.5 h-2.5 rounded-full bg-accent/40 animate-pulse" style={{ animationDelay: '2s' }} />
+
+        {/* Floating Particles - Futuristic Colors */}
+        <div className="absolute top-1/4 left-1/4 w-2 h-2 rounded-full bg-accent shadow-[0_0_10px_rgba(143,174,255,0.8)] animate-pulse" />
+        <div className="absolute top-1/3 right-1/4 w-1.5 h-1.5 rounded-full bg-primary shadow-[0_0_8px_rgba(93,123,255,0.8)] animate-pulse" style={{ animationDelay: '1s' }} />
+        <div className="absolute bottom-1/3 left-1/3 w-2.5 h-2.5 rounded-full bg-accent/80 shadow-[0_0_12px_rgba(143,174,255,0.6)] animate-pulse" style={{ animationDelay: '2s' }} />
+        <div className="absolute top-1/2 right-1/3 w-1 h-1 rounded-full bg-primary/60 shadow-[0_0_6px_rgba(93,123,255,0.6)] animate-pulse" style={{ animationDelay: '1.5s' }} />
       </div>
     </div>
   );
