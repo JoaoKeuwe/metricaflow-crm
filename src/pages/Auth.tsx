@@ -303,74 +303,99 @@ const Auth = () => {
   // Show password reset form if in reset mode
   if (resetPasswordMode) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-background via-background to-primary/5 p-4">
-        <Card className="w-full max-w-md shadow-2xl">
-          <CardHeader className="space-y-1">
-            <CardTitle className="text-3xl font-bold text-center bg-gradient-to-r from-primary to-purple-600 bg-clip-text text-transparent">
-              Redefinir Senha
-            </CardTitle>
-            <CardDescription className="text-center">
-              Digite sua nova senha
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <form onSubmit={handlePasswordReset} className="space-y-4">
-              <div className="space-y-2">
-                <Label htmlFor="new-password">Nova Senha</Label>
-                <Input
-                  id="new-password"
-                  type="password"
-                  value={newPassword}
-                  onChange={(e) => setNewPassword(e.target.value)}
-                  required
-                  minLength={12}
-                  placeholder="Mín. 12 caracteres"
-                />
-                <p className="text-xs text-muted-foreground">
-                  Deve conter: 12+ caracteres, maiúsculas, minúsculas, números e símbolos
-                </p>
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="confirm-password">Confirmar Senha</Label>
-                <Input
-                  id="confirm-password"
-                  type="password"
-                  value={confirmPassword}
-                  onChange={(e) => setConfirmPassword(e.target.value)}
-                  required
-                  minLength={12}
-                  placeholder="Digite a senha novamente"
-                />
-              </div>
-              <Button type="submit" className="w-full" disabled={loading}>
-                {loading ? (
-                  <>
-                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                    Atualizando...
-                  </>
-                ) : (
-                  "Atualizar Senha"
-                )}
-              </Button>
-            </form>
-          </CardContent>
-        </Card>
+      <div className="min-h-screen bg-background flex">
+        {/* Left Side - Form */}
+        <div className="w-full lg:w-1/2 flex items-center justify-center p-8">
+          <Card className="w-full max-w-md premium-card">
+            <CardHeader className="space-y-1">
+              <CardTitle className="text-3xl font-bold text-center bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent">
+                Redefinir Senha
+              </CardTitle>
+              <CardDescription className="text-center">
+                Digite sua nova senha
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <form onSubmit={handlePasswordReset} className="space-y-4">
+                <div className="space-y-2">
+                  <Label htmlFor="new-password">Nova Senha</Label>
+                  <Input
+                    id="new-password"
+                    type="password"
+                    value={newPassword}
+                    onChange={(e) => setNewPassword(e.target.value)}
+                    required
+                    minLength={12}
+                    placeholder="Mín. 12 caracteres"
+                  />
+                  <p className="text-xs text-muted-foreground">
+                    Deve conter: 12+ caracteres, maiúsculas, minúsculas, números e símbolos
+                  </p>
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="confirm-password">Confirmar Senha</Label>
+                  <Input
+                    id="confirm-password"
+                    type="password"
+                    value={confirmPassword}
+                    onChange={(e) => setConfirmPassword(e.target.value)}
+                    required
+                    minLength={12}
+                    placeholder="Digite a senha novamente"
+                  />
+                </div>
+                <Button type="submit" className="w-full" disabled={loading}>
+                  {loading ? (
+                    <>
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      Atualizando...
+                    </>
+                  ) : (
+                    "Atualizar Senha"
+                  )}
+                </Button>
+              </form>
+            </CardContent>
+          </Card>
+        </div>
+
+        {/* Right Side - Decorative Planet */}
+        <div className="hidden lg:flex lg:w-1/2 relative overflow-hidden items-end justify-center">
+          <div className="absolute inset-0 bg-gradient-to-br from-background via-primary/5 to-accent/10" />
+          <div className="absolute inset-0 opacity-20" style={{
+            backgroundImage: `linear-gradient(hsl(var(--primary) / 0.1) 1px, transparent 1px), linear-gradient(90deg, hsl(var(--primary) / 0.1) 1px, transparent 1px)`,
+            backgroundSize: '50px 50px'
+          }} />
+          <div className="absolute -bottom-1/3 left-1/2 -translate-x-1/2 w-[600px] h-[600px]">
+            <div className="absolute inset-0 rounded-full bg-gradient-to-br from-primary/30 via-accent/20 to-transparent blur-3xl" />
+            <div className="absolute inset-8 rounded-full bg-gradient-to-br from-primary/40 via-accent/30 to-primary/20 border border-primary/30 shadow-2xl">
+              <div className="absolute inset-0 rounded-full bg-gradient-to-tr from-transparent via-accent/20 to-primary/30" />
+              <div className="absolute top-1/4 left-1/4 w-32 h-32 rounded-full bg-white/10 blur-2xl" />
+            </div>
+            <div className="absolute inset-0 rounded-full border-2 border-primary/20 animate-pulse" style={{ animationDuration: '3s' }} />
+          </div>
+          <div className="absolute top-1/4 left-1/4 w-2 h-2 rounded-full bg-accent/60 animate-pulse" />
+          <div className="absolute top-1/3 right-1/4 w-1.5 h-1.5 rounded-full bg-primary/60 animate-pulse" style={{ animationDelay: '1s' }} />
+          <div className="absolute bottom-1/3 left-1/3 w-2.5 h-2.5 rounded-full bg-accent/40 animate-pulse" style={{ animationDelay: '2s' }} />
+        </div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-background via-background to-primary/5 p-4">
-      <Card className="w-full max-w-md shadow-2xl">
-        <CardHeader className="space-y-1">
-          <CardTitle className="text-3xl font-bold text-center bg-gradient-to-r from-primary to-purple-600 bg-clip-text text-transparent">
-            CRM Pro
-          </CardTitle>
-          <CardDescription className="text-center">
-            Sistema de Gestão de Vendas
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
+    <div className="min-h-screen bg-background flex">
+      {/* Left Side - Form */}
+      <div className="w-full lg:w-1/2 flex items-center justify-center p-8">
+        <Card className="w-full max-w-md premium-card">
+          <CardHeader className="space-y-1">
+            <CardTitle className="text-3xl font-bold text-center bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent">
+              Workflow360 CRM
+            </CardTitle>
+            <CardDescription className="text-center">
+              Sistema de Gestão de Vendas
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
           <Tabs defaultValue="login" className="w-full">
             <TabsList className="grid w-full grid-cols-2">
               <TabsTrigger value="login">Entrar</TabsTrigger>
@@ -531,7 +556,28 @@ const Auth = () => {
             </TabsContent>
           </Tabs>
         </CardContent>
-      </Card>
+        </Card>
+      </div>
+
+      {/* Right Side - Decorative Planet */}
+      <div className="hidden lg:flex lg:w-1/2 relative overflow-hidden items-end justify-center">
+        <div className="absolute inset-0 bg-gradient-to-br from-background via-primary/5 to-accent/10" />
+        <div className="absolute inset-0 opacity-20" style={{
+          backgroundImage: `linear-gradient(hsl(var(--primary) / 0.1) 1px, transparent 1px), linear-gradient(90deg, hsl(var(--primary) / 0.1) 1px, transparent 1px)`,
+          backgroundSize: '50px 50px'
+        }} />
+        <div className="absolute -bottom-1/3 left-1/2 -translate-x-1/2 w-[600px] h-[600px]">
+          <div className="absolute inset-0 rounded-full bg-gradient-to-br from-primary/30 via-accent/20 to-transparent blur-3xl" />
+          <div className="absolute inset-8 rounded-full bg-gradient-to-br from-primary/40 via-accent/30 to-primary/20 border border-primary/30 shadow-2xl">
+            <div className="absolute inset-0 rounded-full bg-gradient-to-tr from-transparent via-accent/20 to-primary/30" />
+            <div className="absolute top-1/4 left-1/4 w-32 h-32 rounded-full bg-white/10 blur-2xl" />
+          </div>
+          <div className="absolute inset-0 rounded-full border-2 border-primary/20 animate-pulse" style={{ animationDuration: '3s' }} />
+        </div>
+        <div className="absolute top-1/4 left-1/4 w-2 h-2 rounded-full bg-accent/60 animate-pulse" />
+        <div className="absolute top-1/3 right-1/4 w-1.5 h-1.5 rounded-full bg-primary/60 animate-pulse" style={{ animationDelay: '1s' }} />
+        <div className="absolute bottom-1/3 left-1/3 w-2.5 h-2.5 rounded-full bg-accent/40 animate-pulse" style={{ animationDelay: '2s' }} />
+      </div>
     </div>
   );
 };
