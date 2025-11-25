@@ -306,57 +306,76 @@ const Auth = () => {
       <div className="min-h-screen bg-background flex">
         {/* Left Side - Form */}
         <div className="w-full lg:w-1/2 flex items-center justify-center p-8">
-          <Card className="w-full max-w-md premium-card">
-            <CardHeader className="space-y-1">
-              <CardTitle className="text-3xl font-bold text-center bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent">
+          <div className="w-full max-w-md">
+            {/* Header */}
+            <div className="mb-8 space-y-2">
+              <h1 className="text-4xl font-bold text-foreground tracking-tight" style={{ fontFamily: 'Plus Jakarta Sans, sans-serif' }}>
                 Redefinir Senha
-              </CardTitle>
-              <CardDescription className="text-center">
-                Digite sua nova senha
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <form onSubmit={handlePasswordReset} className="space-y-4">
-                <div className="space-y-2">
-                  <Label htmlFor="new-password">Nova Senha</Label>
-                  <Input
-                    id="new-password"
-                    type="password"
-                    value={newPassword}
-                    onChange={(e) => setNewPassword(e.target.value)}
-                    required
-                    minLength={12}
-                    placeholder="Mín. 12 caracteres"
-                  />
-                  <p className="text-xs text-muted-foreground">
-                    Deve conter: 12+ caracteres, maiúsculas, minúsculas, números e símbolos
-                  </p>
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="confirm-password">Confirmar Senha</Label>
-                  <Input
-                    id="confirm-password"
-                    type="password"
-                    value={confirmPassword}
-                    onChange={(e) => setConfirmPassword(e.target.value)}
-                    required
-                    minLength={12}
-                    placeholder="Digite a senha novamente"
-                  />
-                </div>
-                <Button type="submit" className="w-full" disabled={loading}>
-                  {loading ? (
-                    <>
-                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                      Atualizando...
-                    </>
-                  ) : (
-                    "Atualizar Senha"
-                  )}
-                </Button>
-              </form>
-            </CardContent>
-          </Card>
+              </h1>
+              <p className="text-muted-foreground text-base" style={{ fontFamily: 'Inter, sans-serif' }}>
+                Digite sua nova senha para acessar o sistema
+              </p>
+            </div>
+
+            {/* Glass Card */}
+            <div className="relative backdrop-blur-xl bg-card/40 border border-primary/20 rounded-2xl p-8 shadow-2xl shadow-primary/10">
+              {/* Glow Effect */}
+              <div className="absolute inset-0 rounded-2xl bg-gradient-to-br from-primary/5 via-transparent to-accent/5 pointer-events-none" />
+              
+              <div className="relative z-10">
+                <form onSubmit={handlePasswordReset} className="space-y-6">
+                  <div className="space-y-2">
+                    <Label htmlFor="new-password" className="text-sm font-medium" style={{ fontFamily: 'Inter, sans-serif' }}>
+                      Nova Senha
+                    </Label>
+                    <Input
+                      id="new-password"
+                      type="password"
+                      value={newPassword}
+                      onChange={(e) => setNewPassword(e.target.value)}
+                      required
+                      minLength={12}
+                      placeholder="Mín. 12 caracteres"
+                      className="h-12 bg-background/50 border-primary/30 focus:border-primary focus:ring-2 focus:ring-primary/20 rounded-lg"
+                    />
+                    <p className="text-xs text-muted-foreground">
+                      Deve conter: 12+ caracteres, maiúsculas, minúsculas, números e símbolos
+                    </p>
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="confirm-password" className="text-sm font-medium" style={{ fontFamily: 'Inter, sans-serif' }}>
+                      Confirmar Senha
+                    </Label>
+                    <Input
+                      id="confirm-password"
+                      type="password"
+                      value={confirmPassword}
+                      onChange={(e) => setConfirmPassword(e.target.value)}
+                      required
+                      minLength={12}
+                      placeholder="Digite a senha novamente"
+                      className="h-12 bg-background/50 border-primary/30 focus:border-primary focus:ring-2 focus:ring-primary/20 rounded-lg"
+                    />
+                  </div>
+                  <Button 
+                    type="submit" 
+                    className="w-full h-12 bg-gradient-to-r from-primary to-accent hover:opacity-90 text-white font-semibold rounded-lg shadow-lg shadow-primary/30 transition-all duration-300" 
+                    disabled={loading}
+                    style={{ fontFamily: 'Plus Jakarta Sans, sans-serif' }}
+                  >
+                    {loading ? (
+                      <>
+                        <Loader2 className="mr-2 h-5 w-5 animate-spin" />
+                        Atualizando...
+                      </>
+                    ) : (
+                      "Atualizar Senha"
+                    )}
+                  </Button>
+                </form>
+              </div>
+            </div>
+          </div>
         </div>
 
       {/* Right Side - Decorative Planet */}
@@ -409,177 +428,235 @@ const Auth = () => {
     <div className="min-h-screen bg-background flex">
       {/* Left Side - Form */}
       <div className="w-full lg:w-1/2 flex items-center justify-center p-8">
-        <Card className="w-full max-w-md premium-card">
-          <CardHeader className="space-y-1">
-            <CardTitle className="text-3xl font-bold text-center bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent">
-              Workflow360 CRM
-            </CardTitle>
-            <CardDescription className="text-center">
-              Sistema de Gestão de Vendas
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-          <Tabs defaultValue="login" className="w-full">
-            <TabsList className="grid w-full grid-cols-2">
-              <TabsTrigger value="login">Entrar</TabsTrigger>
-              <TabsTrigger value="signup">Cadastrar</TabsTrigger>
-            </TabsList>
+        <div className="w-full max-w-md">
+          {/* Header */}
+          <div className="mb-8 space-y-2">
+            <h1 className="text-4xl font-bold text-foreground tracking-tight" style={{ fontFamily: 'Plus Jakarta Sans, sans-serif' }}>
+              Seja bem-vindo!
+            </h1>
+            <p className="text-muted-foreground text-base" style={{ fontFamily: 'Inter, sans-serif' }}>
+              Digite seu email e senha para entrar no sistema
+            </p>
+          </div>
 
-            <TabsContent value="login">
-              {!forgotPasswordMode ? (
-                <form onSubmit={handleLogin} className="space-y-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="login-email">Email</Label>
-                    <Input
-                      id="login-email"
-                      type="email"
-                      placeholder="seu@email.com"
-                      value={loginEmail}
-                      onChange={(e) => setLoginEmail(e.target.value)}
-                      required
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="login-password">Senha</Label>
-                    <Input
-                      id="login-password"
-                      type="password"
-                      value={loginPassword}
-                      onChange={(e) => setLoginPassword(e.target.value)}
-                      required
-                    />
-                  </div>
-                  <Button type="submit" className="w-full" disabled={loading}>
-                    {loading ? (
-                      <>
-                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                        Entrando...
-                      </>
-                    ) : (
-                      "Entrar"
-                    )}
-                  </Button>
-                  <button
-                    type="button"
-                    onClick={() => setForgotPasswordMode(true)}
-                    className="w-full text-sm text-muted-foreground hover:text-primary transition-colors"
+          {/* Glass Card */}
+          <div className="relative backdrop-blur-xl bg-card/40 border border-primary/20 rounded-2xl p-8 shadow-2xl shadow-primary/10">
+            {/* Glow Effect */}
+            <div className="absolute inset-0 rounded-2xl bg-gradient-to-br from-primary/5 via-transparent to-accent/5 pointer-events-none" />
+            
+            <div className="relative z-10">
+              <Tabs defaultValue="login" className="w-full">
+                <TabsList className="grid w-full grid-cols-2 mb-8 bg-background/50 p-1">
+                  <TabsTrigger 
+                    value="login" 
+                    className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-primary data-[state=active]:to-accent data-[state=active]:text-white"
                   >
-                    Esqueci minha senha
-                  </button>
-                </form>
-              ) : (
-                <form onSubmit={handleForgotPassword} className="space-y-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="reset-email">Email</Label>
-                    <Input
-                      id="reset-email"
-                      type="email"
-                      placeholder="seu@email.com"
-                      value={resetEmail}
-                      onChange={(e) => setResetEmail(e.target.value)}
-                      required
-                    />
-                    <p className="text-xs text-muted-foreground">
-                      Enviaremos um link para redefinir sua senha.
-                    </p>
-                    <p className="text-xs text-muted-foreground bg-muted/50 p-2 rounded">
-                      ℹ️ Verifique também a pasta de SPAM
-                    </p>
-                  </div>
-                  <Button type="submit" className="w-full" disabled={loading}>
-                    {loading ? (
-                      <>
-                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                        Enviando...
-                      </>
-                    ) : (
-                      "Enviar link de recuperação"
-                    )}
-                  </Button>
-                  <button
-                    type="button"
-                    onClick={() => setForgotPasswordMode(false)}
-                    className="w-full text-sm text-muted-foreground hover:text-primary transition-colors"
+                    Entrar
+                  </TabsTrigger>
+                  <TabsTrigger 
+                    value="signup"
+                    className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-primary data-[state=active]:to-accent data-[state=active]:text-white"
                   >
-                    Voltar para o login
-                  </button>
-                </form>
-              )}
-            </TabsContent>
+                    Cadastrar
+                  </TabsTrigger>
+                </TabsList>
 
-            <TabsContent value="signup">
-              <form onSubmit={handleSignup} className="space-y-4">
-                <div className="space-y-2">
-                  <Label htmlFor="signup-name">Nome Completo</Label>
-                  <Input
-                    id="signup-name"
-                    type="text"
-                    placeholder="Seu nome"
-                    value={signupData.name}
-                    onChange={(e) => setSignupData({ ...signupData, name: e.target.value })}
-                    required
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="signup-company">Nome da Empresa</Label>
-                  <Input
-                    id="signup-company"
-                    type="text"
-                    placeholder="Sua empresa"
-                    value={signupData.company_name}
-                    onChange={(e) => setSignupData({ ...signupData, company_name: e.target.value })}
-                    required
-                  />
-                  <p className="text-xs text-muted-foreground">
-                    Primeiro cadastro cria automaticamente a empresa e você será o proprietário.
-                  </p>
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="signup-email">Email</Label>
-                  <Input
-                    id="signup-email"
-                    type="email"
-                    placeholder="seu@email.com"
-                    value={signupData.email}
-                    onChange={(e) => setSignupData({ ...signupData, email: e.target.value })}
-                    required
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="signup-password">Senha</Label>
-                  <Input
-                    id="signup-password"
-                    type="password"
-                    value={signupData.password}
-                    onChange={(e) => setSignupData({ ...signupData, password: e.target.value })}
-                    required
-                  />
-                  {signupData.password && (
-                    <PasswordStrength 
-                      password={signupData.password}
-                      requirements={signupPasswordValidation.requirements}
-                    />
-                  )}
-                </div>
-                <Button 
-                  type="submit" 
-                  className="w-full"
-                  disabled={loading || !signupPasswordValidation.isValid}
-                >
-                  {loading ? (
-                    <>
-                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                      Criando conta...
-                    </>
+                <TabsContent value="login">
+                  {!forgotPasswordMode ? (
+                    <form onSubmit={handleLogin} className="space-y-6">
+                      <div className="space-y-2">
+                        <Label htmlFor="login-email" className="text-sm font-medium" style={{ fontFamily: 'Inter, sans-serif' }}>
+                          Email
+                        </Label>
+                        <Input
+                          id="login-email"
+                          type="email"
+                          placeholder="seu@email.com"
+                          value={loginEmail}
+                          onChange={(e) => setLoginEmail(e.target.value)}
+                          required
+                          className="h-12 bg-background/50 border-primary/30 focus:border-primary focus:ring-2 focus:ring-primary/20 rounded-lg"
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <Label htmlFor="login-password" className="text-sm font-medium" style={{ fontFamily: 'Inter, sans-serif' }}>
+                          Senha
+                        </Label>
+                        <Input
+                          id="login-password"
+                          type="password"
+                          placeholder="••••••••"
+                          value={loginPassword}
+                          onChange={(e) => setLoginPassword(e.target.value)}
+                          required
+                          className="h-12 bg-background/50 border-primary/30 focus:border-primary focus:ring-2 focus:ring-primary/20 rounded-lg"
+                        />
+                      </div>
+                      <Button 
+                        type="submit" 
+                        className="w-full h-12 bg-gradient-to-r from-primary to-accent hover:opacity-90 text-white font-semibold rounded-lg shadow-lg shadow-primary/30 transition-all duration-300" 
+                        disabled={loading}
+                        style={{ fontFamily: 'Plus Jakarta Sans, sans-serif' }}
+                      >
+                        {loading ? (
+                          <>
+                            <Loader2 className="mr-2 h-5 w-5 animate-spin" />
+                            Entrando...
+                          </>
+                        ) : (
+                          "Acessar"
+                        )}
+                      </Button>
+                      <div className="text-center">
+                        <button
+                          type="button"
+                          onClick={() => setForgotPasswordMode(true)}
+                          className="text-sm text-muted-foreground hover:text-primary transition-colors inline-flex items-center gap-1"
+                          style={{ fontFamily: 'Inter, sans-serif' }}
+                        >
+                          Esqueceu sua senha?
+                          <span className="text-primary underline">Clique aqui</span>
+                        </button>
+                      </div>
+                    </form>
                   ) : (
-                    "Criar Conta"
+                    <form onSubmit={handleForgotPassword} className="space-y-6">
+                      <div className="space-y-2">
+                        <Label htmlFor="reset-email" className="text-sm font-medium" style={{ fontFamily: 'Inter, sans-serif' }}>
+                          Email
+                        </Label>
+                        <Input
+                          id="reset-email"
+                          type="email"
+                          placeholder="seu@email.com"
+                          value={resetEmail}
+                          onChange={(e) => setResetEmail(e.target.value)}
+                          required
+                          className="h-12 bg-background/50 border-primary/30 focus:border-primary focus:ring-2 focus:ring-primary/20 rounded-lg"
+                        />
+                        <p className="text-xs text-muted-foreground mt-2">
+                          Enviaremos um link para redefinir sua senha.
+                        </p>
+                        <div className="flex items-start gap-2 bg-accent/10 border border-accent/20 p-3 rounded-lg mt-3">
+                          <span className="text-accent text-sm">ℹ️</span>
+                          <p className="text-xs text-muted-foreground">
+                            Verifique também a pasta de SPAM
+                          </p>
+                        </div>
+                      </div>
+                      <Button 
+                        type="submit" 
+                        className="w-full h-12 bg-gradient-to-r from-primary to-accent hover:opacity-90 text-white font-semibold rounded-lg shadow-lg shadow-primary/30" 
+                        disabled={loading}
+                      >
+                        {loading ? (
+                          <>
+                            <Loader2 className="mr-2 h-5 w-5 animate-spin" />
+                            Enviando...
+                          </>
+                        ) : (
+                          "Enviar link de recuperação"
+                        )}
+                      </Button>
+                      <button
+                        type="button"
+                        onClick={() => setForgotPasswordMode(false)}
+                        className="w-full text-sm text-muted-foreground hover:text-primary transition-colors"
+                      >
+                        Voltar para o login
+                      </button>
+                    </form>
                   )}
-                </Button>
-              </form>
             </TabsContent>
-          </Tabs>
-        </CardContent>
-        </Card>
+
+                <TabsContent value="signup">
+                  <form onSubmit={handleSignup} className="space-y-5">
+                    <div className="space-y-2">
+                      <Label htmlFor="signup-name" className="text-sm font-medium" style={{ fontFamily: 'Inter, sans-serif' }}>
+                        Nome Completo
+                      </Label>
+                      <Input
+                        id="signup-name"
+                        type="text"
+                        placeholder="Seu nome"
+                        value={signupData.name}
+                        onChange={(e) => setSignupData({ ...signupData, name: e.target.value })}
+                        required
+                        className="h-11 bg-background/50 border-primary/30 focus:border-primary focus:ring-2 focus:ring-primary/20 rounded-lg"
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="signup-company" className="text-sm font-medium" style={{ fontFamily: 'Inter, sans-serif' }}>
+                        Nome da Empresa
+                      </Label>
+                      <Input
+                        id="signup-company"
+                        type="text"
+                        placeholder="Sua empresa"
+                        value={signupData.company_name}
+                        onChange={(e) => setSignupData({ ...signupData, company_name: e.target.value })}
+                        required
+                        className="h-11 bg-background/50 border-primary/30 focus:border-primary focus:ring-2 focus:ring-primary/20 rounded-lg"
+                      />
+                      <p className="text-xs text-muted-foreground mt-1">
+                        Primeiro cadastro cria automaticamente a empresa
+                      </p>
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="signup-email" className="text-sm font-medium" style={{ fontFamily: 'Inter, sans-serif' }}>
+                        Email
+                      </Label>
+                      <Input
+                        id="signup-email"
+                        type="email"
+                        placeholder="seu@email.com"
+                        value={signupData.email}
+                        onChange={(e) => setSignupData({ ...signupData, email: e.target.value })}
+                        required
+                        className="h-11 bg-background/50 border-primary/30 focus:border-primary focus:ring-2 focus:ring-primary/20 rounded-lg"
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="signup-password" className="text-sm font-medium" style={{ fontFamily: 'Inter, sans-serif' }}>
+                        Senha
+                      </Label>
+                      <Input
+                        id="signup-password"
+                        type="password"
+                        placeholder="••••••••"
+                        value={signupData.password}
+                        onChange={(e) => setSignupData({ ...signupData, password: e.target.value })}
+                        required
+                        className="h-11 bg-background/50 border-primary/30 focus:border-primary focus:ring-2 focus:ring-primary/20 rounded-lg"
+                      />
+                      {signupData.password && (
+                        <PasswordStrength 
+                          password={signupData.password}
+                          requirements={signupPasswordValidation.requirements}
+                        />
+                      )}
+                    </div>
+                    <Button 
+                      type="submit" 
+                      className="w-full h-12 bg-gradient-to-r from-primary to-accent hover:opacity-90 text-white font-semibold rounded-lg shadow-lg shadow-primary/30 transition-all duration-300 mt-2"
+                      disabled={loading || !signupPasswordValidation.isValid}
+                      style={{ fontFamily: 'Plus Jakarta Sans, sans-serif' }}
+                    >
+                      {loading ? (
+                        <>
+                          <Loader2 className="mr-2 h-5 w-5 animate-spin" />
+                          Criando conta...
+                        </>
+                      ) : (
+                        "Criar Conta"
+                      )}
+                    </Button>
+                  </form>
+                </TabsContent>
+              </Tabs>
+            </div>
+          </div>
+        </div>
       </div>
 
       {/* Right Side - Decorative Planet */}
