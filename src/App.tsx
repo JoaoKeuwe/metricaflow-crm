@@ -6,6 +6,7 @@ import { BrowserRouter, Routes, Route } from "react-router-dom";
 import ResetPassword from "./pages/ResetPassword";
 import Dashboard from "./pages/Dashboard";
 import Auth from "./pages/Auth";
+import Pricing from "./pages/Pricing";
 import Leads from "./pages/Leads";
 import LeadDetail from "./pages/LeadDetail";
 import Kanban from "./pages/Kanban";
@@ -204,6 +205,7 @@ const App = () => {
                 </ProtectedRoute>
               }
             />
+            <Route path="/pricing" element={<Pricing />} />
             <Route path="*" element={<NotFound />} />
           </Routes>
         </BrowserRouter>
