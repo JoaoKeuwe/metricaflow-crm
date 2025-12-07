@@ -104,3 +104,6 @@ verify_jwt = true
 
 [functions.update-demo-avatars]
 verify_jwt = true
+
+[functions.stripe-webhook]
+verify_jwt = false
