@@ -1,4 +1,4 @@
-import { LayoutDashboard, Users, KanbanSquare, Settings, LogOut, Plug, Calendar, ListTodo, Bell, Database, Trophy, HelpCircle, ChevronLeft, ChevronRight } from "lucide-react";
+import { LayoutDashboard, Users, KanbanSquare, Settings, LogOut, Plug, Calendar, ListTodo, Bell, Database, Trophy, HelpCircle, ChevronLeft, ChevronRight, Shield } from "lucide-react";
 import { NavLink, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
@@ -28,7 +28,7 @@ const Sidebar = () => {
       if (!session?.user?.id) return null;
       const { data } = await supabase
         .from("profiles")
-        .select("*, company:companies(*)")
+        .select("*, company:companies(*), is_super_admin")
         .eq("id", session.user.id)
         .single();
       return data;
@@ -77,70 +77,93 @@ const Sidebar = () => {
   };
 
   const isOwnerOrGestor = (profile?.company?.owner_id === session?.user?.id) || userRole === 'gestor_owner' || userRole === 'gestor';
+  const isSuperAdmin = profile?.is_super_admin === true;
 
   const allNavItems = [{
     to: "/",
     icon: LayoutDashboard,
     label: "Dashboard",
-    requiresOwnerOrGestor: false
+    requiresOwnerOrGestor: false,
+    requiresSuperAdmin: false
   }, {
     to: "/leads",
     icon: Users,
     label: "Leads",
-    requiresOwnerOrGestor: false
+    requiresOwnerOrGestor: false,
+    requiresSuperAdmin: false
   }, {
     to: "/kanban",
     icon: KanbanSquare,
     label: "Kanban",
-    requiresOwnerOrGestor: false
+    requiresOwnerOrGestor: false,
+    requiresSuperAdmin: false
   }, {
     to: "/agenda",
     icon: Calendar,
     label: "Agenda",
-    requiresOwnerOrGestor: false
+    requiresOwnerOrGestor: false,
+    requiresSuperAdmin: false
   }, {
     to: "/tasks",
     icon: ListTodo,
     label: "Tarefas",
-    requiresOwnerOrGestor: false
+    requiresOwnerOrGestor: false,
+    requiresSuperAdmin: false
   }, {
     to: "/reminders",
     icon: Bell,
     label: "Lembretes",
-    requiresOwnerOrGestor: false
+    requiresOwnerOrGestor: false,
+    requiresSuperAdmin: false
   }, {
     to: "/local-prospector",
     icon: Database,
     label: "Local Prospector",
-    requiresOwnerOrGestor: false
+    requiresOwnerOrGestor: false,
+    requiresSuperAdmin: false
   }, {
     to: "/users",
     icon: Settings,
     label: "Gestão de Usuários",
-    requiresOwnerOrGestor: true
+    requiresOwnerOrGestor: true,
+    requiresSuperAdmin: false
   }, {
     to: "/integrations",
     icon: Plug,
     label: "Integrações",
-    requiresOwnerOrGestor: true
+    requiresOwnerOrGestor: true,
+    requiresSuperAdmin: false
   }, {
     to: "/gamification",
     icon: Trophy,
     label: "🎮 Gamificação Live",
-    requiresOwnerOrGestor: true
+    requiresOwnerOrGestor: true,
+    requiresSuperAdmin: false
   }, {
     to: "/settings",
     icon: Settings,
     label: "Configurações",
-    requiresOwnerOrGestor: true
+    requiresOwnerOrGestor: true,
+    requiresSuperAdmin: false
   }, {
     to: "/help",
     icon: HelpCircle,
     label: "Ajuda",
-    requiresOwnerOrGestor: false
+    requiresOwnerOrGestor: false,
+    requiresSuperAdmin: false
+  }, {
+    to: "/admin",
+    icon: Shield,
+    label: "Administração",
+    requiresOwnerOrGestor: false,
+    requiresSuperAdmin: true
   }];
 
-  const navItems = allNavItems.filter(item => !item.requiresOwnerOrGestor || isOwnerOrGestor);
+  const navItems = allNavItems.filter(item => {
+    if (item.requiresSuperAdmin) return isSuperAdmin;
+    if (item.requiresOwnerOrGestor) return isOwnerOrGestor;
+    return true;
+  });
   return <nav className="fixed top-0 left-0 right-0 h-16 bg-card border-b border-border flex items-center justify-between px-6 z-50">
       <div className="flex items-center gap-6">
         <div className="flex items-center gap-3">
