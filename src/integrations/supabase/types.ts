@@ -808,6 +808,7 @@ export type Database = {
           created_at: string
           email_notifications: boolean | null
           id: string
+          must_change_password: boolean | null
           name: string
           onboarding_completed: boolean | null
         }
@@ -818,6 +819,7 @@ export type Database = {
           created_at?: string
           email_notifications?: boolean | null
           id: string
+          must_change_password?: boolean | null
           name: string
           onboarding_completed?: boolean | null
         }
@@ -828,6 +830,7 @@ export type Database = {
           created_at?: string
           email_notifications?: boolean | null
           id?: string
+          must_change_password?: boolean | null
           name?: string
           onboarding_completed?: boolean | null
         }

@@ -311,6 +311,18 @@ serve(async (req) => {
       // Aguardar trigger criar profile e company
       await new Promise(resolve => setTimeout(resolve, 2000));
 
+      // Atualizar profile para forçar troca de senha no primeiro login
+      const { error: updateProfileError } = await supabaseAdmin
+        .from("profiles")
+        .update({ must_change_password: true })
+        .eq("id", newUser.user.id);
+
+      if (updateProfileError) {
+        logStep("Erro ao atualizar must_change_password", { error: updateProfileError.message });
+      } else {
+        logStep("Profile atualizado com must_change_password = true");
+      }
+
       // Buscar company_id do usuário
       const { data: profile } = await supabaseAdmin
         .from("profiles")
