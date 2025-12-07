@@ -25,6 +25,7 @@ import Help from "./pages/Help";
 import Settings from "./pages/Settings";
 import ReportSettings from "./pages/ReportSettings";
 import Goals from "./pages/Goals";
+import Admin from "./pages/Admin";
 import NotFound from "./pages/NotFound";
 import Sidebar from "./components/layout/Sidebar";
 import ProtectedRoute from "./pages/ProtectedRoute";
@@ -208,6 +209,7 @@ const App = () => {
               }
             />
             <Route path="/pricing" element={<Pricing />} />
+            <Route path="/admin" element={<Admin />} />
             <Route path="*" element={<NotFound />} />
           </Routes>
         </BrowserRouter>

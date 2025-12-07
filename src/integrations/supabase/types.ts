@@ -808,6 +808,7 @@ export type Database = {
           created_at: string
           email_notifications: boolean | null
           id: string
+          is_super_admin: boolean | null
           must_change_password: boolean | null
           name: string
           onboarding_completed: boolean | null
@@ -819,6 +820,7 @@ export type Database = {
           created_at?: string
           email_notifications?: boolean | null
           id: string
+          is_super_admin?: boolean | null
           must_change_password?: boolean | null
           name: string
           onboarding_completed?: boolean | null
@@ -830,6 +832,7 @@ export type Database = {
           created_at?: string
           email_notifications?: boolean | null
           id?: string
+          is_super_admin?: boolean | null
           must_change_password?: boolean | null
           name?: string
           onboarding_completed?: boolean | null
@@ -1507,6 +1510,7 @@ export type Database = {
         Returns: boolean
       }
       is_owner: { Args: { _user_id: string }; Returns: boolean }
+      is_super_admin: { Args: never; Returns: boolean }
       user_participates_in_meeting: {
         Args: { _meeting_id: string; _user_id: string }
         Returns: boolean
