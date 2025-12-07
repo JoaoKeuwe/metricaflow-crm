@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
+import { useSubscription } from "@/hooks/useSubscription";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -37,19 +38,24 @@ import {
 } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { UserPlus, Trash2, Users, Clock, CheckCircle, XCircle, Loader2, Crown, Mail, Power, PowerOff } from "lucide-react";
-import { inviteSchema } from "@/lib/validation";
+import { UserPlus, Users, Loader2, Crown, Power, PowerOff, Eye, EyeOff } from "lucide-react";
+import { createUserSchema } from "@/lib/validation";
 import { AvatarUpload } from "@/components/profile/AvatarUpload";
 
 export default function UsersPage() {
   const { toast } = useToast();
   const queryClient = useQueryClient();
+  const { planType, userLimit: subscriptionUserLimit } = useSubscription();
+  
   const [dialogOpen, setDialogOpen] = useState(false);
-  const [inviteEmail, setInviteEmail] = useState("");
-  const [inviteRole, setInviteRole] = useState<"gestor" | "vendedor">("vendedor");
+  const [userName, setUserName] = useState("");
+  const [userEmail, setUserEmail] = useState("");
+  const [userPassword, setUserPassword] = useState("");
+  const [userPasswordConfirm, setUserPasswordConfirm] = useState("");
+  const [userRole, setUserRole] = useState<"gestor" | "vendedor">("vendedor");
   const [roleFilter, setRoleFilter] = useState<string>("all");
-  const [avatarDialogOpen, setAvatarDialogOpen] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
+  const [showPasswordConfirm, setShowPasswordConfirm] = useState(false);
   const [selectedUserId, setSelectedUserId] = useState<string | null>(null);
 
   const { data: session } = useQuery({
@@ -74,11 +80,7 @@ export default function UsersPage() {
     enabled: !!session?.user?.id,
   });
 
-  /**
-   * UI-ONLY CHECK - Does not provide security!
-   * Backend validation via RLS policies is required.
-   */
-  const { data: userRole } = useQuery({
+  const { data: currentUserRole } = useQuery({
     queryKey: ["user-role", session?.user?.id],
     queryFn: async () => {
       if (!session?.user?.id) return null;
@@ -94,8 +96,9 @@ export default function UsersPage() {
     enabled: !!session?.user?.id,
   });
 
-  const isOwner = userRole === "gestor_owner";
-  const canManageUsers = isOwner || userRole === "gestor";
+  const isOwner = currentUserRole === "gestor_owner";
+  const canManageUsers = isOwner || currentUserRole === "gestor";
+  const isIndividualPlan = planType?.includes('individual') || planType === 'free';
 
   const { data: users } = useQuery({
     queryKey: ["company-users", profile?.company_id],
@@ -110,7 +113,6 @@ export default function UsersPage() {
 
       if (profilesError) throw profilesError;
 
-      // Get roles from user_roles table
       const userIds = profiles?.map(p => p.id) || [];
       const { data: roles, error: rolesError } = await supabase
         .from("user_roles")
@@ -119,7 +121,6 @@ export default function UsersPage() {
 
       if (rolesError) throw rolesError;
 
-      // Combine profiles with their roles
       return profiles?.map(profile => ({
         ...profile,
         user_roles: roles?.filter(r => r.user_id === profile.id) || []
@@ -132,116 +133,41 @@ export default function UsersPage() {
     u.user_roles?.some((r: any) => r.role === "gestor_owner")
   ).length || 0;
   const additionalUsers = (users?.length || 0) - ownerCount;
-  const userLimit = profile?.companies?.user_limit_adicionais || 10;
-  const canInvite = additionalUsers < userLimit;
+  const effectiveUserLimit = subscriptionUserLimit || 10;
+  const canCreateUser = !isIndividualPlan && additionalUsers < effectiveUserLimit;
 
-  const { data: invites } = useQuery({
-    queryKey: ["invites", profile?.company_id],
-    queryFn: async () => {
-      if (!profile?.company_id) return [];
-      
-      const { data, error } = await supabase
-        .from("invites")
-        .select("*")
-        .eq("company_id", profile.company_id)
-        .order("created_at", { ascending: false });
-
-      if (error) throw error;
-      return data || [];
-    },
-    enabled: !!profile?.company_id && canManageUsers,
-  });
-
-  const createInviteMutation = useMutation({
-    mutationFn: async ({ email, role }: { email: string; role: string }) => {
-      if (!profile?.company_id || !session?.user?.id) throw new Error("Not authenticated");
-      
-      // Create invite in database
-      const { data: invite, error } = await supabase
-        .from("invites")
-        .insert([{
-          email,
-          company_id: profile.company_id,
-          invited_by: session.user.id,
-          role: role as any,
-        }])
-        .select()
-        .single();
-
-      if (error) throw error;
-
-      // Send invite email via edge function
-      console.log("📧 Enviando email de convite via edge function...", {
-        inviteId: invite.id,
-        email: invite.email,
-        role: invite.role,
-        companyName: profile.companies?.name || "sua empresa",
+  const createUserMutation = useMutation({
+    mutationFn: async ({ name, email, password, role }: { 
+      name: string; 
+      email: string; 
+      password: string; 
+      role: string 
+    }) => {
+      const { data, error } = await supabase.functions.invoke("create-user", {
+        body: { name, email, password, role },
       });
 
-      const { data: emailData, error: emailError } = await supabase.functions.invoke("send-invite", {
-        body: {
-          inviteId: invite.id,
-          email: invite.email,
-          role: invite.role,
-          companyName: profile.companies?.name || "sua empresa",
-          appUrl: "https://myworkflow360.com",
-        },
-      });
+      if (error) throw error;
+      if (data?.error) throw new Error(data.error);
 
-      console.log("📬 Resposta da edge function:", { emailData, emailError });
-
-      if (emailError) {
-        console.error("❌ Error sending invite email:", emailError);
-        throw new Error(`Erro ao enviar e-mail: ${emailError.message}`);
-      }
-
-      if (emailData?.error) {
-        console.error("❌ Send invite data error:", emailData);
-        
-        // Erro de configuração do Resend
-        if (emailData.details) {
-          throw new Error(`Configuração de email: ${emailData.details}`);
-        }
-        
-        throw new Error(`Erro no envio: ${emailData.error}`);
-      }
-
-      console.log("✅ Email enviado com sucesso!");
-
-      return invite;
+      return data;
     },
-    onSuccess: () => {
+    onSuccess: (data) => {
       toast({
-        title: "✅ Convite enviado!",
-        description: `Um email de convite foi enviado para ${inviteEmail}`,
+        title: "✅ Usuário criado!",
+        description: `${data.user?.name} foi adicionado à equipe.`,
       });
-      queryClient.invalidateQueries({ queryKey: ["invites"] });
-      setInviteEmail("");
-      setInviteRole("vendedor");
+      queryClient.invalidateQueries({ queryKey: ["company-users"] });
+      resetForm();
       setDialogOpen(false);
     },
     onError: (error: any) => {
-      console.error("Invite error:", error);
+      console.error("Create user error:", error);
       toast({
-        title: "Erro ao enviar convite",
-        description: error.message || "Não foi possível enviar o convite. Tente novamente.",
+        title: "Erro ao criar usuário",
+        description: error.message || "Não foi possível criar o usuário. Tente novamente.",
         variant: "destructive",
       });
-    },
-  });
-
-  const deleteInviteMutation = useMutation({
-    mutationFn: async (inviteId: string) => {
-      const { error } = await supabase
-        .from("invites")
-        .delete()
-        .eq("id", inviteId);
-
-      if (error) throw error;
-    },
-    onSuccess: () => {
-      toast({ title: "Convite cancelado" });
-      queryClient.invalidateQueries({ queryKey: ["invites"] });
     },
   });
 
@@ -300,10 +226,35 @@ export default function UsersPage() {
     };
   }, [profile?.company_id, queryClient]);
 
-  const handleInvite = async () => {
-    // Validação com Zod
+  const resetForm = () => {
+    setUserName("");
+    setUserEmail("");
+    setUserPassword("");
+    setUserPasswordConfirm("");
+    setUserRole("vendedor");
+    setShowPassword(false);
+    setShowPasswordConfirm(false);
+  };
+
+  const handleCreateUser = async () => {
+    // Validate passwords match
+    if (userPassword !== userPasswordConfirm) {
+      toast({
+        title: "Senhas não conferem",
+        description: "As senhas digitadas não são iguais.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    // Validate with Zod
     try {
-      inviteSchema.parse({ email: inviteEmail, role: inviteRole });
+      createUserSchema.parse({ 
+        name: userName, 
+        email: userEmail, 
+        password: userPassword, 
+        role: userRole 
+      });
     } catch (error: any) {
       toast({
         title: "Dados inválidos",
@@ -313,7 +264,12 @@ export default function UsersPage() {
       return;
     }
 
-    createInviteMutation.mutate({ email: inviteEmail, role: inviteRole });
+    createUserMutation.mutate({ 
+      name: userName, 
+      email: userEmail, 
+      password: userPassword, 
+      role: userRole 
+    });
   };
 
   const getRoleBadge = (role: string) => {
@@ -326,24 +282,6 @@ export default function UsersPage() {
     return <Badge variant={config.variant}>{config.label}</Badge>;
   };
 
-  const getInviteStatusBadge = (status: string, expiresAt: string) => {
-    const expired = new Date(expiresAt) < new Date();
-    
-    if (expired) {
-      return <Badge variant="destructive"><XCircle className="h-3 w-3 mr-1" />Expirado</Badge>;
-    }
-    
-    const statusMap: Record<string, { label: string; icon: any; variant: "default" | "secondary" | "outline" }> = {
-      pending: { label: "Pendente", icon: Clock, variant: "secondary" },
-      accepted: { label: "Aceito", icon: CheckCircle, variant: "default" },
-    };
-    
-    const config = statusMap[status] || { label: status, icon: Mail, variant: "outline" as const };
-    const Icon = config.icon;
-    
-    return <Badge variant={config.variant}><Icon className="h-3 w-3 mr-1" />{config.label}</Badge>;
-  };
-
   const getInitials = (name: string) => {
     return name
       .split(" ")
@@ -353,7 +291,6 @@ export default function UsersPage() {
       .slice(0, 2);
   };
 
-  // Apply role filter
   const filteredUsers = roleFilter !== "all"
     ? users?.filter(u => u.user_roles?.some((r: any) => r.role === roleFilter))
     : users;
@@ -379,63 +316,133 @@ export default function UsersPage() {
         <div>
           <h2 className="text-3xl font-bold">Gestão de Usuários</h2>
           <p className="text-muted-foreground">
-            {additionalUsers}/{userLimit} usuários adicionais
+            {isIndividualPlan 
+              ? "Plano Individual: 1 usuário" 
+              : `${additionalUsers + 1}/${effectiveUserLimit} usuários`
+            }
           </p>
         </div>
-        <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-          <DialogTrigger asChild>
-            <Button disabled={!canInvite}>
-              <UserPlus className="mr-2 h-4 w-4" />
-              Convidar usuário
-            </Button>
-          </DialogTrigger>
-          <DialogContent>
-            <DialogHeader>
-              <DialogTitle>Convidar novo usuário</DialogTitle>
-              <DialogDescription>
-                {canInvite ? "Digite o e-mail e selecione o perfil." : `Limite atingido (${userLimit})`}
-              </DialogDescription>
-            </DialogHeader>
-            <div className="space-y-4">
-              <div className="space-y-2">
-                <Label htmlFor="invite-email">Email</Label>
-                <Input
-                  id="invite-email"
-                  placeholder="email@exemplo.com"
-                  value={inviteEmail}
-                  onChange={(e) => setInviteEmail(e.target.value)}
-                  type="email"
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="invite-role">Função</Label>
-                <Select value={inviteRole} onValueChange={(v) => setInviteRole(v as any)}>
-                  <SelectTrigger id="invite-role">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="gestor">Gestor</SelectItem>
-                    <SelectItem value="vendedor">Vendedor</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-              <Button 
-                onClick={handleInvite} 
-                className="w-full" 
-                disabled={!inviteEmail || createInviteMutation.isPending}
-              >
-                {createInviteMutation.isPending ? (
-                  <>
-                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                    Enviando...
-                  </>
-                ) : (
-                  "Enviar convite"
-                )}
+        
+        {isOwner && !isIndividualPlan && (
+          <Dialog open={dialogOpen} onOpenChange={(open) => {
+            setDialogOpen(open);
+            if (!open) resetForm();
+          }}>
+            <DialogTrigger asChild>
+              <Button disabled={!canCreateUser}>
+                <UserPlus className="mr-2 h-4 w-4" />
+                Criar Usuário
               </Button>
-            </div>
-          </DialogContent>
-        </Dialog>
+            </DialogTrigger>
+            <DialogContent className="max-w-md">
+              <DialogHeader>
+                <DialogTitle>Criar novo usuário</DialogTitle>
+                <DialogDescription>
+                  {canCreateUser 
+                    ? "Preencha os dados do novo membro da equipe." 
+                    : `Limite de ${effectiveUserLimit} usuários atingido.`
+                  }
+                </DialogDescription>
+              </DialogHeader>
+              <div className="space-y-4">
+                <div className="space-y-2">
+                  <Label htmlFor="user-name">Nome</Label>
+                  <Input
+                    id="user-name"
+                    placeholder="Nome completo"
+                    value={userName}
+                    onChange={(e) => setUserName(e.target.value)}
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="user-email">Email</Label>
+                  <Input
+                    id="user-email"
+                    placeholder="email@exemplo.com"
+                    value={userEmail}
+                    onChange={(e) => setUserEmail(e.target.value)}
+                    type="email"
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="user-password">Senha</Label>
+                  <div className="relative">
+                    <Input
+                      id="user-password"
+                      placeholder="Mínimo 12 caracteres"
+                      value={userPassword}
+                      onChange={(e) => setUserPassword(e.target.value)}
+                      type={showPassword ? "text" : "password"}
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowPassword(!showPassword)}
+                      className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                    >
+                      {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                    </button>
+                  </div>
+                  <p className="text-xs text-muted-foreground">
+                    Mínimo 12 caracteres, incluindo maiúscula, minúscula, número e caractere especial.
+                  </p>
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="user-password-confirm">Confirmar Senha</Label>
+                  <div className="relative">
+                    <Input
+                      id="user-password-confirm"
+                      placeholder="Repita a senha"
+                      value={userPasswordConfirm}
+                      onChange={(e) => setUserPasswordConfirm(e.target.value)}
+                      type={showPasswordConfirm ? "text" : "password"}
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowPasswordConfirm(!showPasswordConfirm)}
+                      className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                    >
+                      {showPasswordConfirm ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                    </button>
+                  </div>
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="user-role">Função</Label>
+                  <Select value={userRole} onValueChange={(v) => setUserRole(v as any)}>
+                    <SelectTrigger id="user-role">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="gestor">Gestor</SelectItem>
+                      <SelectItem value="vendedor">Vendedor</SelectItem>
+                    </SelectContent>
+                  </Select>
+                  <p className="text-xs text-muted-foreground">
+                    Gestores visualizam todos os dados. Vendedores apenas seus próprios leads.
+                  </p>
+                </div>
+
+                <Button 
+                  onClick={handleCreateUser} 
+                  className="w-full" 
+                  disabled={!userName || !userEmail || !userPassword || !userPasswordConfirm || createUserMutation.isPending}
+                >
+                  {createUserMutation.isPending ? (
+                    <>
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      Criando...
+                    </>
+                  ) : (
+                    "Criar Usuário"
+                  )}
+                </Button>
+              </div>
+            </DialogContent>
+          </Dialog>
+        )}
       </div>
 
       <div className="flex gap-4 items-center mb-4">
@@ -453,169 +460,96 @@ export default function UsersPage() {
         </Select>
       </div>
 
-      <Tabs defaultValue="users" className="w-full">
-        <TabsList>
-          <TabsTrigger value="users">Usuários Ativos</TabsTrigger>
-          <TabsTrigger value="invites">
-            Convites 
-            {invites && invites.length > 0 && (
-              <Badge variant="secondary" className="ml-2">{invites.length}</Badge>
-            )}
-          </TabsTrigger>
-        </TabsList>
-
-        <TabsContent value="users" className="space-y-4">
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Users className="h-5 w-5" />
-                Usuários Ativos
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Avatar</TableHead>
-                    <TableHead>Nome</TableHead>
-                    <TableHead>Perfil</TableHead>
-                    <TableHead>Status</TableHead>
-                    {isOwner && <TableHead>Ações</TableHead>}
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {filteredUsers?.map((user) => {
-                    const role = user.user_roles?.[0]?.role || "vendedor";
-                    const isUserOwner = role === "gestor_owner";
-                    return (
-                      <TableRow key={user.id}>
-                        <TableCell>
-                          <Dialog>
-                            <DialogTrigger asChild>
-                              <button 
-                                className="cursor-pointer hover:opacity-80 transition-opacity"
-                                onClick={() => setSelectedUserId(user.id)}
-                              >
-                                <Avatar className="h-10 w-10">
-                                  <AvatarImage src={user.avatar_url || undefined} />
-                                  <AvatarFallback>{getInitials(user.name)}</AvatarFallback>
-                                </Avatar>
-                              </button>
-                            </DialogTrigger>
-                            <DialogContent>
-                              <DialogHeader>
-                                <DialogTitle>Upload de Avatar</DialogTitle>
-                                <DialogDescription>
-                                  Clique para fazer upload de uma nova foto de perfil
-                                </DialogDescription>
-                              </DialogHeader>
-                              <AvatarUpload 
-                                userId={user.id} 
-                                currentAvatarUrl={user.avatar_url} 
-                                userName={user.name} 
-                              />
-                            </DialogContent>
-                          </Dialog>
-                        </TableCell>
-                        <TableCell className="font-medium">
-                          {user.name}
-                          {isUserOwner && <Crown className="inline ml-2 h-4 w-4 text-yellow-500" />}
-                        </TableCell>
-                        <TableCell>{getRoleBadge(role)}</TableCell>
-                        <TableCell>
-                          <Badge variant={user.active ? "default" : "secondary"}>
-                            {user.active ? "Ativo" : "Inativo"}
-                          </Badge>
-                        </TableCell>
-                        {isOwner && (
-                          <TableCell>
-                            {!isUserOwner && (
-                              <Button
-                                size="sm"
-                                variant="ghost"
-                                onClick={() => toggleUserActiveMutation.mutate({
-                                  userId: user.id,
-                                  active: !user.active,
-                                })}
-                                disabled={toggleUserActiveMutation.isPending}
-                              >
-                                {user.active ? (
-                                  <PowerOff className="h-4 w-4 text-red-500" />
-                                ) : (
-                                  <Power className="h-4 w-4 text-green-500" />
-                                )}
-                              </Button>
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Users className="h-5 w-5" />
+            Usuários da Equipe
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>Avatar</TableHead>
+                <TableHead>Nome</TableHead>
+                <TableHead>Perfil</TableHead>
+                <TableHead>Status</TableHead>
+                {isOwner && <TableHead>Ações</TableHead>}
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {filteredUsers?.map((user) => {
+                const role = user.user_roles?.[0]?.role || "vendedor";
+                const isUserOwner = role === "gestor_owner";
+                return (
+                  <TableRow key={user.id}>
+                    <TableCell>
+                      <Dialog>
+                        <DialogTrigger asChild>
+                          <button 
+                            className="cursor-pointer hover:opacity-80 transition-opacity"
+                            onClick={() => setSelectedUserId(user.id)}
+                          >
+                            <Avatar className="h-10 w-10">
+                              <AvatarImage src={user.avatar_url || undefined} />
+                              <AvatarFallback>{getInitials(user.name)}</AvatarFallback>
+                            </Avatar>
+                          </button>
+                        </DialogTrigger>
+                        <DialogContent>
+                          <DialogHeader>
+                            <DialogTitle>Upload de Avatar</DialogTitle>
+                            <DialogDescription>
+                              Clique para fazer upload de uma nova foto de perfil
+                            </DialogDescription>
+                          </DialogHeader>
+                          <AvatarUpload 
+                            userId={user.id} 
+                            currentAvatarUrl={user.avatar_url} 
+                            userName={user.name} 
+                          />
+                        </DialogContent>
+                      </Dialog>
+                    </TableCell>
+                    <TableCell className="font-medium">
+                      {user.name}
+                      {isUserOwner && <Crown className="inline ml-2 h-4 w-4 text-yellow-500" />}
+                    </TableCell>
+                    <TableCell>{getRoleBadge(role)}</TableCell>
+                    <TableCell>
+                      <Badge variant={user.active ? "default" : "secondary"}>
+                        {user.active ? "Ativo" : "Inativo"}
+                      </Badge>
+                    </TableCell>
+                    {isOwner && (
+                      <TableCell>
+                        {!isUserOwner && (
+                          <Button
+                            size="sm"
+                            variant="ghost"
+                            onClick={() => toggleUserActiveMutation.mutate({
+                              userId: user.id,
+                              active: !user.active,
+                            })}
+                            disabled={toggleUserActiveMutation.isPending}
+                          >
+                            {user.active ? (
+                              <PowerOff className="h-4 w-4 text-red-500" />
+                            ) : (
+                              <Power className="h-4 w-4 text-green-500" />
                             )}
-                          </TableCell>
+                          </Button>
                         )}
-                      </TableRow>
-                    );
-                  })}
-                </TableBody>
-              </Table>
-            </CardContent>
-          </Card>
-        </TabsContent>
-
-        <TabsContent value="invites" className="space-y-4">
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Mail className="h-5 w-5" />
-                Convites
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              {invites && invites.length > 0 ? (
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>E-mail</TableHead>
-                      <TableHead>Perfil</TableHead>
-                      <TableHead>Status</TableHead>
-                      <TableHead>Enviado em</TableHead>
-                      <TableHead>Ações</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {invites.map((invite) => (
-                      <TableRow key={invite.id}>
-                        <TableCell className="font-medium">
-                          <div className="flex items-center">
-                            <Mail className="h-4 w-4 mr-2 text-muted-foreground" />
-                            {invite.email}
-                          </div>
-                        </TableCell>
-                        <TableCell>{getRoleBadge(invite.role)}</TableCell>
-                        <TableCell>{getInviteStatusBadge(invite.status, invite.expires_at)}</TableCell>
-                        <TableCell>
-                          {new Date(invite.created_at).toLocaleDateString("pt-BR")}
-                        </TableCell>
-                        <TableCell>
-                          {invite.status === "pending" && isOwner && (
-                            <Button
-                              size="sm"
-                              variant="ghost"
-                              onClick={() => deleteInviteMutation.mutate(invite.id)}
-                            >
-                              <XCircle className="h-4 w-4" />
-                            </Button>
-                          )}
-                        </TableCell>
-                      </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
-              ) : (
-                <div className="text-center py-12 text-muted-foreground">
-                  <Mail className="h-12 w-12 mx-auto mb-4 opacity-50" />
-                  <p>Nenhum convite pendente</p>
-                </div>
-              )}
-            </CardContent>
-          </Card>
-        </TabsContent>
-      </Tabs>
+                      </TableCell>
+                    )}
+                  </TableRow>
+                );
+              })}
+            </TableBody>
+          </Table>
+        </CardContent>
+      </Card>
     </div>
   );
 }
