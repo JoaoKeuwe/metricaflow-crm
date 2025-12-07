@@ -101,10 +101,29 @@ interface StripeData {
   };
 }
 
+// Helper to check OTP token validity
+const isOTPTokenValid = (): boolean => {
+  if (typeof window === "undefined") return false;
+  
+  const adminToken = sessionStorage.getItem("adminToken");
+  const adminTokenExpiry = sessionStorage.getItem("adminTokenExpiry");
+  
+  if (!adminToken || !adminTokenExpiry) return false;
+  
+  const expiry = new Date(adminTokenExpiry);
+  return expiry > new Date();
+};
+
 export const useIsSuperAdmin = () => {
   return useQuery({
     queryKey: ["is-super-admin"],
     queryFn: async () => {
+      // FIRST: Check if OTP token is valid
+      if (isOTPTokenValid()) {
+        return true;
+      }
+
+      // SECOND: Check via Supabase Auth
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return false;
 
@@ -119,6 +138,8 @@ export const useIsSuperAdmin = () => {
     staleTime: 1000 * 60 * 5,
   });
 };
+
+export { isOTPTokenValid };
 
 export const useAdminCompanies = () => {
   return useQuery<CompanyData[]>({

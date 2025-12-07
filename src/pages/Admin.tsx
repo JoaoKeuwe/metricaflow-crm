@@ -1,8 +1,8 @@
 import { useState } from "react";
 import { Navigate } from "react-router-dom";
-import { Settings, Building2, Users, CreditCard, FileText } from "lucide-react";
+import { Settings, Building2, Users, CreditCard, FileText, LayoutDashboard } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { AdminMetricsCards } from "@/components/admin/AdminMetricsCards";
+import { AdminOverview } from "@/components/admin/AdminOverview";
 import { AdminCompaniesTable } from "@/components/admin/AdminCompaniesTable";
 import { AdminUsersTable } from "@/components/admin/AdminUsersTable";
 import { AdminSubscriptionsTable } from "@/components/admin/AdminSubscriptionsTable";
@@ -11,7 +11,7 @@ import { useIsSuperAdmin } from "@/hooks/useAdminData";
 import { LoadingSpinner } from "@/components/ui/loading-spinner";
 
 const Admin = () => {
-  const [activeTab, setActiveTab] = useState("companies");
+  const [activeTab, setActiveTab] = useState("overview");
   const { data: isSuperAdmin, isLoading } = useIsSuperAdmin();
 
   if (isLoading) {
@@ -42,12 +42,16 @@ const Admin = () => {
           </div>
         </div>
 
-        {/* Metrics Cards */}
-        <AdminMetricsCards />
-
         {/* Tabs */}
         <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4">
           <TabsList className="bg-card/50 border border-border/30 p-1">
+            <TabsTrigger
+              value="overview"
+              className="data-[state=active]:bg-primary/20 data-[state=active]:text-primary"
+            >
+              <LayoutDashboard className="h-4 w-4 mr-2" />
+              Visão Geral
+            </TabsTrigger>
             <TabsTrigger
               value="companies"
               className="data-[state=active]:bg-primary/20 data-[state=active]:text-primary"
@@ -77,6 +81,10 @@ const Admin = () => {
               Faturas
             </TabsTrigger>
           </TabsList>
+
+          <TabsContent value="overview" className="mt-4">
+            <AdminOverview />
+          </TabsContent>
 
           <TabsContent value="companies" className="mt-4">
             <AdminCompaniesTable />
