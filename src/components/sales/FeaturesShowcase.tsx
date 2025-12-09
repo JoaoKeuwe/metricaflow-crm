@@ -66,7 +66,7 @@ const features = [
   {
     icon: MessageSquare,
     title: "WhatsApp Integrado",
-    description: "Envie mensagens e campanhas diretamente do CRM.",
+    description: "Envie mensagens e campanhas com um clique do CRM.",
     color: "from-green-500 to-lime-500",
   },
   {
