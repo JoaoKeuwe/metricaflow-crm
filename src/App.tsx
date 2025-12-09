@@ -8,6 +8,7 @@ import ChangePassword from "./pages/ChangePassword";
 import Dashboard from "./pages/Dashboard";
 import Auth from "./pages/Auth";
 import Pricing from "./pages/Pricing";
+import Sales from "./pages/Sales";
 import Leads from "./pages/Leads";
 import LeadDetail from "./pages/LeadDetail";
 import Kanban from "./pages/Kanban";
@@ -210,6 +211,7 @@ const App = () => {
               }
             />
             <Route path="/pricing" element={<Pricing />} />
+            <Route path="/sales" element={<Sales />} />
             <Route path="/admwf360" element={<AdminLogin />} />
             <Route path="/admin" element={<Admin />} />
             <Route path="*" element={<NotFound />} />
