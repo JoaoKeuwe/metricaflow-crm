@@ -101,8 +101,36 @@ interface StripeData {
   };
 }
 
-// Helper to check OTP token validity
-const isOTPTokenValid = (): boolean => {
+// Validate admin token with server-side check
+const validateAdminTokenServerSide = async (): Promise<boolean> => {
+  if (typeof window === "undefined") return false;
+  
+  const adminToken = sessionStorage.getItem("adminToken");
+  if (!adminToken) return false;
+  
+  try {
+    const { data, error } = await supabase.functions.invoke("validate-admin-token", {
+      body: { token: adminToken }
+    });
+    
+    if (error || !data?.valid) {
+      // Token is invalid, clear session storage
+      sessionStorage.removeItem("adminToken");
+      sessionStorage.removeItem("adminTokenExpiry");
+      return false;
+    }
+    
+    return true;
+  } catch {
+    // On network error, clear tokens for safety
+    sessionStorage.removeItem("adminToken");
+    sessionStorage.removeItem("adminTokenExpiry");
+    return false;
+  }
+};
+
+// Legacy check for client-side expiry (used as quick pre-check)
+const hasValidLocalToken = (): boolean => {
   if (typeof window === "undefined") return false;
   
   const adminToken = sessionStorage.getItem("adminToken");
@@ -118,12 +146,16 @@ export const useIsSuperAdmin = () => {
   return useQuery({
     queryKey: ["is-super-admin"],
     queryFn: async () => {
-      // FIRST: Check if OTP token is valid
-      if (isOTPTokenValid()) {
-        return true;
+      // Quick pre-check: if no local token, skip server validation
+      if (hasValidLocalToken()) {
+        // CRITICAL: Validate token server-side to prevent manipulation
+        const isValidServerSide = await validateAdminTokenServerSide();
+        if (isValidServerSide) {
+          return true;
+        }
       }
 
-      // SECOND: Check via Supabase Auth
+      // Fallback: Check via Supabase Auth
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return false;
 
@@ -139,7 +171,7 @@ export const useIsSuperAdmin = () => {
   });
 };
 
-export { isOTPTokenValid };
+export { hasValidLocalToken as isOTPTokenValid };
 
 export const useAdminCompanies = () => {
   return useQuery<CompanyData[]>({
