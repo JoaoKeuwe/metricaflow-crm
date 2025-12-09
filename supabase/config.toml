@@ -88,7 +88,7 @@ verify_jwt = false
 verify_jwt = false
 
 [functions.analyze-local-lead]
-verify_jwt = false
+verify_jwt = true
 
 [functions.send-weekly-summary]
 verify_jwt = true
