@@ -13,6 +13,7 @@ interface CommandKPIProps {
   };
   accentColor?: "primary" | "success" | "warning" | "danger";
   size?: "default" | "large";
+  alert?: boolean;
 }
 
 export const CommandKPI = ({
@@ -23,6 +24,7 @@ export const CommandKPI = ({
   trend,
   accentColor = "primary",
   size = "default",
+  alert = false,
 }: CommandKPIProps) => {
   const [displayValue, setDisplayValue] = useState(0);
   const numericValue = typeof value === 'string' ? parseFloat(value.replace(/[^\d.-]/g, '')) : value;
@@ -62,34 +64,39 @@ export const CommandKPI = ({
       : Math.round(displayValue).toLocaleString('pt-BR')
     : value;
 
+  // Brand-aligned colors with magenta (#FF3B99) as primary
   const accentColors = {
     primary: {
-      bg: "bg-cockpit-accent/10",
-      border: "border-cockpit-accent/30",
-      glow: "shadow-[0_0_20px_hsl(215_70%_55%/0.15)]",
-      icon: "text-cockpit-accent",
-      gradient: "from-cockpit-accent/20 to-transparent"
+      bg: "bg-[hsl(330_100%_62%/0.08)]",
+      border: "border-[hsl(330_100%_62%/0.2)]",
+      glow: "shadow-[0_4px_20px_hsl(330_100%_62%/0.1)]",
+      icon: "text-[hsl(330_100%_62%)]",
+      gradient: "from-[hsl(330_100%_62%/0.15)] to-transparent",
+      line: "bg-gradient-to-r from-[hsl(330_100%_62%)] to-[hsl(330_100%_62%/0.3)]"
     },
     success: {
-      bg: "bg-cockpit-success/10",
-      border: "border-cockpit-success/30",
-      glow: "shadow-[0_0_20px_hsl(142_70%_45%/0.15)]",
-      icon: "text-cockpit-success",
-      gradient: "from-cockpit-success/20 to-transparent"
+      bg: "bg-[hsl(142_70%_45%/0.08)]",
+      border: "border-[hsl(142_70%_45%/0.2)]",
+      glow: "shadow-[0_4px_20px_hsl(142_70%_45%/0.1)]",
+      icon: "text-[hsl(142_70%_45%)]",
+      gradient: "from-[hsl(142_70%_45%/0.15)] to-transparent",
+      line: "bg-gradient-to-r from-[hsl(142_70%_45%)] to-[hsl(142_70%_45%/0.3)]"
     },
     warning: {
-      bg: "bg-cockpit-warning/10",
-      border: "border-cockpit-warning/30",
-      glow: "shadow-[0_0_20px_hsl(38_90%_50%/0.15)]",
-      icon: "text-cockpit-warning",
-      gradient: "from-cockpit-warning/20 to-transparent"
+      bg: "bg-[hsl(38_90%_50%/0.08)]",
+      border: "border-[hsl(38_90%_50%/0.2)]",
+      glow: "shadow-[0_4px_20px_hsl(38_90%_50%/0.1)]",
+      icon: "text-[hsl(38_90%_50%)]",
+      gradient: "from-[hsl(38_90%_50%/0.15)] to-transparent",
+      line: "bg-gradient-to-r from-[hsl(38_90%_50%)] to-[hsl(38_90%_50%/0.3)]"
     },
     danger: {
-      bg: "bg-cockpit-danger/10",
-      border: "border-cockpit-danger/30",
-      glow: "shadow-[0_0_20px_hsl(0_75%_55%/0.15)]",
-      icon: "text-cockpit-danger",
-      gradient: "from-cockpit-danger/20 to-transparent"
+      bg: "bg-[hsl(0_75%_55%/0.08)]",
+      border: "border-[hsl(0_75%_55%/0.2)]",
+      glow: "shadow-[0_4px_20px_hsl(0_75%_55%/0.1)]",
+      icon: "text-[hsl(0_75%_55%)]",
+      gradient: "from-[hsl(0_75%_55%/0.15)] to-transparent",
+      line: "bg-gradient-to-r from-[hsl(0_75%_55%)] to-[hsl(0_75%_55%/0.3)]"
     }
   };
 
@@ -98,21 +105,22 @@ export const CommandKPI = ({
   return (
     <div 
       className={cn(
-        "relative overflow-hidden rounded-xl bg-cockpit-card border transition-all duration-300",
-        "hover:scale-[1.02] hover:shadow-lg group",
+        "relative overflow-hidden rounded-xl bg-white dark:bg-[hsl(0_0%_8%)] border transition-all duration-300",
+        "hover:translate-y-[-2px] hover:shadow-lg group",
         colors.border,
-        colors.glow
+        colors.glow,
+        alert && "ring-2 ring-[hsl(330_100%_62%/0.3)] animate-pulse"
       )}
     >
-      {/* Top accent gradient */}
+      {/* Top accent line */}
       <div className={cn(
-        "absolute top-0 left-0 right-0 h-px bg-gradient-to-r",
-        colors.gradient
+        "absolute top-0 left-0 right-0 h-[2px]",
+        colors.line
       )} />
       
-      {/* Corner accent */}
+      {/* Corner gradient */}
       <div className={cn(
-        "absolute top-0 right-0 w-24 h-24 bg-gradient-to-br opacity-50",
+        "absolute top-0 right-0 w-32 h-32 bg-gradient-to-br opacity-40 pointer-events-none",
         colors.gradient
       )} />
 
@@ -121,64 +129,45 @@ export const CommandKPI = ({
         size === "large" && "p-6"
       )}>
         {/* Header */}
-        <div className="flex items-start justify-between mb-3">
-          <p className="text-[11px] font-semibold text-cockpit-muted uppercase tracking-[0.15em]">
+        <div className="flex items-start justify-between mb-4">
+          <p className="text-[11px] font-semibold text-[hsl(0_0%_45%)] dark:text-[hsl(0_0%_55%)] uppercase tracking-[0.12em]">
             {title}
           </p>
           <div className={cn(
-            "p-2 rounded-lg transition-transform duration-300 group-hover:scale-110",
+            "p-2.5 rounded-lg transition-all duration-300 group-hover:scale-110",
             colors.bg
           )}>
-            <Icon className={cn("h-4 w-4", colors.icon)} strokeWidth={2} />
+            <Icon className={cn("h-4 w-4", colors.icon)} strokeWidth={1.5} />
           </div>
         </div>
 
         {/* Value */}
         <div className={cn(
-          "font-bold tracking-tight text-cockpit-foreground",
+          "font-bold tracking-tight text-[hsl(0_0%_8%)] dark:text-[hsl(0_0%_95%)]",
           size === "large" ? "text-4xl" : "text-3xl"
         )}>
           {formattedValue}
         </div>
 
         {/* Subtitle and Trend */}
-        <div className="flex items-center justify-between mt-2">
+        <div className="flex items-center justify-between mt-3">
           {subtitle && (
-            <p className="text-xs text-cockpit-muted">
+            <p className="text-xs text-[hsl(0_0%_50%)] dark:text-[hsl(0_0%_55%)]">
               {subtitle}
             </p>
           )}
           
           {trend && (
             <div className={cn(
-              "flex items-center gap-1 text-xs font-medium px-2 py-0.5 rounded-full",
+              "flex items-center gap-1 text-xs font-semibold px-2.5 py-1 rounded-full",
               trend.isPositive 
-                ? "text-cockpit-success bg-cockpit-success/10" 
-                : "text-cockpit-danger bg-cockpit-danger/10"
+                ? "text-[hsl(142_70%_35%)] bg-[hsl(142_70%_45%/0.1)]" 
+                : "text-[hsl(0_75%_45%)] bg-[hsl(0_75%_55%/0.1)]"
             )}>
               <span>{trend.isPositive ? "↑" : "↓"}</span>
               <span>{Math.abs(trend.value)}%</span>
             </div>
           )}
-        </div>
-
-        {/* Bottom line indicator */}
-        <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-cockpit-border">
-          <div 
-            className={cn(
-              "h-full w-1/3 bg-gradient-to-r rounded-r-full transition-all duration-1000",
-              `${colors.gradient.replace('to-transparent', 'to-cockpit-accent/50')}`
-            )}
-            style={{
-              background: accentColor === 'primary' 
-                ? 'linear-gradient(to right, hsl(215 70% 55%), hsl(215 70% 55% / 0.3))'
-                : accentColor === 'success'
-                ? 'linear-gradient(to right, hsl(142 70% 45%), hsl(142 70% 45% / 0.3))'
-                : accentColor === 'warning'
-                ? 'linear-gradient(to right, hsl(38 90% 50%), hsl(38 90% 50% / 0.3))'
-                : 'linear-gradient(to right, hsl(0 75% 55%), hsl(0 75% 55% / 0.3))'
-            }}
-          />
         </div>
       </div>
     </div>
