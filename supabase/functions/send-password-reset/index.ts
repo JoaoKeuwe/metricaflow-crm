@@ -250,12 +250,17 @@ const handler = async (req: Request): Promise<Response> => {
         },
       }
     );
-  } catch (error: any) {
+  } catch (error: unknown) {
+    // Log detailed error server-side only
     console.error("Error in send-password-reset function:", error);
+    // Return generic success message to prevent email enumeration
     return new Response(
-      JSON.stringify({ error: error.message }),
+      JSON.stringify({ 
+        success: true, 
+        message: "Se o email existir no sistema, você receberá um link de recuperação." 
+      }),
       {
-        status: 500,
+        status: 200,
         headers: { "Content-Type": "application/json", ...corsHeaders },
       }
     );

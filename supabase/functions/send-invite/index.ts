@@ -161,10 +161,12 @@ const handler = async (req: Request): Promise<Response> => {
       status: 200,
       headers: { "Content-Type": "application/json", ...corsHeaders },
     });
-  } catch (error: any) {
+  } catch (error: unknown) {
+    // Log detailed error server-side only
     console.error("Error in send-invite function:", error);
+    // Return generic error to client to prevent information disclosure
     return new Response(
-      JSON.stringify({ error: error.message }),
+      JSON.stringify({ error: "Erro ao enviar convite. Tente novamente." }),
       {
         status: 500,
         headers: { "Content-Type": "application/json", ...corsHeaders },

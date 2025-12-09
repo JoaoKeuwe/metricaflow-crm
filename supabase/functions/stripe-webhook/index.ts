@@ -381,9 +381,11 @@ serve(async (req) => {
     });
 
   } catch (error: unknown) {
+    // Log detailed error server-side only
     const errorMessage = error instanceof Error ? error.message : String(error);
     logStep("Erro no webhook", { error: errorMessage });
-    return new Response(JSON.stringify({ error: errorMessage }), {
+    // Return generic error to Stripe (they will retry)
+    return new Response(JSON.stringify({ error: "Erro interno ao processar webhook" }), {
       status: 500,
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
