@@ -76,7 +76,7 @@ verify_jwt = true
 verify_jwt = false
 
 [functions.search-leads]
-verify_jwt = false
+verify_jwt = true
 
 [functions.get-evolution-web-url]
 verify_jwt = true
