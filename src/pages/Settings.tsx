@@ -1,16 +1,30 @@
 import { useSearchParams } from "react-router-dom";
 import { useEffect, useState } from "react";
+import { useQuery } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import CompanySettings from "@/components/company/CompanySettings";
 import DemoDataSettings from "@/components/company/DemoDataSettings";
 import { GamificationSettings } from "@/components/gamification/GamificationSettings";
 import { SubscriptionSettings } from "@/components/settings/SubscriptionSettings";
-import { Building2, User, Database, Trophy, CreditCard, CheckCircle } from "lucide-react";
+import { SalesManualSettings } from "@/components/settings/SalesManualSettings";
+import { Building2, User, Database, Trophy, CreditCard, CheckCircle, BookOpen } from "lucide-react";
 import { toast } from "sonner";
 
 const Settings = () => {
   const [searchParams] = useSearchParams();
   const [activeTab, setActiveTab] = useState("company");
+
+  // Check if user is gestor/owner
+  const { data: userRole } = useQuery({
+    queryKey: ["user-role-settings"],
+    queryFn: async () => {
+      const { data } = await supabase.rpc("get_user_role");
+      return data;
+    },
+  });
+
+  const canEditSalesManual = userRole === "gestor" || userRole === "gestor_owner";
 
   useEffect(() => {
     const tab = searchParams.get("tab");
@@ -55,6 +69,12 @@ const Settings = () => {
             <Database className="h-4 w-4" />
             Dados Demo
           </TabsTrigger>
+          {canEditSalesManual && (
+            <TabsTrigger value="sales-manual" className="flex items-center gap-2">
+              <BookOpen className="h-4 w-4" />
+              Manual de Vendas
+            </TabsTrigger>
+          )}
         </TabsList>
 
         <TabsContent value="company" className="mt-6">
@@ -78,6 +98,12 @@ const Settings = () => {
         <TabsContent value="demo" className="mt-6">
           <DemoDataSettings />
         </TabsContent>
+
+        {canEditSalesManual && (
+          <TabsContent value="sales-manual" className="mt-6">
+            <SalesManualSettings />
+          </TabsContent>
+        )}
       </Tabs>
     </div>
   );
