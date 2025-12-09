@@ -1,6 +1,8 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { z } from 'https://deno.land/x/zod@v3.22.4/mod.ts';
+import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.39.3';
 import { mapGenericError } from '../_shared/error-mapping.ts';
+import { checkRateLimit } from '../_shared/rate-limit.ts';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -25,6 +27,58 @@ serve(async (req) => {
   }
 
   try {
+    const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
+    const supabaseAnonKey = Deno.env.get('SUPABASE_ANON_KEY')!;
+    const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
+    
+    // Validate JWT authentication
+    const authHeader = req.headers.get('Authorization');
+    if (!authHeader) {
+      console.warn('Missing Authorization header');
+      return new Response(
+        JSON.stringify({ success: false, error: 'Autenticação necessária' }),
+        { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    // Create client with user's JWT to validate it
+    const supabaseAuth = createClient(supabaseUrl, supabaseAnonKey, {
+      global: { headers: { Authorization: authHeader } }
+    });
+
+    const { data: { user }, error: authError } = await supabaseAuth.auth.getUser();
+    if (authError || !user) {
+      console.warn('Invalid JWT token:', authError?.message);
+      return new Response(
+        JSON.stringify({ success: false, error: 'Token inválido ou expirado' }),
+        { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    console.log(`Authenticated user for analyze-local-lead: ${user.id}`);
+
+    // Use service role for rate limiting operations
+    const supabase = createClient(supabaseUrl, supabaseServiceKey);
+
+    // Rate limiting: 20 requests per minute per user (AI operations are expensive)
+    const rateLimit = await checkRateLimit(supabase, user.id, {
+      maxRequests: 20,
+      windowSeconds: 60,
+      endpoint: 'analyze-local-lead'
+    });
+
+    if (!rateLimit.allowed) {
+      console.warn(`Rate limit exceeded for user: ${user.id}`);
+      return new Response(
+        JSON.stringify({
+          success: false,
+          error: 'Limite de requisições excedido. Aguarde 1 minuto.',
+          retryAfter: rateLimit.retryAfter
+        }),
+        { status: 429, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
     const rawPayload = await req.json();
     const validationResult = LeadAnalysisSchema.safeParse(rawPayload);
     
