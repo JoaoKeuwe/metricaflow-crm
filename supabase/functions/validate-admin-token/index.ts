@@ -55,10 +55,11 @@ serve(async (req) => {
     );
 
   } catch (error: unknown) {
-    const errorMessage = error instanceof Error ? error.message : "Erro interno";
+    // Log detailed error server-side only
     console.error("Validate admin token error:", error);
+    // Return generic error to client to prevent information disclosure
     return new Response(
-      JSON.stringify({ valid: false, error: errorMessage }),
+      JSON.stringify({ valid: false, error: "Erro ao validar sessão" }),
       { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
   }

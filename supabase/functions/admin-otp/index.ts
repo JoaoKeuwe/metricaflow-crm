@@ -211,10 +211,11 @@ serve(async (req) => {
     }
 
   } catch (error: unknown) {
-    const errorMessage = error instanceof Error ? error.message : "Erro interno";
+    // Log detailed error server-side only
     console.error("Admin OTP error:", error);
+    // Return generic error to client to prevent information disclosure
     return new Response(
-      JSON.stringify({ error: errorMessage }),
+      JSON.stringify({ error: "Erro ao processar solicitação. Tente novamente." }),
       { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
   }
