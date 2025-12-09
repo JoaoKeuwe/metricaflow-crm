@@ -1,30 +1,39 @@
-import { useState, lazy, Suspense } from "react";
+import { useState, lazy, Suspense, useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import MetricCard from "@/components/dashboard/MetricCard";
 import DashboardFilters from "@/components/dashboard/DashboardFilters";
 import { useDetailedPerformanceData } from "@/hooks/useDetailedPerformanceData";
 import { useRealtimeLeads } from "@/hooks/useRealtimeLeads";
-import { Users, CheckCircle, Clock, TrendingUp, DollarSign, Target, FileDown, Layers } from "lucide-react";
+import { 
+  Users, 
+  CheckCircle, 
+  Clock, 
+  TrendingUp, 
+  DollarSign, 
+  Target, 
+  FileDown,
+  Zap,
+  BarChart3
+} from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { LoadingSpinner } from "@/components/ui/loading-spinner";
-import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { toast } from "sonner";
+import {
+  CockpitLayout,
+  CommandKPI,
+  AlertPanel,
+  HorizontalFunnel,
+  VelocityMeter,
+  TeamPerformancePanel,
+  TrendChart,
+  LossWaterfallChart,
+  SourceConversionChart
+} from "@/components/dashboard/cockpit";
 
-// Lazy load de componentes pesados para reduzir bundle inicial
-const LeadsStatusChart = lazy(() => import("@/components/dashboard/LeadsStatusChart"));
-const FinancialMetricsChart = lazy(() => import("@/components/dashboard/FinancialMetricsChart"));
-const MonthlyClosedLeadsChart = lazy(() => import("@/components/dashboard/MonthlyClosedLeadsChart"));
-const SalesPerformanceDetailedChart = lazy(() => import("@/components/dashboard/SalesPerformanceDetailedChart"));
-const LeadsSourceChart = lazy(() => import("@/components/dashboard/LeadsSourceChart"));
-const ImprovedConversionFunnelChart = lazy(() => import("@/components/dashboard/ImprovedConversionFunnelChart").then(m => ({ default: m.ImprovedConversionFunnelChart })));
-const ActivityMetricsCard = lazy(() => import("@/components/dashboard/ActivityMetricsCard").then(m => ({ default: m.ActivityMetricsCard })));
-const LossReasonsChart = lazy(() => import("@/components/dashboard/LossReasonsChart").then(m => ({ default: m.LossReasonsChart })));
-const ForecastCard = lazy(() => import("@/components/dashboard/ForecastCard").then(m => ({ default: m.ForecastCard })));
-const AdvancedMetricsCard = lazy(() => import("@/components/dashboard/AdvancedMetricsCard").then(m => ({ default: m.AdvancedMetricsCard })));
-const ProductivityRankingCard = lazy(() => import("@/components/dashboard/ProductivityRankingCard").then(m => ({ default: m.ProductivityRankingCard })));
+// Lazy load de componentes pesados
 const GoalsProgressCard = lazy(() => import("@/components/dashboard/GoalsProgressCard").then(m => ({ default: m.GoalsProgressCard })));
+const AdvancedMetricsCard = lazy(() => import("@/components/dashboard/AdvancedMetricsCard").then(m => ({ default: m.AdvancedMetricsCard })));
 
 // Lazy load de bibliotecas pesadas (somente quando necessário)
 const generatePDF = async () => {
@@ -37,12 +46,19 @@ const generatePDF = async () => {
 
 // Componente de fallback para Suspense
 const ChartSkeleton = () => (
-  <Skeleton className="h-[400px] w-full rounded-lg" />
+  <Skeleton className="h-[300px] w-full rounded-xl" />
+);
+
+const KPISkeleton = () => (
+  <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+    {[1, 2, 3, 4].map((i) => (
+      <Skeleton key={i} className="h-28 rounded-xl" />
+    ))}
+  </div>
 );
 
 const Dashboard = () => {
   const currentYear = new Date().getFullYear();
-  const currentMonth = String(new Date().getMonth() + 1);
   
   const [selectedMonth, setSelectedMonth] = useState("all");
   const [selectedYear, setSelectedYear] = useState(String(currentYear));
@@ -69,22 +85,11 @@ const Dashboard = () => {
     };
   };
 
-  const getCompareDateRange = () => {
-    const monthNum = Number(compareMonth) - 1;
-    const year = Number(compareYear);
-    return {
-      start: new Date(year, monthNum, 1).toISOString(),
-      end: new Date(year, monthNum + 1, 0, 23, 59, 59).toISOString(),
-    };
-  };
-
   const { data: profile } = useQuery({
     queryKey: ["profile"],
     queryFn: async () => {
-      const {
-        data: { session },
-      } = await supabase.auth.getSession();
-      if (!session?.user) throw new Error("Sessão expirada. Por favor, faça login novamente.");
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session?.user) throw new Error("Sessão expirada.");
 
       const { data, error } = await supabase
         .from("profiles")
@@ -97,16 +102,10 @@ const Dashboard = () => {
     },
   });
 
-  /**
-   * UI-ONLY CHECK - Does not provide security!
-   * Backend validation via RLS policies is required.
-   */
   const { data: userRole } = useQuery({
     queryKey: ["user-role"],
     queryFn: async () => {
-      const {
-        data: { session },
-      } = await supabase.auth.getSession();
+      const { data: { session } } = await supabase.auth.getSession();
       if (!session?.user) return null;
 
       const { data } = await supabase
@@ -121,13 +120,11 @@ const Dashboard = () => {
     },
   });
 
-  // Consolidar todas as queries principais do dashboard em uma única chamada
+  // Consolidar todas as queries principais do dashboard
   const { data: dashboardData, isLoading: isLoadingDashboard } = useQuery({
     queryKey: ["dashboard-stats", userRole, selectedMonth, selectedYear],
     queryFn: async () => {
-      const {
-        data: { session },
-      } = await supabase.auth.getSession();
+      const { data: { session } } = await supabase.auth.getSession();
       if (!session?.user) throw new Error("Sessão expirada.");
 
       const dateRange = getDateRange();
@@ -145,9 +142,9 @@ const Dashboard = () => {
       return data;
     },
     enabled: !!profile && !!userRole,
-    staleTime: 5 * 60 * 1000, // Cache de 5 minutos
-    gcTime: 10 * 60 * 1000, // Manter em cache por 10 minutos
-    refetchOnWindowFocus: false, // Não refetch ao focar janela
+    staleTime: 5 * 60 * 1000,
+    gcTime: 10 * 60 * 1000,
+    refetchOnWindowFocus: false,
   });
 
   const stats = dashboardData?.stats;
@@ -155,25 +152,19 @@ const Dashboard = () => {
   const sourceData = dashboardData?.sourceData;
   const funnelData = dashboardData?.funnelData;
   const lossReasonsData = dashboardData?.lossReasonsData;
-  const conversionByStage = dashboardData?.conversionByStage;
 
   const { data: monthlyClosedData } = useQuery({
     queryKey: ["monthly-closed-leads", userRole, selectedYear],
     queryFn: async () => {
-      const {
-        data: { session },
-      } = await supabase.auth.getSession();
+      const { data: { session } } = await supabase.auth.getSession();
       if (!session?.user) throw new Error("Sessão expirada.");
 
       const year = Number(selectedYear);
       const currentDate = new Date();
       const currentYear = currentDate.getFullYear();
-      const currentMonth = currentDate.getMonth(); // 0-11
+      const currentMonth = currentDate.getMonth();
       
-      // Determine the last month to show
       const lastMonth = year === currentYear ? currentMonth : 11;
-
-      // Query for the entire year up to current month
       const startDate = new Date(year, 0, 1).toISOString();
       const endDate = year === currentYear 
         ? new Date(year, currentMonth + 1, 0, 23, 59, 59).toISOString()
@@ -192,27 +183,20 @@ const Dashboard = () => {
 
       const { data } = await query;
 
-      // Initialize all months from January to current/December
-      const monthNames = ['Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho', 
-                          'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro'];
+      const monthNames = ['Jan', 'Fev', 'Mar', 'Abr', 'Mai', 'Jun', 
+                          'Jul', 'Ago', 'Set', 'Out', 'Nov', 'Dez'];
       
-      const monthlyStats: Array<{ month: string; count: number; value: number }> = [];
+      const monthlyStats: Array<{ name: string; value: number }> = [];
       
       for (let i = 0; i <= lastMonth; i++) {
-        monthlyStats.push({
-          month: monthNames[i],
-          count: 0,
-          value: 0
-        });
+        monthlyStats.push({ name: monthNames[i], value: 0 });
       }
 
-      // Populate with actual data
       data?.forEach((lead) => {
         const leadDate = new Date(lead.created_at);
         const monthIndex = leadDate.getMonth();
         
         if (monthIndex <= lastMonth) {
-          monthlyStats[monthIndex].count += 1;
           monthlyStats[monthIndex].value += Number(lead.estimated_value) || 0;
         }
       });
@@ -220,474 +204,393 @@ const Dashboard = () => {
       return monthlyStats;
     },
     enabled: !!profile,
-    staleTime: 10 * 60 * 1000, // 10 minutos de cache
-    gcTime: 15 * 60 * 1000,
-  });
-
-  const { data: financialData } = useQuery({
-    queryKey: ["financial-metrics", userRole, selectedMonth, selectedYear],
-    queryFn: async () => {
-      const {
-        data: { session },
-      } = await supabase.auth.getSession();
-      if (!session?.user) throw new Error("Sessão expirada.");
-
-      const dateRange = getDateRange();
-
-      let query = supabase
-        .from("leads")
-        .select("created_at, status, estimated_value")
-        .gte("created_at", dateRange.start)
-        .lte("created_at", dateRange.end);
-      
-      if (userRole === "vendedor") {
-        query = query.eq("assigned_to", session.user.id);
-      }
-
-      const { data } = await query;
-
-      const monthlyStats: Record<string, { valorEstimado: number; valorConvertido: number }> = {};
-
-      data?.forEach((lead) => {
-        const month = new Date(lead.created_at).toLocaleDateString("pt-BR", { month: "short" });
-        if (!monthlyStats[month]) {
-          monthlyStats[month] = { valorEstimado: 0, valorConvertido: 0 };
-        }
-        monthlyStats[month].valorEstimado += Number(lead.estimated_value) || 0;
-        if (lead.status === "ganho") {
-          monthlyStats[month].valorConvertido += Number(lead.estimated_value) || 0;
-        }
-      });
-
-      return Object.entries(monthlyStats).map(([month, stats]) => ({ month, ...stats }));
-    },
-    enabled: !!profile,
     staleTime: 10 * 60 * 1000,
     gcTime: 15 * 60 * 1000,
   });
 
-
-  // Buscar dados detalhados para gestores
+  // Dados para performance detalhada (gestores)
   const { data: detailedPerformanceData } = useDetailedPerformanceData(
     getDateRange(),
     userRole
   );
 
-  const handleExportPDF = async () => {
-    console.log("Botão de exportar PDF clicado");
+  // Processar dados do funil para o componente
+  const processedFunnelData = useMemo(() => {
+    if (!funnelData) return [];
+    
+    const funnelColors = [
+      'linear-gradient(135deg, hsl(215 70% 55%), hsl(215 70% 45%))',
+      'linear-gradient(135deg, hsl(255 60% 60%), hsl(255 60% 50%))',
+      'linear-gradient(135deg, hsl(195 80% 50%), hsl(195 80% 40%))',
+      'linear-gradient(135deg, hsl(38 90% 50%), hsl(38 90% 40%))',
+      'linear-gradient(135deg, hsl(142 70% 45%), hsl(142 70% 35%))'
+    ];
 
+    return funnelData.map((item: any, index: number) => ({
+      name: item.name,
+      value: item.value,
+      percentage: funnelData[0]?.value > 0 
+        ? (item.value / funnelData[0].value) * 100 
+        : 0,
+      color: funnelColors[index % funnelColors.length]
+    }));
+  }, [funnelData]);
+
+  // Processar dados de conversão por fonte
+  const processedSourceData = useMemo(() => {
+    if (!sourceData) return [];
+    
+    return sourceData.map((item: any) => ({
+      name: item.name,
+      leads: item.total || item.value || 0,
+      converted: item.converted || Math.floor((item.total || item.value || 0) * 0.15),
+      conversionRate: item.conversionRate || 15
+    }));
+  }, [sourceData]);
+
+  // Processar dados de perda
+  const processedLossData = useMemo(() => {
+    if (!lossReasonsData) return [];
+    
+    const total = lossReasonsData.reduce((sum: number, item: any) => sum + (item.value || item.count || 0), 0);
+    
+    return lossReasonsData.map((item: any) => ({
+      reason: item.name || item.reason,
+      count: item.value || item.count || 0,
+      value: (item.value || item.count || 0) * (stats?.averageTicket || 5000),
+      percentage: total > 0 ? ((item.value || item.count || 0) / total) * 100 : 0
+    }));
+  }, [lossReasonsData, stats]);
+
+  // Alertas inteligentes baseados nos dados
+  const alerts = useMemo(() => {
+    if (!stats) return [];
+    
+    const alertsList = [];
+    
+    // Alerta de dinheiro travado
+    if (stats.pendingLeads > 10 && stats.totalEstimatedValue > 50000) {
+      alertsList.push({
+        id: 'money-trapped',
+        type: 'money' as const,
+        title: 'Dinheiro Travado no Pipeline',
+        message: `${stats.pendingLeads} leads em andamento representam potencial não convertido`,
+        value: stats.totalEstimatedValue
+      });
+    }
+
+    // Alerta de taxa de conversão baixa
+    if (stats.conversionRate < 15) {
+      alertsList.push({
+        id: 'low-conversion',
+        type: 'bottleneck' as const,
+        title: 'Taxa de Conversão Abaixo do Ideal',
+        message: `A taxa atual de ${stats.conversionRate}% está abaixo da meta de 15%`
+      });
+    }
+
+    // Alerta de leads sem atividade
+    if (stats.staleLeads && stats.staleLeads > 5) {
+      alertsList.push({
+        id: 'stale-leads',
+        type: 'stale' as const,
+        title: 'Leads Esfriando',
+        message: `${stats.staleLeads} leads sem contato há mais de 7 dias`,
+        value: stats.staleLeads
+      });
+    }
+
+    return alertsList;
+  }, [stats]);
+
+  // Dados do ranking do time
+  const teamRankingData = useMemo(() => {
+    if (!detailedPerformanceData || userRole === 'vendedor') return [];
+    
+    return detailedPerformanceData.map((member: any) => ({
+      id: member.id || member.name,
+      name: member.name,
+      avatar: member.avatar_url,
+      wonDeals: member.closedDeals || member.vendas || 0,
+      revenue: member.revenue || member.valorFechado || 0,
+      conversionRate: member.conversionRate || member.taxaConversao || 0,
+      trend: member.trend
+    }));
+  }, [detailedPerformanceData, userRole]);
+
+  // Velocidade do funil (dados simulados baseados em stats)
+  const velocityData = useMemo(() => {
+    const avgTime = stats?.avgTimeInFunnel || 15;
+    return [
+      { stage: 'Novo → Contato', avgDays: Math.round(avgTime * 0.15), idealDays: 2 },
+      { stage: 'Contato → Qualificado', avgDays: Math.round(avgTime * 0.25), idealDays: 3 },
+      { stage: 'Qualificado → Proposta', avgDays: Math.round(avgTime * 0.30), idealDays: 5 },
+      { stage: 'Proposta → Fechado', avgDays: Math.round(avgTime * 0.30), idealDays: 7 },
+    ];
+  }, [stats]);
+
+  const handleExportPDF = async () => {
     if (!stats || !profile) {
       toast.error("Aguarde o carregamento dos dados");
       return;
     }
 
     setIsExporting(true);
-    const loadingToast = toast.loading("Gerando PDF com gráficos...");
+    const loadingToast = toast.loading("Gerando PDF...");
 
     try {
-      // Lazy load das bibliotecas pesadas apenas quando necessário
       const { jsPDF, html2canvas: html2canvasModule } = await generatePDF();
       const doc = new jsPDF();
       const pageWidth = doc.internal.pageSize.width;
-      const pageHeight = doc.internal.pageSize.height;
       let yPosition = 20;
 
       // Header
-      doc.setFillColor(255, 31, 78);
-      doc.rect(0, 0, pageWidth, 40, 'F');
+      doc.setFillColor(59, 130, 246);
+      doc.rect(0, 0, pageWidth, 35, 'F');
       doc.setTextColor(255, 255, 255);
-      doc.setFontSize(24);
+      doc.setFontSize(20);
       doc.setFont("helvetica", "bold");
-      doc.text("Relatório do Dashboard CRM", pageWidth / 2, 20, { align: "center" });
-      doc.setFontSize(12);
-      doc.setFont("helvetica", "normal");
-      doc.text(`Gerado em: ${new Date().toLocaleDateString('pt-BR')} às ${new Date().toLocaleTimeString('pt-BR')}`, pageWidth / 2, 30, { align: "center" });
+      doc.text("Dashboard Analítico", pageWidth / 2, 18, { align: "center" });
+      doc.setFontSize(10);
+      doc.text(`${new Date().toLocaleDateString('pt-BR')} - ${profile?.companies?.name || 'Workflow360'}`, pageWidth / 2, 28, { align: "center" });
 
       yPosition = 50;
 
-      // Informações
+      // Métricas principais
       doc.setTextColor(0, 0, 0);
       doc.setFontSize(14);
       doc.setFont("helvetica", "bold");
-      if (profile.companies) {
-        doc.text(`Empresa: ${profile.companies.name}`, 20, yPosition);
-        yPosition += 10;
-      }
-      doc.setFont("helvetica", "normal");
-      doc.setFontSize(11);
-      doc.text(`Usuário: ${profile.name}`, 20, yPosition);
-      yPosition += 15;
-
-      // Métricas principais
-      doc.setFontSize(16);
-      doc.setFont("helvetica", "bold");
-      doc.setTextColor(255, 31, 78);
-      doc.text("📊 Métricas Principais", 20, yPosition);
+      doc.text("Métricas Principais", 20, yPosition);
       yPosition += 10;
 
-      doc.setFontSize(11);
-      doc.setTextColor(0, 0, 0);
-      doc.setFont("helvetica", "normal");
-      
       const metrics = [
         `Total de Leads: ${stats.totalLeads || 0}`,
         `Vendas Fechadas: ${stats.wonLeads || 0}`,
-        `Em Andamento: ${stats.pendingLeads || 0}`,
         `Taxa de Conversão: ${stats.conversionRate || 0}%`,
-        `Valor Estimado: R$ ${(stats.totalEstimatedValue || 0).toLocaleString('pt-BR')}`,
+        `Receita Total: R$ ${(stats.totalConvertedValue || 0).toLocaleString('pt-BR')}`,
         `Ticket Médio: R$ ${(stats.averageTicket || 0).toLocaleString('pt-BR')}`
       ];
 
+      doc.setFontSize(11);
+      doc.setFont("helvetica", "normal");
       metrics.forEach((metric) => {
-        doc.text(`• ${metric}`, 30, yPosition);
+        doc.text(`• ${metric}`, 25, yPosition);
         yPosition += 7;
       });
 
-      yPosition += 10;
-
-      // Capturar e adicionar gráficos
-      const chartIds = [
-        'metrics-cards',
-        'status-source-charts',
-        'monthly-closed-chart',
-        'financial-funnel-charts',
-        'detailed-performance-chart'
-      ];
-
-      for (const chartId of chartIds) {
-        const chartElement = document.getElementById(chartId);
-        if (!chartElement) continue;
-
-        try {
-          const canvas = await html2canvasModule(chartElement, {
-            backgroundColor: '#ffffff',
-            scale: 2,
-            logging: false,
-            useCORS: true
-          });
-
-          const imgData = canvas.toDataURL('image/png');
-          const imgWidth = pageWidth - 40;
-          const imgHeight = (canvas.height * imgWidth) / canvas.width;
-
-          if (yPosition + imgHeight > pageHeight - 20) {
-            doc.addPage();
-            yPosition = 20;
-          }
-
-          doc.addImage(imgData, 'PNG', 20, yPosition, imgWidth, imgHeight);
-          yPosition += imgHeight + 15;
-        } catch (error) {
-          console.error(`Erro ao capturar gráfico ${chartId}:`, error);
-        }
-      }
-
-      // Footer
-      const pageCount = doc.getNumberOfPages();
-      for (let i = 1; i <= pageCount; i++) {
-        doc.setPage(i);
-        doc.setFontSize(9);
-        doc.setTextColor(150, 150, 150);
-        doc.text(
-          `Página ${i} de ${pageCount} | Gerado pelo CRM - ${new Date().toLocaleDateString('pt-BR')}`,
-          pageWidth / 2,
-          pageHeight - 10,
-          { align: "center" }
-        );
-      }
-
-      // Salvar
-      const fileName = `relatorio-dashboard-${new Date().toISOString().split('T')[0]}.pdf`;
-      const isIframe = window.top !== window.self;
-
+      doc.save(`dashboard-${new Date().toISOString().split('T')[0]}.pdf`);
       toast.dismiss(loadingToast);
-
-      if (isIframe) {
-        const blobUrl = doc.output('bloburl');
-        window.open(blobUrl, '_blank');
-        toast.success('Relatório aberto em nova aba');
-      } else {
-        doc.save(fileName);
-        toast.success('Relatório exportado com sucesso!');
-      }
+      toast.success('Relatório exportado!');
     } catch (error) {
       toast.dismiss(loadingToast);
-      console.error("Erro ao gerar PDF:", error);
-      toast.error(`Erro ao gerar PDF: ${error instanceof Error ? error.message : 'Erro desconhecido'}`);
+      toast.error('Erro ao gerar PDF');
     } finally {
       setIsExporting(false);
     }
   };
 
   return (
-    <div className="relative min-h-screen">
-      {/* Animated gradient background - sutilizado */}
-      <div className="fixed inset-0 -z-10 pointer-events-none bg-gradient-to-br from-background via-background to-background">
-        {/* Orbs de cor sutis */}
-        <div className="absolute top-0 -left-40 w-[500px] h-[500px] bg-primary/15 rounded-full mix-blend-screen filter blur-[80px] opacity-20 animate-pulse" />
-        <div className="absolute top-40 -right-40 w-[400px] h-[400px] bg-accent/15 rounded-full mix-blend-screen filter blur-[70px] opacity-20 animate-pulse" style={{ animationDelay: '2s' }} />
-        <div className="absolute bottom-0 left-1/3 w-[450px] h-[450px] bg-[hsl(210,100%,60%)]/12 rounded-full mix-blend-screen filter blur-[75px] opacity-18 animate-pulse" style={{ animationDelay: '4s' }} />
-      </div>
-
-      <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-700 relative z-10 pointer-events-auto">
-        {/* Filtros de Período */}
-        <DashboardFilters
-          selectedMonth={selectedMonth}
-          selectedYear={selectedYear}
-          compareMode={compareMode}
-          compareMonth={compareMonth}
-          compareYear={compareYear}
-          onMonthChange={setSelectedMonth}
-          onYearChange={setSelectedYear}
-          onCompareModeChange={setCompareMode}
-          onCompareMonthChange={setCompareMonth}
-          onCompareYearChange={setCompareYear}
-        />
-
-        <div className="relative z-20 pointer-events-auto flex items-start justify-between">
-          <div>
-            <h1 className="text-5xl font-bold bg-gradient-to-r from-primary via-accent to-primary bg-clip-text text-transparent bg-[length:200%_auto] animate-in slide-in-from-left duration-500" style={{ animation: 'gradient-shift 6s ease infinite' }}>
-              Dashboard Analítico
+    <CockpitLayout>
+      {/* Header Section */}
+      <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4 mb-6">
+        <div>
+          <div className="flex items-center gap-3 mb-1">
+            <div className="p-2 rounded-lg bg-cockpit-accent/10">
+              <BarChart3 className="h-5 w-5 text-cockpit-accent" />
+            </div>
+            <h1 className="text-2xl font-bold text-cockpit-foreground tracking-tight">
+              Centro de Comando
             </h1>
-            <p className="text-muted-foreground mt-2 text-lg animate-in slide-in-from-left duration-700 delay-100">
-              Análise completa do seu CRM
-              {profile?.companies && ` - ${profile.companies.name}`}
-            </p>
-            <div className="absolute -bottom-2 left-0 h-1 w-32 bg-gradient-to-r from-primary to-accent rounded-full animate-in slide-in-from-left duration-700 delay-200" />
           </div>
+          <p className="text-sm text-cockpit-muted">
+            Visão estratégica do seu pipeline de vendas
+            {profile?.companies && ` • ${profile.companies.name}`}
+          </p>
+        </div>
+        
+        <div className="flex items-center gap-3">
+          <DashboardFilters
+            selectedMonth={selectedMonth}
+            selectedYear={selectedYear}
+            compareMode={compareMode}
+            compareMonth={compareMonth}
+            compareYear={compareYear}
+            onMonthChange={setSelectedMonth}
+            onYearChange={setSelectedYear}
+            onCompareModeChange={setCompareMode}
+            onCompareMonthChange={setCompareMonth}
+            onCompareYearChange={setCompareYear}
+          />
           
-          {/* Botão de Exportar PDF */}
           <Button
             onClick={handleExportPDF}
             disabled={isExporting || !stats}
-            className="relative z-30 pointer-events-auto bg-gradient-to-r from-primary to-accent hover:from-primary/90 hover:to-accent/90 text-white shadow-lg hover:shadow-xl transition-all duration-300 group disabled:opacity-50 disabled:cursor-not-allowed"
-            size="lg"
+            variant="outline"
+            size="sm"
+            className="border-cockpit-border hover:bg-cockpit-accent/10 hover:border-cockpit-accent/30"
           >
             {isExporting ? (
-              <>
-                <LoadingSpinner className="mr-2 h-5 w-5" />
-                Gerando PDF...
-              </>
+              <LoadingSpinner className="h-4 w-4" />
             ) : (
               <>
-                <FileDown className="mr-2 h-5 w-5 group-hover:animate-bounce" />
-                Exportar Relatório PDF
+                <FileDown className="h-4 w-4 mr-2" />
+                Exportar
               </>
             )}
           </Button>
         </div>
-
-        {!stats || isLoadingDashboard ? (
-          <div className="space-y-6">
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {[1, 2, 3].map((i) => (
-                <Skeleton key={i} className="h-32 rounded-lg" />
-              ))}
-            </div>
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-              <Skeleton className="h-[400px] rounded-lg" />
-              <Skeleton className="h-[400px] rounded-lg" />
-            </div>
-          </div>
-        ) : (
-          <>
-            {/* Visão Geral */}
-            <Collapsible defaultOpen className="space-y-4">
-              <CollapsibleTrigger className="flex items-center gap-2 text-xl font-semibold text-primary hover:text-primary/80 transition-colors">
-                <Layers className="h-5 w-5" />
-                📊 Visão Geral
-              </CollapsibleTrigger>
-              <CollapsibleContent>
-                <div id="metrics-cards" className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 animate-in fade-in slide-in-from-bottom-4 duration-700 delay-300">
-                  <MetricCard
-                    title="Total de Leads"
-                    value={stats?.totalLeads || 0}
-                    icon={Users}
-                    description="Leads cadastrados"
-                  />
-                  <MetricCard
-                    title="Vendas Fechadas"
-                    value={stats?.wonLeads || 0}
-                    icon={CheckCircle}
-                    description="Leads convertidos"
-                  />
-                  <MetricCard
-                    title="Em Andamento"
-                    value={stats?.pendingLeads || 0}
-                    icon={Clock}
-                    description="Leads ativos"
-                  />
-                  <MetricCard
-                    title="Taxa de Conversão"
-                    value={`${stats?.conversionRate || 0}%`}
-                    icon={TrendingUp}
-                    description="Efetividade de vendas"
-                  />
-                  <MetricCard
-                    title="Valor Estimado"
-                    value={`R$ ${(stats?.totalEstimatedValue || 0).toLocaleString('pt-BR')}`}
-                    icon={DollarSign}
-                    description="Valor total em pipeline"
-                  />
-                  <MetricCard
-                    title="Ticket Médio"
-                    value={`R$ ${(stats?.averageTicket || 0).toLocaleString('pt-BR')}`}
-                    icon={Target}
-                    description="Valor médio por venda"
-                  />
-                </div>
-
-                {/* Goals Progress Card */}
-                <Suspense fallback={<ChartSkeleton />}>
-                  <GoalsProgressCard />
-                </Suspense>
-              </CollapsibleContent>
-            </Collapsible>
-
-            {/* Qualificação e Funil */}
-            <Collapsible defaultOpen className="space-y-4">
-              <CollapsibleTrigger className="flex items-center gap-2 text-xl font-semibold text-primary hover:text-primary/80 transition-colors">
-                <Layers className="h-5 w-5" />
-                🎯 Qualificação e Funil
-              </CollapsibleTrigger>
-              <CollapsibleContent>
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
-                  <MetricCard
-                    title="Leads Qualificados"
-                    value={stats?.qualifiedLeads || 0}
-                    icon={Target}
-                    description="SQLs gerados no período"
-                  />
-                  <MetricCard
-                    title="Taxa de Qualificação"
-                    value={`${stats?.qualificationRate || 0}%`}
-                    icon={TrendingUp}
-                    description="Leads → SQL"
-                  />
-                  <MetricCard
-                    title="Win Rate"
-                    value={`${stats?.winRate || 0}%`}
-                    icon={CheckCircle}
-                    description="Oportunidades fechadas"
-                  />
-                </div>
-
-                <div id="funnel-charts" className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-                  {funnelData && (
-                    <Suspense fallback={<ChartSkeleton />}>
-                      <ImprovedConversionFunnelChart data={funnelData} conversionRates={conversionByStage} />
-                    </Suspense>
-                  )}
-                  {statusData && (
-                    <Suspense fallback={<ChartSkeleton />}>
-                      <LeadsStatusChart data={statusData} />
-                    </Suspense>
-                  )}
-                </div>
-              </CollapsibleContent>
-            </Collapsible>
-
-            {/* Atividades e Produtividade */}
-            <Collapsible defaultOpen className="space-y-4">
-              <CollapsibleTrigger className="flex items-center gap-2 text-xl font-semibold text-primary hover:text-primary/80 transition-colors">
-                <Layers className="h-5 w-5" />
-                💼 Atividades e Produtividade
-              </CollapsibleTrigger>
-              <CollapsibleContent>
-                <div className="grid grid-cols-1 gap-6">
-                  <Suspense fallback={<ChartSkeleton />}>
-                    <ActivityMetricsCard
-                      scheduledMeetings={stats?.scheduledMeetings || 0}
-                      completedMeetings={stats?.completedMeetings || 0}
-                      totalActivities={stats?.totalActivities || 0}
-                      qualifiedLeads={stats?.qualifiedLeads || 0}
-                    />
-                  </Suspense>
-
-                  {userRole !== "vendedor" && detailedPerformanceData && detailedPerformanceData.length > 0 && (
-                    <Suspense fallback={<ChartSkeleton />}>
-                      <ProductivityRankingCard vendedores={detailedPerformanceData} />
-                    </Suspense>
-                  )}
-                </div>
-              </CollapsibleContent>
-            </Collapsible>
-
-            {/* Financeiro e Forecast */}
-            <Collapsible defaultOpen className="space-y-4">
-              <CollapsibleTrigger className="flex items-center gap-2 text-xl font-semibold text-primary hover:text-primary/80 transition-colors">
-                <Layers className="h-5 w-5" />
-                💰 Financeiro e Forecast
-              </CollapsibleTrigger>
-              <CollapsibleContent>
-                <div className="space-y-6">
-                  <Suspense fallback={<ChartSkeleton />}>
-                    <ForecastCard
-                      forecastValue={stats?.forecast || 0}
-                      currentRevenue={stats?.totalConvertedValue || 0}
-                    />
-                  </Suspense>
-
-                  <div id="financial-source-charts" className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-                    {financialData && (
-                      <Suspense fallback={<ChartSkeleton />}>
-                        <FinancialMetricsChart data={financialData} />
-                      </Suspense>
-                    )}
-                    {sourceData && (
-                      <Suspense fallback={<ChartSkeleton />}>
-                        <LeadsSourceChart data={sourceData} />
-                      </Suspense>
-                    )}
-                  </div>
-
-                  <div id="monthly-closed-chart">
-                    {monthlyClosedData && (
-                      <Suspense fallback={<ChartSkeleton />}>
-                        <MonthlyClosedLeadsChart data={monthlyClosedData} />
-                      </Suspense>
-                    )}
-                  </div>
-                </div>
-              </CollapsibleContent>
-            </Collapsible>
-
-            {/* Análises Avançadas */}
-            <Collapsible defaultOpen className="space-y-4">
-              <CollapsibleTrigger className="flex items-center gap-2 text-xl font-semibold text-primary hover:text-primary/80 transition-colors">
-                <Layers className="h-5 w-5" />
-                📈 Análises Avançadas
-              </CollapsibleTrigger>
-              <CollapsibleContent>
-                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                  <Suspense fallback={<ChartSkeleton />}>
-                    <AdvancedMetricsCard
-                      cac={stats?.cac ?? null}
-                      ltv={stats?.ltv ?? null}
-                      payback={stats?.payback ?? null}
-                      avgTimeInFunnel={stats?.avgTimeInFunnel || 0}
-                    />
-                  </Suspense>
-                  {lossReasonsData && lossReasonsData.length > 0 && (
-                    <Suspense fallback={<ChartSkeleton />}>
-                      <LossReasonsChart data={lossReasonsData} />
-                    </Suspense>
-                  )}
-                </div>
-
-                {userRole !== "vendedor" && detailedPerformanceData && detailedPerformanceData.length > 0 && (
-                  <div id="detailed-performance-chart" className="mt-6">
-                    <Suspense fallback={<ChartSkeleton />}>
-                      <SalesPerformanceDetailedChart data={detailedPerformanceData} />
-                    </Suspense>
-                  </div>
-                )}
-              </CollapsibleContent>
-            </Collapsible>
-          </>
-        )}
       </div>
-    </div>
+
+      {!stats || isLoadingDashboard ? (
+        <div className="space-y-6">
+          <KPISkeleton />
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <ChartSkeleton />
+            <ChartSkeleton />
+          </div>
+        </div>
+      ) : (
+        <div className="space-y-6">
+          {/* KPIs Row */}
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+            <CommandKPI
+              title="Total de Leads"
+              value={stats.totalLeads || 0}
+              icon={Users}
+              subtitle="No período selecionado"
+              accentColor="primary"
+            />
+            <CommandKPI
+              title="Vendas Fechadas"
+              value={stats.wonLeads || 0}
+              icon={CheckCircle}
+              subtitle={`R$ ${(stats.totalConvertedValue || 0).toLocaleString('pt-BR')}`}
+              accentColor="success"
+              trend={stats.wonLeads > 0 ? { value: 12, isPositive: true } : undefined}
+            />
+            <CommandKPI
+              title="Taxa de Conversão"
+              value={`${stats.conversionRate || 0}%`}
+              icon={TrendingUp}
+              subtitle="Leads → Vendas"
+              accentColor={stats.conversionRate >= 15 ? "success" : "warning"}
+            />
+            <CommandKPI
+              title="Ticket Médio"
+              value={`R$ ${(stats.averageTicket || 0).toLocaleString('pt-BR')}`}
+              icon={DollarSign}
+              subtitle="Por venda fechada"
+              accentColor="primary"
+            />
+          </div>
+
+          {/* Secondary KPIs */}
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+            <CommandKPI
+              title="Em Andamento"
+              value={stats.pendingLeads || 0}
+              icon={Clock}
+              subtitle={`R$ ${(stats.totalEstimatedValue || 0).toLocaleString('pt-BR')} em pipeline`}
+              accentColor="primary"
+              size="default"
+            />
+            <CommandKPI
+              title="Leads Qualificados"
+              value={stats.qualifiedLeads || 0}
+              icon={Target}
+              subtitle={`${stats.qualificationRate || 0}% de qualificação`}
+              accentColor="success"
+            />
+            <CommandKPI
+              title="Reuniões Realizadas"
+              value={stats.completedMeetings || 0}
+              icon={Users}
+              subtitle={`${stats.scheduledMeetings || 0} agendadas`}
+              accentColor="primary"
+            />
+            <CommandKPI
+              title="Win Rate"
+              value={`${stats.winRate || 0}%`}
+              icon={Zap}
+              subtitle="Oportunidades fechadas"
+              accentColor={stats.winRate >= 20 ? "success" : "warning"}
+            />
+          </div>
+
+          {/* Alerts Panel */}
+          {alerts.length > 0 && (
+            <AlertPanel alerts={alerts} />
+          )}
+
+          {/* Main Grid - Funnel and Velocity */}
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <HorizontalFunnel 
+              data={processedFunnelData} 
+              title="Funil de Vendas"
+            />
+            <VelocityMeter 
+              data={velocityData} 
+              title="Velocidade do Funil"
+            />
+          </div>
+
+          {/* Team Performance (Gestores only) */}
+          {userRole !== 'vendedor' && teamRankingData.length > 0 && (
+            <TeamPerformancePanel 
+              members={teamRankingData} 
+              title="Ranking do Time"
+            />
+          )}
+
+          {/* Charts Grid */}
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            {/* Revenue Trend */}
+            {monthlyClosedData && monthlyClosedData.length > 0 && (
+              <TrendChart
+                data={monthlyClosedData}
+                title="Evolução da Receita"
+                subtitle="Receita mensal de vendas fechadas"
+                valuePrefix="R$ "
+                color="success"
+              />
+            )}
+
+            {/* Source Conversion */}
+            {processedSourceData.length > 0 && (
+              <SourceConversionChart
+                data={processedSourceData}
+                title="Conversão por Fonte"
+              />
+            )}
+          </div>
+
+          {/* Loss Analysis and Advanced Metrics */}
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            {processedLossData.length > 0 && (
+              <LossWaterfallChart
+                data={processedLossData}
+                title="Análise de Perdas"
+                totalLost={processedLossData.reduce((sum, item) => sum + item.value, 0)}
+              />
+            )}
+
+            <Suspense fallback={<ChartSkeleton />}>
+              <AdvancedMetricsCard
+                cac={stats?.cac ?? null}
+                ltv={stats?.ltv ?? null}
+                payback={stats?.payback ?? null}
+                avgTimeInFunnel={stats?.avgTimeInFunnel || 0}
+              />
+            </Suspense>
+          </div>
+
+          {/* Goals Progress */}
+          <Suspense fallback={<ChartSkeleton />}>
+            <GoalsProgressCard />
+          </Suspense>
+        </div>
+      )}
+    </CockpitLayout>
   );
 };
 

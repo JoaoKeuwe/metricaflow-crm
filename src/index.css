@@ -10,188 +10,148 @@ All colors MUST be HSL.
 
 @layer base {
   :root {
-    --font-sans: 'Poppins', 'Inter', sans-serif;
+    --font-sans: 'Inter', 'Plus Jakarta Sans', sans-serif;
     
-    --background: 0 0% 98%;
-    --foreground: 0 0% 5%;
+    /* Cockpit Design System - Light Mode */
+    --background: 210 20% 98%;
+    --foreground: 215 25% 15%;
 
-    --card: 0 0% 100%; /* Branco puro */
-    --card-foreground: 0 0% 5%;
+    --card: 0 0% 100%;
+    --card-foreground: 215 25% 15%;
 
     --popover: 0 0% 100%;
-    --popover-foreground: 0 0% 5%;
+    --popover-foreground: 215 25% 15%;
 
-    --primary: 347 100% 56%; /* #ff1f4e - Rosa vibrante da marca */
+    --primary: 215 70% 55%;
     --primary-foreground: 0 0% 100%;
 
-    --secondary: 240 5% 96%;
-    --secondary-foreground: 0 0% 5%;
+    --secondary: 215 20% 95%;
+    --secondary-foreground: 215 25% 25%;
 
-    --muted: 240 5% 96%;
-    --muted-foreground: 0 0% 45%;
+    --muted: 215 20% 96%;
+    --muted-foreground: 215 15% 50%;
 
-    --accent: 280 85% 65%; /* Roxo vibrante */
+    --accent: 255 60% 60%;
     --accent-foreground: 0 0% 100%;
 
-    --destructive: 0 84% 60%;
+    --destructive: 0 75% 55%;
     --destructive-foreground: 0 0% 100%;
 
-    --border: 240 6% 90%;
-    --input: 240 6% 90%;
-    --ring: 347 100% 56%;
+    --border: 215 20% 90%;
+    --input: 215 20% 90%;
+    --ring: 215 70% 55%;
 
-    --success: 142 76% 36%;
+    --success: 142 70% 45%;
     --success-foreground: 0 0% 100%;
 
-    --warning: 38 92% 50%;
-    --warning-foreground: 0 0% 5%;
+    --warning: 38 90% 50%;
+    --warning-foreground: 0 0% 10%;
 
     --radius: 0.75rem;
     
-    --gradient-primary: linear-gradient(135deg, hsl(347 100% 56%), hsl(280 85% 65%), hsl(210 100% 60%));
-    --gradient-success: linear-gradient(135deg, hsl(142 76% 50%), hsl(158 100% 65%));
+    /* Cockpit specific variables */
+    --cockpit-bg: 210 20% 98%;
+    --cockpit-card: 0 0% 100%;
+    --cockpit-border: 215 20% 88%;
+    --cockpit-accent: 215 70% 55%;
+    --cockpit-success: 142 70% 45%;
+    --cockpit-danger: 0 75% 55%;
+    --cockpit-warning: 38 90% 50%;
+    --cockpit-muted: 215 15% 50%;
+    --cockpit-foreground: 215 25% 15%;
+    --cockpit-glow: 215 70% 55%;
+
+    --gradient-primary: linear-gradient(135deg, hsl(215 70% 55%), hsl(255 60% 60%));
+    --gradient-success: linear-gradient(135deg, hsl(142 70% 50%), hsl(158 100% 65%));
     --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.05);
     --shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
     --shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1);
 
-    --sidebar-background: 0 0% 98%;
+    --sidebar-background: 0 0% 100%;
+    --sidebar-foreground: 215 25% 25%;
+    --sidebar-primary: 215 70% 55%;
+    --sidebar-primary-foreground: 0 0% 100%;
+    --sidebar-accent: 215 20% 96%;
+    --sidebar-accent-foreground: 215 25% 25%;
+    --sidebar-border: 215 20% 92%;
+    --sidebar-ring: 215 70% 55%;
 
-    --sidebar-foreground: 240 5.3% 26.1%;
-
-    --sidebar-primary: 240 5.9% 10%;
-
-    --sidebar-primary-foreground: 0 0% 98%;
-
-    --sidebar-accent: 240 4.8% 95.9%;
-
-    --sidebar-accent-foreground: 240 5.9% 10%;
-
-    --sidebar-border: 220 13% 91%;
-
-    --sidebar-ring: 217.2 91.2% 59.8%;
-
-    /* Gradientes vibrantes e modernos */
-    --gradient-neon-primary: linear-gradient(135deg, hsl(347 100% 56%), hsl(280 85% 65%), hsl(210 100% 60%));
-    --gradient-neon-success: linear-gradient(135deg, hsl(142 76% 50%), hsl(158 100% 65%));
-    --gradient-neon-accent: linear-gradient(135deg, hsl(280 85% 65%), hsl(347 100% 56%));
-    --gradient-neon-warning: linear-gradient(135deg, hsl(38 100% 60%), hsl(25 100% 65%));
-    
-    /* Chart colors - paleta vibrante e moderna */
-    --chart-1: 347 100% 56%; /* Rosa vibrante */
-    --chart-2: 280 85% 65%; /* Roxo elétrico */
-    --chart-3: 210 100% 60%; /* Azul ciano */
-    --chart-4: 25 100% 65%; /* Laranja coral */
-    --chart-5: 158 100% 65%; /* Verde menta */
-    --chart-6: 330 100% 65%; /* Magenta */
-    --chart-7: 190 100% 60%; /* Turquesa */
-    --chart-8: 45 100% 65%; /* Amarelo dourado */
+    /* Chart colors - Professional palette */
+    --chart-1: 215 70% 55%;
+    --chart-2: 255 60% 60%;
+    --chart-3: 142 70% 45%;
+    --chart-4: 38 90% 50%;
+    --chart-5: 195 80% 50%;
+    --chart-6: 280 65% 55%;
+    --chart-7: 340 75% 55%;
+    --chart-8: 25 85% 55%;
   }
 
   .dark {
-    --background: 222 47% 6%; /* Azul escuro profundo quase preto */
-    --foreground: 0 0% 98%;
+    --background: 220 25% 8%;
+    --foreground: 210 15% 95%;
 
-    --card: 0 0% 100%; /* Branco puro mesmo no dark mode */
-    --card-foreground: 0 0% 5%; /* Texto escuro para contraste */
+    --card: 220 20% 12%;
+    --card-foreground: 210 15% 95%;
 
-    --popover: 0 0% 100%;
-    --popover-foreground: 0 0% 5%;
+    --popover: 220 20% 12%;
+    --popover-foreground: 210 15% 95%;
 
-    --primary: 347 100% 56%; /* Rosa vibrante da marca */
-    --primary-foreground: 0 0% 100%;
+    --primary: 215 75% 60%;
+    --primary-foreground: 220 25% 8%;
 
-    --secondary: 240 10% 18%;
-    --secondary-foreground: 0 0% 98%;
+    --secondary: 220 15% 18%;
+    --secondary-foreground: 210 15% 90%;
 
-    --muted: 240 10% 15%;
-    --muted-foreground: 240 5% 65%;
+    --muted: 220 15% 18%;
+    --muted-foreground: 215 15% 55%;
 
-    --accent: 280 85% 65%; /* Roxo elétrico */
-    --accent-foreground: 0 0% 100%;
+    --accent: 255 65% 65%;
+    --accent-foreground: 220 25% 8%;
 
-    --destructive: 0 84% 60%;
+    --destructive: 0 72% 55%;
     --destructive-foreground: 0 0% 100%;
 
-    --border: 240 10% 18%;
-    --input: 240 10% 18%;
-    --ring: 347 100% 56%;
+    --border: 220 15% 18%;
+    --input: 220 15% 18%;
+    --ring: 215 75% 60%;
 
-    --success: 142 76% 50%;
+    --success: 142 75% 50%;
     --success-foreground: 0 0% 100%;
 
-    --warning: 38 100% 60%;
-    --warning-foreground: 0 0% 5%;
-    --sidebar-background: 240 5.9% 10%;
-    --sidebar-foreground: 240 4.8% 95.9%;
-    --sidebar-primary: 224.3 76.3% 48%;
-    --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 240 3.7% 15.9%;
-    --sidebar-accent-foreground: 240 4.8% 95.9%;
-    --sidebar-border: 240 3.7% 15.9%;
-    --sidebar-ring: 347 100% 56%;
+    --warning: 38 95% 55%;
+    --warning-foreground: 0 0% 10%;
+    
+    /* Cockpit specific variables - Dark */
+    --cockpit-bg: 220 25% 8%;
+    --cockpit-card: 220 20% 12%;
+    --cockpit-border: 220 15% 20%;
+    --cockpit-accent: 215 75% 60%;
+    --cockpit-success: 142 75% 50%;
+    --cockpit-danger: 0 72% 55%;
+    --cockpit-warning: 38 95% 55%;
+    --cockpit-muted: 215 15% 55%;
+    --cockpit-foreground: 210 15% 95%;
+    --cockpit-glow: 215 75% 60%;
 
-    /* Gradientes vibrantes - dark mode */
-    --gradient-neon-primary: linear-gradient(135deg, hsl(347 100% 56%), hsl(280 85% 65%), hsl(210 100% 60%));
-    --gradient-neon-success: linear-gradient(135deg, hsl(142 76% 50%), hsl(158 100% 65%));
-    --gradient-neon-accent: linear-gradient(135deg, hsl(280 85% 65%), hsl(347 100% 56%));
-    --gradient-neon-warning: linear-gradient(135deg, hsl(38 100% 60%), hsl(25 100% 65%));
-    
-    /* Chart colors - paleta vibrante dark mode */
-    --chart-1: 347 100% 56%; /* Rosa vibrante */
-    --chart-2: 280 85% 65%; /* Roxo elétrico */
-    --chart-3: 210 100% 60%; /* Azul ciano */
-    --chart-4: 25 100% 65%; /* Laranja coral */
-    --chart-5: 158 100% 65%; /* Verde menta */
-    --chart-6: 330 100% 65%; /* Magenta */
-    --chart-7: 190 100% 60%; /* Turquesa */
-    --chart-8: 45 100% 65%; /* Amarelo dourado */
-  }
+    --sidebar-background: 220 20% 10%;
+    --sidebar-foreground: 210 15% 90%;
+    --sidebar-primary: 215 75% 60%;
+    --sidebar-primary-foreground: 220 25% 8%;
+    --sidebar-accent: 220 15% 15%;
+    --sidebar-accent-foreground: 210 15% 90%;
+    --sidebar-border: 220 15% 18%;
+    --sidebar-ring: 215 75% 60%;
 
-  /* Tema Futurista - Variáveis específicas */
-  .theme-futurista {
-    /* Grid texture and cyber effects */
-    --grid-opacity: 0.1;
-    --grid-size: 40px;
-    --glow-blur: 40px;
-    --glow-spread: -10px;
-    
-    /* Shadows with glow effect */
-    --shadow-glow-sm: 0 0 10px hsl(229 92% 62% / 0.2);
-    --shadow-glow-md: 0 0 20px hsl(229 92% 62% / 0.3), 0 4px 6px rgb(0 0 0 / 0.1);
-    --shadow-glow-lg: 0 0 40px hsl(229 92% 62% / 0.4), 0 10px 15px rgb(0 0 0 / 0.1);
-    
-    /* Card effects */
-    --card-blur: blur(10px);
-    --card-backdrop: rgba(255, 255, 255, 0.05);
-    
-    /* Border glow */
-    --border-glow: 0 0 10px hsl(229 92% 62% / 0.5);
-    
-    /* Chart colors - Paleta Futurista */
-    --chart-1: 229 92% 62%; /* Azul elétrico primário */
-    --chart-2: 270 70% 68%; /* Roxo neon */
-    --chart-3: 195 85% 62%; /* Ciano vibrante */
-    --chart-4: 290 80% 65%; /* Magenta tech */
-    --chart-5: 180 75% 58%; /* Turquesa neon */
-    --chart-6: 250 85% 70%; /* Azul-roxo */
-    --chart-7: 210 90% 65%; /* Azul céu elétrico */
-    --chart-8: 260 75% 72%; /* Lilás brilhante */
-  }
-
-  .theme-futurista.dark {
-    --grid-opacity: 0.15;
-    --glow-blur: 60px;
-    --card-backdrop: rgba(255, 255, 255, 0.02);
-    
-    /* Chart colors dark - mais brilhantes */
-    --chart-1: 229 95% 68%; 
-    --chart-2: 270 75% 72%; 
-    --chart-3: 195 88% 68%; 
-    --chart-4: 290 85% 70%; 
-    --chart-5: 180 80% 65%; 
-    --chart-6: 250 88% 75%; 
-    --chart-7: 210 92% 70%; 
-    --chart-8: 260 80% 76%;
+    /* Chart colors dark */
+    --chart-1: 215 80% 65%;
+    --chart-2: 255 70% 68%;
+    --chart-3: 142 75% 50%;
+    --chart-4: 38 95% 55%;
+    --chart-5: 195 85% 55%;
+    --chart-6: 280 70% 60%;
+    --chart-7: 340 80% 60%;
+    --chart-8: 25 90% 60%;
   }
 }
 

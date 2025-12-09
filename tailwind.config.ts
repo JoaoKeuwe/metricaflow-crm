@@ -63,6 +63,19 @@ export default {
           border: "hsl(var(--sidebar-border))",
           ring: "hsl(var(--sidebar-ring))",
         },
+        // Cockpit Design System Colors
+        cockpit: {
+          bg: "hsl(var(--cockpit-bg))",
+          card: "hsl(var(--cockpit-card))",
+          border: "hsl(var(--cockpit-border))",
+          accent: "hsl(var(--cockpit-accent))",
+          success: "hsl(var(--cockpit-success))",
+          danger: "hsl(var(--cockpit-danger))",
+          warning: "hsl(var(--cockpit-warning))",
+          muted: "hsl(var(--cockpit-muted))",
+          foreground: "hsl(var(--cockpit-foreground))",
+          glow: "hsl(var(--cockpit-glow))",
+        },
       },
       borderRadius: {
         lg: "var(--radius)",
