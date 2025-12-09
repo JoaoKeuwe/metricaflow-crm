@@ -39,6 +39,46 @@ serve(async (req) => {
       });
     }
 
+    // Check if calling user is super admin
+    const { data: callerProfile } = await supabaseAdmin
+      .from('profiles')
+      .select('company_id, is_super_admin')
+      .eq('id', callingUser.id)
+      .single();
+
+    if (!callerProfile) {
+      return new Response(JSON.stringify({ emails: {} }), {
+        status: 200,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+      });
+    }
+
+    // Parse request body (may be empty for super admin requests)
+    let userIds: string[] = [];
+    try {
+      const body = await req.json();
+      userIds = body?.userIds || [];
+    } catch {
+      // Body may be empty for super admin requests
+    }
+
+    // If super admin and no userIds provided, return ALL user emails
+    if (callerProfile.is_super_admin && (!userIds || userIds.length === 0)) {
+      const { data: authUsers } = await supabaseAdmin.auth.admin.listUsers();
+      
+      const emails: Array<{ id: string; email: string }> = [];
+      authUsers?.users?.forEach(u => {
+        if (u.email) {
+          emails.push({ id: u.id, email: u.email });
+        }
+      });
+
+      return new Response(JSON.stringify({ emails }), {
+        status: 200,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+      });
+    }
+
     // Check if calling user is owner
     const { data: callerRole } = await supabaseAdmin
       .from('user_roles')
@@ -52,22 +92,6 @@ serve(async (req) => {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' }
       });
     }
-
-    // Get caller's company
-    const { data: callerProfile } = await supabaseAdmin
-      .from('profiles')
-      .select('company_id')
-      .eq('id', callingUser.id)
-      .single();
-
-    if (!callerProfile) {
-      return new Response(JSON.stringify({ emails: {} }), {
-        status: 200,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-      });
-    }
-
-    const { userIds } = await req.json();
 
     if (!userIds || !Array.isArray(userIds) || userIds.length === 0) {
       return new Response(JSON.stringify({ emails: {} }), {
