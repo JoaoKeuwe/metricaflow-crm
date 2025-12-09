@@ -23,7 +23,7 @@ serve(async (req) => {
     console.log(`Admin OTP action: ${action}, email: ${email}`);
 
     if (action === "request") {
-      // Verificar se é o email autorizado
+      // Verify authorized email
       if (email !== ADMIN_EMAIL) {
         console.log(`Unauthorized email attempt: ${email}`);
         return new Response(
@@ -32,18 +32,18 @@ serve(async (req) => {
         );
       }
 
-      // Gerar código de 6 dígitos
+      // Generate 6-digit code
       const otpCode = Math.floor(100000 + Math.random() * 900000).toString();
-      const expiresAt = new Date(Date.now() + 10 * 60 * 1000); // 10 minutos
+      const expiresAt = new Date(Date.now() + 10 * 60 * 1000); // 10 minutes
 
-      // Invalidar códigos anteriores
+      // Invalidate previous codes
       await supabaseAdmin
         .from("admin_otp_codes")
         .update({ used: true })
         .eq("email", email)
         .eq("used", false);
 
-      // Salvar novo código
+      // Save new code
       const { error: insertError } = await supabaseAdmin
         .from("admin_otp_codes")
         .insert({
@@ -57,7 +57,7 @@ serve(async (req) => {
         throw insertError;
       }
 
-      // Enviar email via Brevo
+      // Send email via Brevo
       const brevoApiKey = Deno.env.get("BREVO_API_KEY");
       const brevoFromEmail = Deno.env.get("BREVO_FROM_EMAIL") || "noreply@workflow360.com";
       const brevoFromName = Deno.env.get("BREVO_FROM_NAME") || "WorkFlow360";
@@ -124,7 +124,7 @@ serve(async (req) => {
       );
 
     } else if (action === "verify") {
-      // Verificar código
+      // Verify code
       const { data: otpData, error: otpError } = await supabaseAdmin
         .from("admin_otp_codes")
         .select("*")
@@ -144,24 +144,62 @@ serve(async (req) => {
         );
       }
 
-      // Marcar código como usado
+      // Mark code as used
       await supabaseAdmin
         .from("admin_otp_codes")
         .update({ used: true })
         .eq("id", otpData.id);
 
-      // Gerar token de sessão admin (válido por 24h)
+      // Generate secure session token
       const adminToken = crypto.randomUUID();
-      const tokenExpiry = new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString();
+      const tokenExpiry = new Date(Date.now() + 24 * 60 * 60 * 1000); // 24 hours
 
-      console.log("OTP verified successfully");
+      // Store token in admin_sessions table (server-side validation)
+      const { error: sessionError } = await supabaseAdmin
+        .from("admin_sessions")
+        .insert({
+          token: adminToken,
+          email: email,
+          expires_at: tokenExpiry.toISOString(),
+          revoked: false,
+        });
+
+      if (sessionError) {
+        console.error("Error creating admin session:", sessionError);
+        throw sessionError;
+      }
+
+      // Cleanup old sessions (fire and forget)
+      try {
+        await supabaseAdmin.rpc('cleanup_expired_admin_sessions');
+      } catch (cleanupErr) {
+        console.warn("Failed to cleanup expired sessions:", cleanupErr);
+      }
+
+      console.log("OTP verified and session created successfully");
       return new Response(
         JSON.stringify({ 
           success: true, 
           adminToken,
-          tokenExpiry,
+          tokenExpiry: tokenExpiry.toISOString(),
           message: "Acesso autorizado" 
         }),
+        { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+
+    } else if (action === "logout") {
+      // Revoke token on logout
+      const { token } = await req.json();
+      if (token) {
+        await supabaseAdmin
+          .from("admin_sessions")
+          .update({ revoked: true })
+          .eq("token", token);
+        console.log("Admin session revoked");
+      }
+      
+      return new Response(
+        JSON.stringify({ success: true, message: "Sessão encerrada" }),
         { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
 

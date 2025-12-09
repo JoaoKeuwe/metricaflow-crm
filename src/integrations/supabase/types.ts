@@ -41,6 +41,33 @@ export type Database = {
         }
         Relationships: []
       }
+      admin_sessions: {
+        Row: {
+          created_at: string
+          email: string
+          expires_at: string
+          id: string
+          revoked: boolean
+          token: string
+        }
+        Insert: {
+          created_at?: string
+          email: string
+          expires_at: string
+          id?: string
+          revoked?: boolean
+          token: string
+        }
+        Update: {
+          created_at?: string
+          email?: string
+          expires_at?: string
+          id?: string
+          revoked?: boolean
+          token?: string
+        }
+        Relationships: []
+      }
       ai_report_insights: {
         Row: {
           attention_points: Json | null
@@ -1715,6 +1742,7 @@ export type Database = {
         Args: { _meeting_id: string; _user_id: string }
         Returns: boolean
       }
+      cleanup_expired_admin_sessions: { Args: never; Returns: undefined }
       cleanup_expired_otp_codes: { Args: never; Returns: undefined }
       cleanup_expired_reset_tokens: { Args: never; Returns: undefined }
       cleanup_old_integration_logs: { Args: never; Returns: undefined }

@@ -107,3 +107,9 @@ verify_jwt = true
 
 [functions.stripe-webhook]
 verify_jwt = false
+
+[functions.admin-otp]
+verify_jwt = false
+
+[functions.validate-admin-token]
+verify_jwt = false
