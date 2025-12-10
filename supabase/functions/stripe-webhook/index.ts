@@ -39,7 +39,123 @@ const getPlanFromPriceId = (priceId: string): { planType: string; userLimit: num
   return planMapping[priceId] || { planType: "individual", userLimit: 1 };
 };
 
-// Enviar email de boas-vindas via Brevo
+// Enviar email de confirmação de plano ativado (para usuários existentes)
+const sendPlanActivatedEmail = async (
+  email: string,
+  userName: string,
+  planType: string
+): Promise<void> => {
+  const brevoApiKey = Deno.env.get("BREVO_API_KEY");
+  const fromEmail = Deno.env.get("BREVO_FROM_EMAIL") || "noreply@workflow360.com";
+  const fromName = Deno.env.get("BREVO_FROM_NAME") || "WorkFlow360";
+  
+  if (!brevoApiKey) {
+    throw new Error("BREVO_API_KEY não configurada");
+  }
+
+  const planName = planType === "team" ? "WorkFlow360 Equipe" : "WorkFlow360 Individual";
+  const loginUrl = "https://myworkflow360.com/auth";
+
+  const emailHtml = `
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+</head>
+<body style="margin: 0; padding: 0; background-color: #0F1624; font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;">
+  <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="background-color: #0F1624;">
+    <tr>
+      <td align="center" style="padding: 40px 20px;">
+        <table role="presentation" width="600" cellspacing="0" cellpadding="0" style="background: linear-gradient(135deg, rgba(93, 123, 255, 0.1) 0%, rgba(143, 174, 255, 0.05) 100%); border: 1px solid rgba(93, 123, 255, 0.2); border-radius: 16px; overflow: hidden;">
+          
+          <!-- Header -->
+          <tr>
+            <td style="padding: 40px 40px 20px; text-align: center;">
+              <h1 style="margin: 0; font-size: 28px; font-weight: 700; background: linear-gradient(135deg, #5D7BFF 0%, #8FAEFF 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;">
+                🎉 Seu plano foi ativado!
+              </h1>
+            </td>
+          </tr>
+
+          <!-- Content -->
+          <tr>
+            <td style="padding: 20px 40px;">
+              <p style="margin: 0 0 20px; color: #ECF4FF; font-size: 16px; line-height: 1.6;">
+                Olá${userName ? ` ${userName}` : ""}!
+              </p>
+              
+              <p style="margin: 0 0 20px; color: #ECF4FF; font-size: 16px; line-height: 1.6;">
+                Sua assinatura do <strong style="color: #8FAEFF;">${planName}</strong> foi ativada com sucesso!
+              </p>
+
+              <p style="margin: 0 0 20px; color: #ECF4FF; font-size: 16px; line-height: 1.6;">
+                Você já pode acessar o sistema normalmente com seu email e senha atuais.
+              </p>
+
+              <!-- CTA Button -->
+              <table role="presentation" width="100%" cellspacing="0" cellpadding="0">
+                <tr>
+                  <td align="center" style="padding: 20px 0;">
+                    <a href="${loginUrl}" style="display: inline-block; padding: 16px 40px; background: linear-gradient(135deg, #5D7BFF 0%, #8FAEFF 100%); color: #FFFFFF; text-decoration: none; font-size: 16px; font-weight: 600; border-radius: 8px; box-shadow: 0 4px 20px rgba(93, 123, 255, 0.4);">
+                      Acessar Minha Conta
+                    </a>
+                  </td>
+                </tr>
+              </table>
+
+              <!-- Success Box -->
+              <div style="background: rgba(34, 197, 94, 0.1); border: 1px solid rgba(34, 197, 94, 0.3); border-radius: 8px; padding: 16px; margin-top: 24px; text-align: center;">
+                <p style="margin: 0; color: #22C55E; font-size: 15px;">
+                  ✨ Aproveite todas as funcionalidades do seu plano!
+                </p>
+              </div>
+            </td>
+          </tr>
+
+          <!-- Footer -->
+          <tr>
+            <td style="padding: 30px 40px; border-top: 1px solid rgba(93, 123, 255, 0.2);">
+              <p style="margin: 0; color: #6B7280; font-size: 13px; text-align: center; line-height: 1.5;">
+                Precisa de ajuda? Responda este email ou acesse nosso suporte.<br>
+                © 2024 WorkFlow360. Todos os direitos reservados.
+              </p>
+            </td>
+          </tr>
+
+        </table>
+      </td>
+    </tr>
+  </table>
+</body>
+</html>
+  `;
+
+  const response = await fetch("https://api.brevo.com/v3/smtp/email", {
+    method: "POST",
+    headers: {
+      "Accept": "application/json",
+      "Content-Type": "application/json",
+      "api-key": brevoApiKey,
+    },
+    body: JSON.stringify({
+      sender: { name: fromName, email: fromEmail },
+      to: [{ email }],
+      subject: "🎉 Seu plano WorkFlow360 foi ativado!",
+      htmlContent: emailHtml,
+    }),
+  });
+
+  if (!response.ok) {
+    const errorText = await response.text();
+    logStep("Erro ao enviar email de plano ativado", { status: response.status, error: errorText });
+    throw new Error(`Falha ao enviar email: ${response.status}`);
+  }
+
+  logStep("Email de plano ativado enviado com sucesso", { email });
+};
+
+// Enviar email de boas-vindas via Brevo (para novos usuários)
 const sendWelcomeEmail = async (
   email: string, 
   temporaryPassword: string,
@@ -260,13 +376,69 @@ serve(async (req) => {
       const userExists = existingUsers?.users?.some(u => u.email === customerEmail);
 
       if (userExists) {
-        logStep("Usuário já existe, atualizando apenas assinatura", { email: customerEmail });
+        logStep("Usuário já existe, atualizando assinatura e enviando email", { email: customerEmail });
         
-        // Apenas atualizar/criar registro de subscription
-        // O check-subscription já faz isso quando o usuário logar
+        // Buscar usuário existente
+        const existingUser = existingUsers?.users?.find(u => u.email === customerEmail);
+        
+        if (existingUser) {
+          // Obter informações do plano
+          let planInfo = { planType: "individual", userLimit: 1 };
+          
+          if (session.subscription) {
+            const subscription = await stripe.subscriptions.retrieve(session.subscription as string);
+            const priceId = subscription.items.data[0]?.price?.id;
+            if (priceId) {
+              planInfo = getPlanFromPriceId(priceId);
+            }
+          }
+          
+          logStep("Plano identificado para usuário existente", planInfo);
+          
+          // Buscar company_id e nome do usuário existente
+          const { data: profile } = await supabaseAdmin
+            .from("profiles")
+            .select("company_id, name")
+            .eq("id", existingUser.id)
+            .single();
+          
+          if (profile?.company_id) {
+            // Atualizar subscription IMEDIATAMENTE
+            const { error: subError } = await supabaseAdmin
+              .from("subscriptions")
+              .upsert({
+                company_id: profile.company_id,
+                status: "active",
+                plan_type: planInfo.planType,
+                user_limit: planInfo.userLimit,
+                stripe_customer_id: session.customer as string,
+                stripe_subscription_id: session.subscription as string,
+                current_period_start: new Date().toISOString(),
+                current_period_end: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(),
+              }, {
+                onConflict: "company_id",
+              });
+
+            if (subError) {
+              logStep("Erro ao atualizar subscription", { error: subError.message });
+            } else {
+              logStep("Subscription atualizada com sucesso para usuário existente");
+            }
+          }
+          
+          // Enviar email de confirmação de plano ativado
+          try {
+            await sendPlanActivatedEmail(customerEmail, profile?.name || "", planInfo.planType);
+            logStep("Email de plano ativado enviado para usuário existente");
+          } catch (emailError: unknown) {
+            const errorMessage = emailError instanceof Error ? emailError.message : String(emailError);
+            logStep("Erro ao enviar email de plano ativado (não crítico)", { error: errorMessage });
+          }
+        }
+        
         return new Response(JSON.stringify({ 
           received: true, 
-          message: "Usuário já existe, assinatura será atualizada no próximo login" 
+          message: "Usuário existente - assinatura atualizada e email enviado" 
         }), {
           status: 200,
           headers: { ...corsHeaders, "Content-Type": "application/json" },
