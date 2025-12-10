@@ -1,9 +1,12 @@
 export { CockpitLayout } from './CockpitLayout';
 export { CommandKPI } from './CommandKPI';
 export { AlertPanel } from './AlertPanel';
+export { CriticalAlertsPanel } from './CriticalAlertsPanel';
 export { HorizontalFunnel } from './HorizontalFunnel';
 export { VelocityMeter } from './VelocityMeter';
 export { TeamPerformancePanel } from './TeamPerformancePanel';
 export { TrendChart } from './TrendChart';
 export { LossWaterfallChart } from './LossWaterfallChart';
 export { SourceConversionChart } from './SourceConversionChart';
+export { GoalGauge } from './GoalGauge';
+export { QuickStats } from './QuickStats';

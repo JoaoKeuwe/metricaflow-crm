@@ -45,6 +45,11 @@ Deno.serve(async (req) => {
       return query;
     };
 
+    // Calculate dates for inactive leads
+    const now = new Date();
+    const twentyFourHoursAgo = new Date(now.getTime() - 24 * 60 * 60 * 1000).toISOString();
+    const sevenDaysAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000).toISOString();
+
     // Execute all queries in parallel
     const [
       totalLeadsResult,
@@ -66,6 +71,10 @@ Deno.serve(async (req) => {
       tasksResult,
       observationsResult,
       marketingCostsResult,
+      inactiveLeads24hResult,
+      inactiveLeads7dResult,
+      salesGoalResult,
+      leadsWithRecentActivityResult,
     ] = await Promise.all([
       // Total leads
       buildQuery(supabaseClient.from('leads').select('*', { count: 'exact', head: true })),
@@ -154,6 +163,38 @@ Deno.serve(async (req) => {
         .order('period_start', { ascending: false })
         .limit(1)
         .maybeSingle(),
+
+      // Leads without activity in last 24 hours (active leads only)
+      supabaseClient
+        .from('leads')
+        .select('id, name, updated_at')
+        .in('status', ['novo', 'contato_feito', 'proposta', 'negociacao'])
+        .lt('updated_at', twentyFourHoursAgo),
+
+      // Leads without activity in last 7 days
+      supabaseClient
+        .from('leads')
+        .select('id, name, updated_at')
+        .in('status', ['novo', 'contato_feito', 'proposta', 'negociacao'])
+        .lt('updated_at', sevenDaysAgo),
+
+      // Monthly sales goal for the period
+      supabaseClient
+        .from('sales_goals')
+        .select('*')
+        .lte('start_date', end_date)
+        .gte('end_date', start_date)
+        .is('user_id', null)
+        .order('start_date', { ascending: false })
+        .limit(1)
+        .maybeSingle(),
+
+      // Leads with recent activity (observations in last 7 days) - for follow-up rate
+      supabaseClient
+        .from('lead_observations')
+        .select('lead_id')
+        .gte('created_at', sevenDaysAgo)
+        .lte('created_at', now.toISOString()),
     ]);
 
     // Calculate metrics
@@ -321,6 +362,23 @@ Deno.serve(async (req) => {
       payback = monthlyTicket > 0 ? Math.ceil(cac / monthlyTicket) : null;
     }
 
+    // Calculate inactive leads counts
+    const inactiveLeads24h = inactiveLeads24hResult.data?.length || 0;
+    const inactiveLeads7d = inactiveLeads7dResult.data?.length || 0;
+
+    // Calculate follow-up rate (leads contacted within 7 days / total new leads)
+    const uniqueContactedLeads = new Set(leadsWithRecentActivityResult.data?.map((o: any) => o.lead_id) || []);
+    const followUpRate = totalLeads > 0 ? ((uniqueContactedLeads.size / totalLeads) * 100).toFixed(1) : '0.0';
+
+    // Get sales goal data
+    const monthlyGoal = salesGoalResult.data?.revenue_goal || 0;
+    const goalGap = monthlyGoal - totalConvertedValue;
+    const goalPercentage = monthlyGoal > 0 ? ((totalConvertedValue / monthlyGoal) * 100).toFixed(1) : '0.0';
+
+    // Loss rate
+    const lostLeadsCount = lostLeadsResult.data?.length || 0;
+    const lossRate = totalLeads > 0 ? ((lostLeadsCount / totalLeads) * 100).toFixed(1) : '0.0';
+
     const response = {
       stats: {
         totalLeads,
@@ -341,6 +399,15 @@ Deno.serve(async (req) => {
         cac: cac !== null ? Math.round(cac * 100) / 100 : null,
         ltv: ltv !== null ? Math.round(ltv * 100) / 100 : null,
         payback: payback,
+        // New metrics
+        inactiveLeads24h,
+        inactiveLeads7d,
+        followUpRate,
+        monthlyGoal,
+        goalGap,
+        goalPercentage,
+        lossRate,
+        lostLeadsCount,
       },
       statusData,
       sourceData,

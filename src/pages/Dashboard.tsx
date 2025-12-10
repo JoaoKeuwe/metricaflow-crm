@@ -13,7 +13,13 @@ import {
   Target, 
   FileDown,
   Zap,
-  BarChart3
+  BarChart3,
+  Activity,
+  Percent,
+  Timer,
+  UserX,
+  AlertTriangle,
+  CalendarCheck
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -22,13 +28,15 @@ import { toast } from "sonner";
 import {
   CockpitLayout,
   CommandKPI,
-  AlertPanel,
+  CriticalAlertsPanel,
   HorizontalFunnel,
   VelocityMeter,
   TeamPerformancePanel,
   TrendChart,
   LossWaterfallChart,
-  SourceConversionChart
+  SourceConversionChart,
+  GoalGauge,
+  QuickStats
 } from "@/components/dashboard/cockpit";
 
 // Lazy load de componentes pesados
@@ -262,45 +270,110 @@ const Dashboard = () => {
     }));
   }, [lossReasonsData, stats]);
 
-  // Alertas inteligentes baseados nos dados
-  const alerts = useMemo(() => {
+  // Critical alerts (new system)
+  const criticalAlerts = useMemo(() => {
     if (!stats) return [];
     
     const alertsList = [];
     
-    // Alerta de dinheiro travado
-    if (stats.pendingLeads > 10 && stats.totalEstimatedValue > 50000) {
+    // CRITICAL: Leads inactive 24h+
+    if (stats.inactiveLeads24h && stats.inactiveLeads24h > 0) {
       alertsList.push({
-        id: 'money-trapped',
-        type: 'money' as const,
-        title: 'Dinheiro Travado no Pipeline',
-        message: `${stats.pendingLeads} leads em andamento representam potencial não convertido`,
-        value: stats.totalEstimatedValue
+        id: 'inactive-24h',
+        type: 'inactive24h' as const,
+        title: `${stats.inactiveLeads24h} Leads Parados`,
+        message: 'Leads sem contato há mais de 24 horas precisam de ação imediata',
+        value: stats.inactiveLeads24h,
+        severity: 'critical' as const
       });
     }
 
-    // Alerta de taxa de conversão baixa
-    if (stats.conversionRate < 15) {
+    // WARNING: Low conversion rate
+    if (parseFloat(stats.conversionRate) < 15) {
       alertsList.push({
         id: 'low-conversion',
-        type: 'bottleneck' as const,
-        title: 'Taxa de Conversão Abaixo do Ideal',
-        message: `A taxa atual de ${stats.conversionRate}% está abaixo da meta de 15%`
+        type: 'lowConversion' as const,
+        title: 'Conversão Abaixo da Meta',
+        message: `Taxa atual de ${stats.conversionRate}% está abaixo do ideal de 15%`,
+        value: `${stats.conversionRate}%`,
+        severity: 'warning' as const
+      });
+    }
+    
+    // WARNING: Money stuck in pipeline
+    if (stats.pendingLeads > 10 && stats.totalEstimatedValue > 50000) {
+      alertsList.push({
+        id: 'money-stuck',
+        type: 'moneyStuck' as const,
+        title: 'Receita Travada no Pipeline',
+        message: `${stats.pendingLeads} leads representam oportunidades não convertidas`,
+        value: stats.totalEstimatedValue,
+        severity: 'warning' as const
       });
     }
 
-    // Alerta de leads sem atividade
-    if (stats.staleLeads && stats.staleLeads > 5) {
+    // INFO: Leads inactive 7d+
+    if (stats.inactiveLeads7d && stats.inactiveLeads7d > 5) {
       alertsList.push({
-        id: 'stale-leads',
-        type: 'stale' as const,
+        id: 'inactive-7d',
+        type: 'inactive7d' as const,
         title: 'Leads Esfriando',
-        message: `${stats.staleLeads} leads sem contato há mais de 7 dias`,
-        value: stats.staleLeads
+        message: `${stats.inactiveLeads7d} leads sem atividade há mais de 7 dias`,
+        value: stats.inactiveLeads7d,
+        severity: 'info' as const
       });
     }
 
     return alertsList;
+  }, [stats]);
+
+  // Quick stats data
+  const quickStatsData = useMemo(() => {
+    if (!stats) return [];
+    
+    return [
+      { 
+        label: "CAC", 
+        value: stats.cac || 0, 
+        icon: DollarSign, 
+        color: "primary" as const, 
+        prefix: "R$ " 
+      },
+      { 
+        label: "LTV", 
+        value: stats.ltv || 0, 
+        icon: TrendingUp, 
+        color: "success" as const, 
+        prefix: "R$ " 
+      },
+      { 
+        label: "Payback", 
+        value: stats.payback || 0, 
+        icon: Timer, 
+        color: "muted" as const, 
+        suffix: " meses" 
+      },
+      { 
+        label: "Follow-up Rate", 
+        value: stats.followUpRate || 0, 
+        icon: Activity, 
+        color: parseFloat(stats.followUpRate || '0') >= 70 ? "success" as const : "warning" as const, 
+        suffix: "%" 
+      },
+      { 
+        label: "Taxa de Perda", 
+        value: stats.lossRate || 0, 
+        icon: UserX, 
+        color: parseFloat(stats.lossRate || '0') < 30 ? "muted" as const : "danger" as const, 
+        suffix: "%" 
+      },
+      { 
+        label: "Atividades", 
+        value: stats.totalActivities || 0, 
+        icon: CalendarCheck, 
+        color: "primary" as const 
+      },
+    ];
   }, [stats]);
 
   // Dados do ranking do time
@@ -451,7 +524,63 @@ const Dashboard = () => {
         </div>
       ) : (
         <div className="space-y-6">
-          {/* KPIs Row */}
+          {/* HERO SECTION - Goal Gauge + Main KPIs */}
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            {/* Goal Gauge */}
+            <div className="lg:col-span-1">
+              <GoalGauge
+                goal={stats.monthlyGoal || 100000}
+                achieved={stats.totalConvertedValue || 0}
+                title="Meta vs Realizado"
+                subtitle={selectedMonth === 'all' ? 'Ano completo' : 'Período selecionado'}
+              />
+            </div>
+
+            {/* Main KPIs Grid */}
+            <div className="lg:col-span-2 grid grid-cols-2 gap-4">
+              <CommandKPI
+                title="Receita Realizada"
+                value={`R$ ${(stats.totalConvertedValue || 0).toLocaleString('pt-BR')}`}
+                icon={DollarSign}
+                subtitle={`${stats.wonLeads || 0} vendas fechadas`}
+                accentColor="success"
+                size="large"
+                trend={stats.wonLeads > 0 ? { value: 12, isPositive: true } : undefined}
+              />
+              <CommandKPI
+                title="Taxa de Conversão"
+                value={`${stats.conversionRate || 0}%`}
+                icon={Percent}
+                subtitle="Leads → Vendas"
+                accentColor={parseFloat(stats.conversionRate) >= 15 ? "success" : "warning"}
+                size="large"
+              />
+              <CommandKPI
+                title="Ticket Médio"
+                value={`R$ ${(stats.averageTicket || 0).toLocaleString('pt-BR')}`}
+                icon={Target}
+                subtitle="Por venda fechada"
+                accentColor="primary"
+              />
+              <CommandKPI
+                title="Ciclo do Funil"
+                value={`${stats.avgTimeInFunnel || 0} dias`}
+                icon={Timer}
+                subtitle="Tempo médio até fechamento"
+                accentColor={stats.avgTimeInFunnel <= 15 ? "success" : "warning"}
+              />
+            </div>
+          </div>
+
+          {/* Quick Stats Row */}
+          <QuickStats stats={quickStatsData} />
+
+          {/* Critical Alerts Panel */}
+          {criticalAlerts.length > 0 && (
+            <CriticalAlertsPanel alerts={criticalAlerts} />
+          )}
+
+          {/* Secondary KPIs */}
           <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
             <CommandKPI
               title="Total de Leads"
@@ -461,38 +590,12 @@ const Dashboard = () => {
               accentColor="primary"
             />
             <CommandKPI
-              title="Vendas Fechadas"
-              value={stats.wonLeads || 0}
-              icon={CheckCircle}
-              subtitle={`R$ ${(stats.totalConvertedValue || 0).toLocaleString('pt-BR')}`}
-              accentColor="success"
-              trend={stats.wonLeads > 0 ? { value: 12, isPositive: true } : undefined}
-            />
-            <CommandKPI
-              title="Taxa de Conversão"
-              value={`${stats.conversionRate || 0}%`}
-              icon={TrendingUp}
-              subtitle="Leads → Vendas"
-              accentColor={stats.conversionRate >= 15 ? "success" : "warning"}
-            />
-            <CommandKPI
-              title="Ticket Médio"
-              value={`R$ ${(stats.averageTicket || 0).toLocaleString('pt-BR')}`}
-              icon={DollarSign}
-              subtitle="Por venda fechada"
-              accentColor="primary"
-            />
-          </div>
-
-          {/* Secondary KPIs */}
-          <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-            <CommandKPI
               title="Em Andamento"
               value={stats.pendingLeads || 0}
               icon={Clock}
               subtitle={`R$ ${(stats.totalEstimatedValue || 0).toLocaleString('pt-BR')} em pipeline`}
               accentColor="primary"
-              size="default"
+              alert={stats.inactiveLeads24h > 0}
             />
             <CommandKPI
               title="Leads Qualificados"
@@ -502,25 +605,13 @@ const Dashboard = () => {
               accentColor="success"
             />
             <CommandKPI
-              title="Reuniões Realizadas"
-              value={stats.completedMeetings || 0}
-              icon={Users}
-              subtitle={`${stats.scheduledMeetings || 0} agendadas`}
-              accentColor="primary"
-            />
-            <CommandKPI
               title="Win Rate"
               value={`${stats.winRate || 0}%`}
               icon={Zap}
               subtitle="Oportunidades fechadas"
-              accentColor={stats.winRate >= 20 ? "success" : "warning"}
+              accentColor={parseFloat(stats.winRate) >= 20 ? "success" : "warning"}
             />
           </div>
-
-          {/* Alerts Panel */}
-          {alerts.length > 0 && (
-            <AlertPanel alerts={alerts} />
-          )}
 
           {/* Main Grid - Funnel and Velocity */}
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
