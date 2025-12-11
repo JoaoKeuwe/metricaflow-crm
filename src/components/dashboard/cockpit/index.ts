@@ -5,6 +5,7 @@ export { CriticalAlertsPanel } from './CriticalAlertsPanel';
 export { HorizontalFunnel } from './HorizontalFunnel';
 export { VelocityMeter } from './VelocityMeter';
 export { TeamPerformancePanel } from './TeamPerformancePanel';
+export { TeamProgressPanel } from './TeamProgressPanel';
 export { TrendChart } from './TrendChart';
 export { LossWaterfallChart } from './LossWaterfallChart';
 export { SourceConversionChart } from './SourceConversionChart';

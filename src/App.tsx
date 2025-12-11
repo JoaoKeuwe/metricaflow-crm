@@ -26,6 +26,7 @@ import Help from "./pages/Help";
 import Settings from "./pages/Settings";
 import ReportSettings from "./pages/ReportSettings";
 import Goals from "./pages/Goals";
+import KPI from "./pages/KPI";
 import Admin from "./pages/Admin";
 import AdminLogin from "./pages/AdminLogin";
 import NotFound from "./pages/NotFound";
@@ -210,6 +211,7 @@ const App = () => {
                 </ProtectedRoute>
               }
             />
+            <Route path="/kpi" element={<KPI />} />
             <Route path="/pricing" element={<Pricing />} />
             <Route path="/sales" element={<Sales />} />
             <Route path="/admwf360" element={<AdminLogin />} />
