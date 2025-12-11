@@ -1165,6 +1165,112 @@ export type Database = {
           },
         ]
       }
+      seller_kpi_feedback: {
+        Row: {
+          company_id: string
+          created_at: string | null
+          created_by: string | null
+          feedback_type: string
+          id: string
+          message: string
+          month: string
+          title: string
+          user_id: string
+        }
+        Insert: {
+          company_id: string
+          created_at?: string | null
+          created_by?: string | null
+          feedback_type: string
+          id?: string
+          message: string
+          month: string
+          title: string
+          user_id: string
+        }
+        Update: {
+          company_id?: string
+          created_at?: string | null
+          created_by?: string | null
+          feedback_type?: string
+          id?: string
+          message?: string
+          month?: string
+          title?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "seller_kpi_feedback_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      seller_kpi_monthly: {
+        Row: {
+          actual_calls: number | null
+          actual_deals: number | null
+          actual_meetings: number | null
+          actual_revenue: number | null
+          company_id: string
+          created_at: string | null
+          created_by: string | null
+          id: string
+          month: string
+          target_calls: number | null
+          target_deals: number | null
+          target_meetings: number | null
+          target_revenue: number | null
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          actual_calls?: number | null
+          actual_deals?: number | null
+          actual_meetings?: number | null
+          actual_revenue?: number | null
+          company_id: string
+          created_at?: string | null
+          created_by?: string | null
+          id?: string
+          month: string
+          target_calls?: number | null
+          target_deals?: number | null
+          target_meetings?: number | null
+          target_revenue?: number | null
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          actual_calls?: number | null
+          actual_deals?: number | null
+          actual_meetings?: number | null
+          actual_revenue?: number | null
+          company_id?: string
+          created_at?: string | null
+          created_by?: string | null
+          id?: string
+          month?: string
+          target_calls?: number | null
+          target_deals?: number | null
+          target_meetings?: number | null
+          target_revenue?: number | null
+          updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "seller_kpi_monthly_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       stage_advancement_criteria: {
         Row: {
           blocking: boolean | null

@@ -32,6 +32,7 @@ import {
   HorizontalFunnel,
   VelocityMeter,
   TeamPerformancePanel,
+  TeamProgressPanel,
   TrendChart,
   LossWaterfallChart,
   SourceConversionChart,
@@ -630,6 +631,15 @@ const Dashboard = () => {
             <TeamPerformancePanel 
               members={teamRankingData} 
               title="Ranking do Time"
+            />
+          )}
+
+          {/* Team Progress - KPI Goals (All users) */}
+          {profile?.company_id && (
+            <TeamProgressPanel 
+              companyId={profile.company_id}
+              currentUserId={profile.id}
+              isManager={userRole !== 'vendedor'}
             />
           )}
 
