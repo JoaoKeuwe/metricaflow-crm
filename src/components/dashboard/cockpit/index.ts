@@ -11,3 +11,7 @@ export { LossWaterfallChart } from './LossWaterfallChart';
 export { SourceConversionChart } from './SourceConversionChart';
 export { GoalGauge } from './GoalGauge';
 export { QuickStats } from './QuickStats';
+export { TeamGoalProgressCard } from './TeamGoalProgressCard';
+export { ActivityBreakdownPanel } from './ActivityBreakdownPanel';
+export { MonthlyComparisonCard } from './MonthlyComparisonCard';
+export { SalesRepDetailedPanel } from './SalesRepDetailedPanel';
