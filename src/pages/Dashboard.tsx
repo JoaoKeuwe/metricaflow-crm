@@ -37,7 +37,11 @@ import {
   LossWaterfallChart,
   SourceConversionChart,
   GoalGauge,
-  QuickStats
+  QuickStats,
+  TeamGoalProgressCard,
+  ActivityBreakdownPanel,
+  MonthlyComparisonCard,
+  SalesRepDetailedPanel
 } from "@/components/dashboard/cockpit";
 
 // Lazy load de componentes pesados
@@ -377,20 +381,34 @@ const Dashboard = () => {
     ];
   }, [stats]);
 
-  // Dados do ranking do time
+  // Dados do ranking do time - now from backend
   const teamRankingData = useMemo(() => {
-    if (!detailedPerformanceData || userRole === 'vendedor') return [];
-    
-    return detailedPerformanceData.map((member: any) => ({
-      id: member.id || member.name,
-      name: member.name,
-      avatar: member.avatar_url,
-      wonDeals: member.closedDeals || member.vendas || 0,
-      revenue: member.revenue || member.valorFechado || 0,
-      conversionRate: member.conversionRate || member.taxaConversao || 0,
-      trend: member.trend
+    if (!dashboardData?.teamData || userRole === 'vendedor') return [];
+    return dashboardData.teamData;
+  }, [dashboardData?.teamData, userRole]);
+
+  // Activity breakdown data
+  const activityData = useMemo(() => {
+    if (!dashboardData?.teamData || userRole === 'vendedor') return [];
+    return dashboardData.teamData.map((t: any) => ({
+      name: t.name,
+      meetings: t.meetings || 0,
+      tasks: t.tasks || 0,
+      observations: t.observations || 0,
+      avatar: t.avatar,
     }));
-  }, [detailedPerformanceData, userRole]);
+  }, [dashboardData?.teamData, userRole]);
+
+  // Monthly comparison data
+  const comparisonData = useMemo(() => {
+    if (!stats) return [];
+    return [
+      { label: 'Leads', current: stats.totalLeads || 0, previous: stats.previousTotalLeads || 0, format: 'number' as const, icon: Users },
+      { label: 'Vendas', current: stats.wonLeads || 0, previous: stats.previousWonLeads || 0, format: 'number' as const, icon: CheckCircle },
+      { label: 'Conversão', current: parseFloat(stats.conversionRate) || 0, previous: parseFloat(stats.previousConversionRate) || 0, format: 'percent' as const, icon: Percent },
+      { label: 'Ciclo', current: stats.avgTimeInFunnel || 0, previous: stats.avgTimeInFunnel || 0, format: 'days' as const, icon: Timer },
+    ];
+  }, [stats]);
 
   // Velocidade do funil (dados simulados baseados em stats)
   const velocityData = useMemo(() => {
@@ -626,11 +644,38 @@ const Dashboard = () => {
             />
           </div>
 
-          {/* Team Performance (Gestores only) */}
+          {/* Team Goal Progress (Gestores only) */}
+          {userRole !== 'vendedor' && stats?.totalTeamGoal > 0 && (
+            <TeamGoalProgressCard
+              totalGoal={stats.totalTeamGoal}
+              totalAchieved={stats.totalTeamAchieved}
+              teamSize={stats.teamSize}
+              daysRemaining={stats.daysRemaining}
+            />
+          )}
+
+          {/* Monthly Comparison */}
+          {userRole !== 'vendedor' && comparisonData.length > 0 && (
+            <MonthlyComparisonCard
+              metrics={comparisonData}
+              currentPeriod={selectedMonth === 'all' ? selectedYear : `${selectedMonth}/${selectedYear}`}
+              previousPeriod="Período anterior"
+            />
+          )}
+
+          {/* Detailed Team Performance (Gestores only) */}
           {userRole !== 'vendedor' && teamRankingData.length > 0 && (
-            <TeamPerformancePanel 
-              members={teamRankingData} 
-              title="Ranking do Time"
+            <SalesRepDetailedPanel 
+              data={teamRankingData} 
+              title="Performance Detalhada do Time"
+            />
+          )}
+
+          {/* Activity Breakdown (Gestores only) */}
+          {userRole !== 'vendedor' && activityData.length > 0 && (
+            <ActivityBreakdownPanel
+              data={activityData}
+              title="Atividades por Vendedor"
             />
           )}
 
