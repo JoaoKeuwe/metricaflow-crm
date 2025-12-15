@@ -30,11 +30,7 @@ import KPI from "./pages/KPI";
 import Admin from "./pages/Admin";
 import AdminLogin from "./pages/AdminLogin";
 import NotFound from "./pages/NotFound";
-import Sidebar from "./components/layout/Sidebar";
 import ProtectedRoute from "./pages/ProtectedRoute";
-import OnboardingTour from "./components/onboarding/OnboardingTour";
-import WhatsAppButton from "./components/support/WhatsAppButton";
-import { useTheme } from "./hooks/useTheme";
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -46,22 +42,6 @@ const queryClient = new QueryClient({
     },
   },
 });
-
-const DemoLayout = ({ children }: { children: React.ReactNode }) => {
-  // Apply theme on mount
-  useTheme();
-  
-  return (
-    <div className="min-h-screen bg-background">
-      <Sidebar />
-      <div className="pt-16">
-        <main className="min-h-[calc(100vh-4rem)] overflow-y-auto p-6">{children}</main>
-      </div>
-      <OnboardingTour />
-      <WhatsAppButton />
-    </div>
-  );
-};
 
 const App = () => {
   return (
@@ -78,49 +58,49 @@ const App = () => {
             <Route
               path="/"
               element={
-                <DemoLayout>
+                <ProtectedRoute>
                   <Dashboard />
-                </DemoLayout>
+                </ProtectedRoute>
               }
             />
             <Route
               path="/leads"
               element={
-                <DemoLayout>
+                <ProtectedRoute>
                   <Leads />
-                </DemoLayout>
+                </ProtectedRoute>
               }
             />
             <Route
               path="/lead/:id"
               element={
-                <DemoLayout>
+                <ProtectedRoute>
                   <LeadDetail />
-                </DemoLayout>
+                </ProtectedRoute>
               }
             />
             <Route
               path="/kanban"
               element={
-                <DemoLayout>
+                <ProtectedRoute>
                   <Kanban />
-                </DemoLayout>
+                </ProtectedRoute>
               }
             />
             <Route
               path="/users"
               element={
-                <DemoLayout>
+                <ProtectedRoute>
                   <Users />
-                </DemoLayout>
+                </ProtectedRoute>
               }
             />
             <Route
               path="/integrations"
               element={
-                <DemoLayout>
+                <ProtectedRoute>
                   <Integrations />
-                </DemoLayout>
+                </ProtectedRoute>
               }
             />
             <Route
@@ -150,17 +130,17 @@ const App = () => {
             <Route
               path="/local-prospector"
               element={
-                <DemoLayout>
+                <ProtectedRoute>
                   <LocalProspector />
-                </DemoLayout>
+                </ProtectedRoute>
               }
             />
             <Route
               path="/bulk-import"
               element={
-                <DemoLayout>
+                <ProtectedRoute>
                   <BulkImport />
-                </DemoLayout>
+                </ProtectedRoute>
               }
             />
             <Route
@@ -182,9 +162,9 @@ const App = () => {
             <Route
               path="/help"
               element={
-                <DemoLayout>
+                <ProtectedRoute>
                   <Help />
-                </DemoLayout>
+                </ProtectedRoute>
               }
             />
             <Route
@@ -211,11 +191,26 @@ const App = () => {
                 </ProtectedRoute>
               }
             />
-            <Route path="/kpi" element={<KPI />} />
+            <Route
+              path="/kpi"
+              element={
+                <ProtectedRoute>
+                  <KPI />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/admin"
+              element={
+                <ProtectedRoute>
+                  <Admin />
+                </ProtectedRoute>
+              }
+            />
+            {/* Public routes */}
             <Route path="/pricing" element={<Pricing />} />
             <Route path="/sales" element={<Sales />} />
             <Route path="/admwf360" element={<AdminLogin />} />
-            <Route path="/admin" element={<Admin />} />
             <Route path="*" element={<NotFound />} />
           </Routes>
         </BrowserRouter>

@@ -1,6 +1,9 @@
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import Sidebar from "@/components/layout/Sidebar";
+import OnboardingTour from "@/components/onboarding/OnboardingTour";
+import WhatsAppButton from "@/components/support/WhatsAppButton";
+import { useTheme } from "@/hooks/useTheme";
 
 interface ProtectedRouteProps {
   children: React.ReactNode;
@@ -10,6 +13,9 @@ const ProtectedRoute = ({ children }: ProtectedRouteProps) => {
   const [session, setSession] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [mustChangePassword, setMustChangePassword] = useState(false);
+
+  // Apply theme on mount
+  useTheme();
 
   useEffect(() => {
     const checkSession = async () => {
@@ -70,6 +76,8 @@ const ProtectedRoute = ({ children }: ProtectedRouteProps) => {
       <div className="pt-16">
         <main className="min-h-[calc(100vh-4rem)] overflow-y-auto p-6">{children}</main>
       </div>
+      <OnboardingTour />
+      <WhatsAppButton />
     </div>
   );
 };
