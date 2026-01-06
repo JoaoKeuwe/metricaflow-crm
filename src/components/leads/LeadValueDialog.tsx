@@ -36,7 +36,8 @@ const leadValueSchema = z.object({
     errorMap: () => ({ message: "Selecione um tipo válido" }),
   }),
   amount: z.string().min(1, "Valor é obrigatório").refine((val) => {
-    const num = parseFloat(val.replace(/[^\d,.-]/g, '').replace(',', '.'));
+    // Converte formato brasileiro (pontos para milhares, vírgula para decimais) para número
+    const num = parseFloat(val.replace(/\./g, '').replace(',', '.'));
     return !isNaN(num) && num > 0;
   }, "Valor deve ser maior que zero"),
   notes: z.string().max(500, "Observações devem ter no máximo 500 caracteres").optional(),
@@ -72,7 +73,9 @@ export function LeadValueDialog({
     defaultValues: {
       name: value?.name || "",
       value_type: (value?.value_type as "unico" | "recorrente") || "unico",
-      amount: value?.amount ? value.amount.toString() : "",
+      amount: value?.amount 
+        ? value.amount.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) 
+        : "",
       notes: value?.notes || "",
     },
   });
@@ -86,12 +89,28 @@ export function LeadValueDialog({
   };
 
   const formatCurrency = (value: string) => {
-    const numbers = value.replace(/\D/g, '');
-    const amount = parseFloat(numbers) / 100;
-    return amount.toLocaleString('pt-BR', {
-      minimumFractionDigits: 2,
-      maximumFractionDigits: 2,
-    });
+    // Remove tudo exceto números e vírgula
+    let cleaned = value.replace(/[^\d,]/g, '');
+    
+    // Garante apenas uma vírgula
+    const parts = cleaned.split(',');
+    if (parts.length > 2) {
+      cleaned = parts[0] + ',' + parts.slice(1).join('');
+    }
+    
+    // Limita decimais a 2 dígitos
+    if (parts.length === 2 && parts[1].length > 2) {
+      cleaned = parts[0] + ',' + parts[1].slice(0, 2);
+    }
+    
+    // Formata a parte inteira com pontos de milhar
+    if (parts[0]) {
+      const integerPart = parts[0].replace(/\D/g, '');
+      const formattedInteger = integerPart.replace(/\B(?=(\d{3})+(?!\d))/g, '.');
+      cleaned = formattedInteger + (parts.length > 1 ? ',' + parts[1] : '');
+    }
+    
+    return cleaned;
   };
 
   return (
