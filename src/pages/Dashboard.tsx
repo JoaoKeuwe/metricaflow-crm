@@ -41,7 +41,9 @@ import {
   TeamGoalProgressCard,
   ActivityBreakdownPanel,
   MonthlyComparisonCard,
-  SalesRepDetailedPanel
+  SalesRepDetailedPanel,
+  RevenueBySellerChart,
+  LeadsConversionMonthlyChart
 } from "@/components/dashboard/cockpit";
 
 // Lazy load de componentes pesados
@@ -706,6 +708,26 @@ const Dashboard = () => {
               <SourceConversionChart
                 data={processedSourceData}
                 title="Conversão por Fonte"
+              />
+            )}
+          </div>
+
+          {/* NEW: Monthly Charts - Revenue by Seller and Leads vs Closed */}
+          <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
+            {/* Revenue by Seller Chart (Managers only) */}
+            {userRole !== 'vendedor' && dashboardData?.monthlyRevenueBySellerData?.length > 0 && (
+              <RevenueBySellerChart 
+                data={dashboardData.monthlyRevenueBySellerData}
+                sellers={dashboardData.sellers || []}
+                title="Receita por Vendedor (Mês a Mês)"
+              />
+            )}
+
+            {/* Leads vs Closed + Conversion Chart */}
+            {dashboardData?.monthlyLeadsConversion?.length > 0 && (
+              <LeadsConversionMonthlyChart 
+                data={dashboardData.monthlyLeadsConversion}
+                title="Leads vs Fechados + Conversão"
               />
             )}
           </div>

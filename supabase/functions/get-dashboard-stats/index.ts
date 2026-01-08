@@ -88,6 +88,8 @@ Deno.serve(async (req) => {
       allKPIsResult,
       previousPeriodLeadsResult,
       previousPeriodWonResult,
+      monthlyLeadsDataResult,
+      monthlyRevenueBySellerResult,
     ] = await Promise.all([
       buildQuery(supabaseClient.from('leads').select('*', { count: 'exact', head: true })),
       buildQuery(supabaseClient.from('leads').select('*', { count: 'exact', head: true }).eq('status', 'ganho')),
@@ -118,6 +120,10 @@ Deno.serve(async (req) => {
       supabaseClient.from('seller_kpi_monthly').select('*').gte('month', start_date.split('T')[0]).lte('month', end_date.split('T')[0]),
       supabaseClient.from('leads').select('*', { count: 'exact', head: true }).gte('created_at', prevStart).lte('created_at', prevEnd),
       supabaseClient.from('leads').select('*', { count: 'exact', head: true }).eq('status', 'ganho').gte('created_at', prevStart).lte('created_at', prevEnd),
+      // New: Monthly leads data for charts
+      supabaseClient.from('leads').select('id, status, assigned_to, created_at').gte('created_at', new Date(new Date(start_date).getFullYear(), 0, 1).toISOString()).lte('created_at', end_date),
+      // New: Monthly revenue by seller (won leads with values)
+      supabaseClient.from('lead_values').select('amount, lead_id, leads!inner(id, assigned_to, status, created_at)').eq('leads.status', 'ganho').gte('leads.created_at', new Date(new Date(start_date).getFullYear(), 0, 1).toISOString()).lte('leads.created_at', end_date),
     ]);
 
     // Calculate metrics
@@ -352,6 +358,78 @@ Deno.serve(async (req) => {
     const previousTotalLeads = previousPeriodLeadsResult.count || 0;
     const previousWonLeads = previousPeriodWonResult.count || 0;
 
+    // Process monthly leads data for Leads vs Closed chart
+    const monthNames = ['Jan', 'Fev', 'Mar', 'Abr', 'Mai', 'Jun', 'Jul', 'Ago', 'Set', 'Out', 'Nov', 'Dez'];
+    const monthlyLeadsData = monthlyLeadsDataResult.data || [];
+    
+    const monthlyLeadsConversion = monthNames.map((month, index) => {
+      const monthLeads = monthlyLeadsData.filter((lead: any) => {
+        const leadMonth = new Date(lead.created_at).getMonth();
+        return leadMonth === index;
+      });
+      const totalLeads = monthLeads.length;
+      const closedLeads = monthLeads.filter((lead: any) => lead.status === 'ganho').length;
+      const conversionRate = totalLeads > 0 ? (closedLeads / totalLeads) * 100 : 0;
+      
+      return { month, totalLeads, closedLeads, conversionRate };
+    }).filter(m => m.totalLeads > 0 || m.closedLeads > 0);
+
+    // Process monthly revenue by seller
+    const monthlyRevenueData = monthlyRevenueBySellerResult.data || [];
+    const sellerRevenueMap: Record<string, Record<string, number>> = {};
+    const sellerNames = new Set<string>();
+    
+    monthlyRevenueData.forEach((item: any) => {
+      const leadMonth = new Date(item.leads.created_at).getMonth();
+      const monthName = monthNames[leadMonth];
+      const sellerId = item.leads.assigned_to;
+      
+      if (!sellerId) return;
+      
+      if (!sellerRevenueMap[monthName]) {
+        sellerRevenueMap[monthName] = {};
+      }
+      
+      sellerRevenueMap[monthName][sellerId] = (sellerRevenueMap[monthName][sellerId] || 0) + Number(item.amount || 0);
+      sellerNames.add(sellerId);
+    });
+
+    // Get seller names from profiles
+    const sellerIdsArray = Array.from(sellerNames);
+    let sellerProfilesMap: Record<string, string> = {};
+    if (sellerIdsArray.length > 0) {
+      const { data: sellerProfiles } = await supabaseClient
+        .from('profiles')
+        .select('id, name')
+        .in('id', sellerIdsArray);
+      
+      (sellerProfiles || []).forEach((p: any) => {
+        sellerProfilesMap[p.id] = p.name;
+      });
+    }
+
+    const sellerColors = [
+      'hsl(215, 70%, 55%)', 'hsl(142, 70%, 45%)', 'hsl(38, 90%, 50%)', 
+      'hsl(255, 60%, 60%)', 'hsl(195, 80%, 50%)', 'hsl(340, 70%, 55%)',
+      'hsl(170, 70%, 45%)', 'hsl(25, 85%, 55%)'
+    ];
+
+    const sellers = sellerIdsArray.map((id, index) => ({
+      name: sellerProfilesMap[id] || 'Vendedor',
+      color: sellerColors[index % sellerColors.length],
+    }));
+
+    const monthlyRevenueBySellerData = monthNames
+      .filter(month => sellerRevenueMap[month])
+      .map(month => {
+        const monthData: Record<string, any> = { month };
+        sellerIdsArray.forEach(sellerId => {
+          const sellerName = sellerProfilesMap[sellerId] || 'Vendedor';
+          monthData[sellerName] = sellerRevenueMap[month]?.[sellerId] || 0;
+        });
+        return monthData;
+      });
+
     const response = {
       stats: {
         totalLeads, wonLeads, pendingLeads, qualifiedLeads, conversionRate, qualificationRate, winRate,
@@ -366,6 +444,9 @@ Deno.serve(async (req) => {
         previousConversionRate: previousTotalLeads > 0 ? ((previousWonLeads / previousTotalLeads) * 100).toFixed(1) : '0.0',
       },
       statusData, sourceData, funnelData, lossReasonsData, conversionByStage, teamData,
+      monthlyLeadsConversion,
+      monthlyRevenueBySellerData,
+      sellers,
     };
 
     console.log('Dashboard stats fetched successfully:', response.stats);
