@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Skeleton } from "@/components/ui/skeleton";
+import { SkeletonTable, SkeletonStats } from "@/components/ui/skeleton-card";
 import { LoadingSpinner } from "@/components/ui/loading-spinner";
 import { useRealtimeLeads } from "@/hooks/useRealtimeLeads";
 import { useDebounce } from "@/hooks/useDebounce";
@@ -426,17 +427,7 @@ const Leads = () => {
   // Renderizar a tabela de leads com componente otimizado
   const renderLeadsTable = () => {
     if (isLoadingLeads) {
-      return (
-        <div className="bg-card rounded-lg border p-6 space-y-4">
-          {[1, 2, 3, 4, 5].map((i) => (
-            <div key={i} className="flex gap-4">
-              <Skeleton className="h-12 flex-1" />
-              <Skeleton className="h-12 flex-1" />
-              <Skeleton className="h-12 w-32" />
-            </div>
-          ))}
-        </div>
-      );
+      return <SkeletonTable rows={8} />;
     }
 
     return (

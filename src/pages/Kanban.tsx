@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
+import { SkeletonKanbanColumn } from "@/components/ui/skeleton-card";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { useToast } from "@/hooks/use-toast";
 import { Eye, MessageCircle, Clock, Building2, Mail, Phone } from "lucide-react";
@@ -422,18 +423,8 @@ const Kanban = () => {
 
       {isLoadingLeads ? (
         <div className="flex gap-4 overflow-x-auto pb-4">
-          {visibleColumns.map((column) => (
-            <div key={column.id} className="flex-shrink-0 w-80 space-y-3">
-              <div className="flex items-center justify-between px-1">
-                <Skeleton className="h-5 w-32" />
-                <Skeleton className="h-6 w-10 rounded-full" />
-              </div>
-              <div className="space-y-3">
-                {[1, 2, 3].map((i) => (
-                  <Skeleton key={i} className="h-32 rounded-lg" />
-                ))}
-              </div>
-            </div>
+          {[3, 2, 4, 2, 1, 1].map((cards, i) => (
+            <SkeletonKanbanColumn key={i} cards={cards} />
           ))}
         </div>
       ) : (

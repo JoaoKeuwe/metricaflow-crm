@@ -23,6 +23,7 @@ import {
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
+import { SkeletonDashboard, SkeletonKPI, SkeletonChart } from "@/components/ui/skeleton-card";
 import { LoadingSpinner } from "@/components/ui/loading-spinner";
 import { toast } from "sonner";
 import {
@@ -61,13 +62,13 @@ const generatePDF = async () => {
 
 // Componente de fallback para Suspense
 const ChartSkeleton = () => (
-  <Skeleton className="h-[300px] w-full rounded-xl" />
+  <SkeletonChart className="h-[300px]" />
 );
 
 const KPISkeleton = () => (
   <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
     {[1, 2, 3, 4].map((i) => (
-      <Skeleton key={i} className="h-28 rounded-xl" />
+      <SkeletonKPI key={i} />
     ))}
   </div>
 );
