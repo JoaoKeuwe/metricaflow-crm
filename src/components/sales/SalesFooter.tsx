@@ -24,10 +24,9 @@ export const SalesFooter = () => {
       { label: "Parceiros", href: "#" },
     ],
     legal: [
-      { label: "Termos de Uso", href: "#" },
-      { label: "Privacidade", href: "#" },
-      { label: "Cookies", href: "#" },
-      { label: "LGPD", href: "#" },
+      { label: "Termos de Uso", href: "/terms" },
+      { label: "Privacidade", href: "/privacy" },
+      { label: "Cookies", href: "/cookies" },
     ],
   };
 
