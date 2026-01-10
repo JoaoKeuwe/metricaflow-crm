@@ -64,12 +64,10 @@ export function LinkedTasks({ leadId }: LinkedTasksProps) {
         <CardHeader>
           <div className="flex items-center justify-between">
             <CardTitle>Tarefas Vinculadas</CardTitle>
-            {isGestor && (
-              <Button size="sm" onClick={() => setIsDialogOpen(true)}>
-                <Plus className="h-4 w-4 mr-2" />
-                Nova Tarefa
-              </Button>
-            )}
+            <Button size="sm" onClick={() => setIsDialogOpen(true)}>
+              <Plus className="h-4 w-4 mr-2" />
+              Nova Tarefa
+            </Button>
           </div>
         </CardHeader>
         <CardContent>

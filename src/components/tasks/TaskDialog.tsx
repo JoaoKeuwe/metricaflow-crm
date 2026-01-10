@@ -41,6 +41,29 @@ export function TaskDialog({ open, onOpenChange, task }: TaskDialogProps) {
     },
   });
 
+  // Fetch current user role
+  const { data: userRole } = useQuery({
+    queryKey: ["user-role"],
+    queryFn: async () => {
+      const { data } = await supabase.rpc("get_user_role");
+      return data;
+    },
+    enabled: open,
+  });
+
+  // Fetch current user ID
+  const { data: currentUserId } = useQuery({
+    queryKey: ["current-user-id"],
+    queryFn: async () => {
+      const { data: session } = await supabase.auth.getSession();
+      return session.session?.user.id;
+    },
+    enabled: open,
+  });
+
+  const isGestor = userRole === "gestor" || userRole === "gestor_owner";
+  const isVendedor = userRole === "vendedor";
+
   const { data: companyUsers } = useQuery({
     queryKey: ["company-users"],
     queryFn: async () => {
@@ -224,15 +247,25 @@ export function TaskDialog({ open, onOpenChange, task }: TaskDialogProps) {
       setValue("due_date", task.due_date ? task.due_date.split("T")[0] : "");
     } else {
       reset();
+      // For vendedores, auto-set assignment to themselves
+      if (isVendedor && currentUserId) {
+        setValue("assigned_to", currentUserId);
+        setValue("assignment_type", "individual");
+      }
     }
-  }, [task, setValue, reset]);
+  }, [task, setValue, reset, isVendedor, currentUserId]);
 
   const onSubmit = (data: any) => {
+    // For vendedores, force self-assignment
+    const finalData = isVendedor && !task
+      ? { ...data, assigned_to: currentUserId, assignment_type: "individual" }
+      : data;
+
     // Clean up data before submitting
     const cleanData = {
-      ...data,
-      lead_id: data.lead_id || null,
-      due_date: data.due_date || null,
+      ...finalData,
+      lead_id: finalData.lead_id || null,
+      due_date: finalData.due_date || null,
     };
 
     if (task) {
@@ -271,40 +304,54 @@ export function TaskDialog({ open, onOpenChange, task }: TaskDialogProps) {
             />
           </div>
 
-          <div className="space-y-2">
-            <Label>Tipo de Atribuição *</Label>
-            <Select
-              value={watch("assignment_type")}
-              onValueChange={(value) => setValue("assignment_type", value)}
-            >
-              <SelectTrigger>
-                <SelectValue placeholder="Selecione o tipo" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="individual">Vendedor específico</SelectItem>
-                <SelectItem value="todos">Todos os vendedores</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
+          {/* Only show assignment options for gestores */}
+          {isGestor && (
+            <>
+              <div className="space-y-2">
+                <Label>Tipo de Atribuição *</Label>
+                <Select
+                  value={watch("assignment_type")}
+                  onValueChange={(value) => setValue("assignment_type", value)}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Selecione o tipo" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="individual">Vendedor específico</SelectItem>
+                    <SelectItem value="todos">Todos os vendedores</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
 
-          {watch("assignment_type") === "individual" && (
-            <div className="space-y-2">
-              <Label htmlFor="assigned_to">Atribuir para *</Label>
-              <Select
-                value={watch("assigned_to")}
-                onValueChange={(value) => setValue("assigned_to", value)}
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder="Selecione um usuário" />
-                </SelectTrigger>
-                <SelectContent>
-                  {companyUsers?.map((user) => (
-                    <SelectItem key={user.id} value={user.id}>
-                      {user.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              {watch("assignment_type") === "individual" && (
+                <div className="space-y-2">
+                  <Label htmlFor="assigned_to">Atribuir para *</Label>
+                  <Select
+                    value={watch("assigned_to")}
+                    onValueChange={(value) => setValue("assigned_to", value)}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Selecione um usuário" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {companyUsers?.map((user) => (
+                        <SelectItem key={user.id} value={user.id}>
+                          {user.name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              )}
+            </>
+          )}
+
+          {/* For vendedores, show info that task will be self-assigned */}
+          {isVendedor && !task && (
+            <div className="p-3 rounded-lg bg-muted">
+              <p className="text-sm text-muted-foreground">
+                Esta tarefa será atribuída para você
+              </p>
             </div>
           )}
 

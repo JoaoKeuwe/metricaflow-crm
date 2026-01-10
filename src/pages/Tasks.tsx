@@ -126,12 +126,10 @@ const Tasks = () => {
             Organize e acompanhe todas as tarefas da equipe
           </p>
         </div>
-        {isGestor && (
-          <Button onClick={() => setIsDialogOpen(true)}>
-            <Plus className="h-4 w-4 mr-2" />
-            Nova Tarefa
-          </Button>
-        )}
+        <Button onClick={() => setIsDialogOpen(true)}>
+          <Plus className="h-4 w-4 mr-2" />
+          Nova Tarefa
+        </Button>
       </div>
 
       <TaskStats tasks={tasks || []} />
