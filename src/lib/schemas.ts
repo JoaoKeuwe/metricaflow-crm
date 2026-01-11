@@ -53,16 +53,3 @@ export const noteFormSchema = z.object({
 });
 
 export type NoteFormData = z.infer<typeof noteFormSchema>;
-
-// Schema para lembrete
-export const reminderFormSchema = z.object({
-  description: z.string()
-    .trim()
-    .min(1, { message: "Descrição é obrigatória" })
-    .max(500, { message: "Descrição deve ter no máximo 500 caracteres" }),
-  reminder_date: z.string()
-    .min(1, { message: "Data e hora são obrigatórias" }),
-  lead_id: z.string().optional(),
-});
-
-export type ReminderFormData = z.infer<typeof reminderFormSchema>;

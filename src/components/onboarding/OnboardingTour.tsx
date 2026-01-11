@@ -95,11 +95,6 @@ const OnboardingTour = () => {
       disableBeacon: true,
     },
     {
-      target: '[href="/reminders"]',
-      content: "Defina lembretes para não esquecer de ações importantes.",
-      disableBeacon: true,
-    },
-    {
       target: '[href="/gamification-live"]',
       content: "Acompanhe seu desempenho e conquiste badges através da gamificação!",
       disableBeacon: true,

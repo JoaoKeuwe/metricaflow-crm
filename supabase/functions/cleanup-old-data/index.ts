@@ -18,26 +18,7 @@ serve(async (req) => {
 
     console.log("🧹 Iniciando limpeza de dados antigos...");
 
-    // 1. Limpar lembretes concluídos há mais de 30 dias
-    const reminderCutoffDate = new Date();
-    reminderCutoffDate.setDate(reminderCutoffDate.getDate() - 30);
-
-    const { data: deletedReminders, error: reminderError } = await supabase
-      .from("reminders")
-      .delete()
-      .eq("completed", true)
-      .lt("reminder_date", reminderCutoffDate.toISOString())
-      .select("id");
-
-    if (reminderError) {
-      console.error("❌ Erro ao limpar lembretes:", reminderError);
-      throw reminderError;
-    }
-
-    const reminderCount = deletedReminders?.length || 0;
-    console.log(`✅ ${reminderCount} lembretes concluídos removidos (>30 dias)`);
-
-    // 2. Limpar tarefas concluídas há mais de 30 dias
+    // 1. Limpar tarefas concluídas há mais de 30 dias
     const taskCutoffDate = new Date();
     taskCutoffDate.setDate(taskCutoffDate.getDate() - 30);
 
@@ -56,26 +37,7 @@ serve(async (req) => {
     const taskCount = deletedTasks?.length || 0;
     console.log(`✅ ${taskCount} tarefas concluídas removidas (>30 dias)`);
 
-    // 3. Limpar lembretes não concluídos muito antigos (>90 dias após data do lembrete)
-    const oldReminderCutoffDate = new Date();
-    oldReminderCutoffDate.setDate(oldReminderCutoffDate.getDate() - 90);
-
-    const { data: deletedOldReminders, error: oldReminderError } = await supabase
-      .from("reminders")
-      .delete()
-      .eq("completed", false)
-      .lt("reminder_date", oldReminderCutoffDate.toISOString())
-      .select("id");
-
-    if (oldReminderError) {
-      console.error("❌ Erro ao limpar lembretes antigos:", oldReminderError);
-      throw oldReminderError;
-    }
-
-    const oldReminderCount = deletedOldReminders?.length || 0;
-    console.log(`✅ ${oldReminderCount} lembretes não concluídos muito antigos removidos (>90 dias)`);
-
-    // 4. Limpar tarefas abertas/em andamento muito antigas (>90 dias)
+    // 2. Limpar tarefas abertas/em andamento muito antigas (>90 dias)
     const oldTaskCutoffDate = new Date();
     oldTaskCutoffDate.setDate(oldTaskCutoffDate.getDate() - 90);
 
@@ -98,11 +60,9 @@ serve(async (req) => {
       success: true,
       timestamp: new Date().toISOString(),
       cleaned: {
-        completedReminders: reminderCount,
         completedTasks: taskCount,
-        oldReminders: oldReminderCount,
         oldTasks: oldTaskCount,
-        total: reminderCount + taskCount + oldReminderCount + oldTaskCount,
+        total: taskCount + oldTaskCount,
       },
       message: "Limpeza de dados antigos concluída com sucesso",
     };

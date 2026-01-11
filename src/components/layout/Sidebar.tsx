@@ -1,4 +1,4 @@
-import { LayoutDashboard, Users, KanbanSquare, Settings, LogOut, Plug, Calendar, ListTodo, Bell, Database, Trophy, HelpCircle, ChevronLeft, ChevronRight, Shield, BarChart3 } from "lucide-react";
+import { LayoutDashboard, Users, KanbanSquare, Settings, LogOut, Plug, Calendar, ListTodo, Trophy, HelpCircle, ChevronLeft, ChevronRight, Shield, BarChart3 } from "lucide-react";
 import { NavLink, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
@@ -107,18 +107,6 @@ const Sidebar = () => {
     to: "/tasks",
     icon: ListTodo,
     label: "Tarefas",
-    requiresOwnerOrGestor: false,
-    requiresSuperAdmin: false
-  }, {
-    to: "/reminders",
-    icon: Bell,
-    label: "Lembretes",
-    requiresOwnerOrGestor: false,
-    requiresSuperAdmin: false
-  }, {
-    to: "/local-prospector",
-    icon: Database,
-    label: "Local Prospector",
     requiresOwnerOrGestor: false,
     requiresSuperAdmin: false
   }, {

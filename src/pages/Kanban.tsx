@@ -113,8 +113,7 @@ const Kanban = () => {
           profiles:assigned_to(name),
           lead_observations(id, created_at),
           tasks(id, due_date),
-          meetings(id, start_time),
-          reminders(id, reminder_date)
+          meetings(id, start_time)
         `)
         .eq("company_id", userProfile.company_id)
         .order("updated_at", { ascending: false });
@@ -129,15 +128,13 @@ const Kanban = () => {
         // Verificar se tem atividade futura agendada
         const futureTasks = lead.tasks?.filter((t: any) => t.due_date && new Date(t.due_date) > now) || [];
         const futureMeetings = lead.meetings?.filter((m: any) => m.start_time && new Date(m.start_time) > now) || [];
-        const futureReminders = lead.reminders?.filter((r: any) => r.reminder_date && new Date(r.reminder_date) > now) || [];
         
-        const hasFutureActivity = futureTasks.length > 0 || futureMeetings.length > 0 || futureReminders.length > 0;
+        const hasFutureActivity = futureTasks.length > 0 || futureMeetings.length > 0;
         
         // Pegar a data futura mais próxima
         const allFutureDates = [
           ...futureTasks.map((t: any) => new Date(t.due_date)),
-          ...futureMeetings.map((m: any) => new Date(m.start_time)),
-          ...futureReminders.map((r: any) => new Date(r.reminder_date))
+          ...futureMeetings.map((m: any) => new Date(m.start_time))
         ].sort((a, b) => a.getTime() - b.getTime());
 
         const nextActivityDate = allFutureDates[0];
@@ -147,7 +144,7 @@ const Kanban = () => {
           daysSinceUpdate,
           hasFutureActivity,
           nextActivityDate,
-          futureActivitiesCount: futureTasks.length + futureMeetings.length + futureReminders.length,
+          futureActivitiesCount: futureTasks.length + futureMeetings.length,
         };
       }) || [];
     },

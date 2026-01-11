@@ -17,8 +17,6 @@ import AcceptInvite from "./pages/AcceptInvite";
 import Integrations from "./pages/Integrations";
 import Agenda from "./pages/Agenda";
 import Tasks from "./pages/Tasks";
-import Reminders from "./pages/Reminders";
-import LocalProspector from "./pages/LocalProspector";
 import BulkImport from "./pages/BulkImport";
 import WhatsApp from "./pages/WhatsApp";
 import GamificationLive from "./pages/GamificationLive";
@@ -122,22 +120,6 @@ const App = () => {
               element={
                 <ProtectedRoute>
                   <Tasks />
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/reminders"
-              element={
-                <ProtectedRoute>
-                  <Reminders />
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/local-prospector"
-              element={
-                <ProtectedRoute>
-                  <LocalProspector />
                 </ProtectedRoute>
               }
             />

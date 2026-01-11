@@ -48,40 +48,14 @@ Deno.serve(async (req) => {
       );
     }
 
-    // Create reminders for each participant
-    const reminders = [];
-    for (const meeting of meetings) {
-      if (meeting.meeting_participants && meeting.meeting_participants.length > 0) {
-        for (const participant of meeting.meeting_participants) {
-          reminders.push({
-            user_id: participant.user_id,
-            lead_id: meeting.lead_id,
-            description: `Como foi a reunião "${meeting.title}"? Adicione seu feedback.`,
-            reminder_date: new Date().toISOString(),
-            completed: false,
-          });
-        }
-      }
-    }
-
-    if (reminders.length > 0) {
-      const { error: remindersError } = await supabase
-        .from('reminders')
-        .insert(reminders);
-
-      if (remindersError) {
-        console.error('Error creating reminders:', remindersError);
-        throw remindersError;
-      }
-
-      console.log(`Created ${reminders.length} reminders`);
-    }
+    // Log meetings that need feedback (reminders functionality removed)
+    const meetingsProcessed = meetings.length;
+    console.log(`Processed ${meetingsProcessed} meetings needing feedback`);
 
     return new Response(
       JSON.stringify({
         message: 'Feedback check completed',
-        meetingsProcessed: meetings.length,
-        remindersCreated: reminders.length,
+        meetingsProcessed: meetingsProcessed,
       }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );

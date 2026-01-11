@@ -312,30 +312,6 @@ Deno.serve(async (req) => {
     if (tasksError) throw tasksError;
     console.log(`${tasks.length} tarefas criadas`);
 
-    // Criar lembretes
-    console.log('Gerando lembretes...');
-    const reminders = [];
-    
-    for (let i = 0; i < 200; i++) {
-      const lead = random(insertedLeads);
-      const reminderDate = getRandomDate(30, -60); // Passado e futuro
-      const isCompleted = reminderDate < new Date() && Math.random() > 0.4;
-      
-      reminders.push({
-        lead_id: lead.id,
-        user_id: lead.assigned_to, // Atribuir ao responsável pelo lead
-        description: `Lembrete ${i + 1}`,
-        reminder_date: reminderDate.toISOString(),
-        completed: isCompleted
-      });
-    }
-
-    const { error: remindersError } = await supabaseAdmin
-      .from('reminders')
-      .insert(reminders);
-    if (remindersError) throw remindersError;
-    console.log(`${reminders.length} lembretes criados`);
-
     return new Response(
       JSON.stringify({
         success: true,
@@ -357,8 +333,7 @@ Deno.serve(async (req) => {
           values: leadValues.length,
           observations: observations.length,
           meetings: insertedMeetings.length,
-          tasks: tasks.length,
-          reminders: reminders.length
+          tasks: tasks.length
         }
       }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }

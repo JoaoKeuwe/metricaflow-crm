@@ -5,8 +5,7 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { formatDistanceToNow, format } from "date-fns";
-import { ptBR } from "date-fns/locale";
+import { format } from "date-fns";
 import { useNavigate } from "react-router-dom";
 import { useToast } from "@/hooks/use-toast";
 import MeetingNotifications from "./MeetingNotifications";
@@ -62,21 +61,6 @@ const Header = () => {
       return (profiles?.length || 0) - ownerCount;
     },
     enabled: !!profile?.company_id,
-  });
-
-  const { data: reminders } = useQuery({
-    queryKey: ["pending-reminders"],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from("reminders")
-        .select("*, leads(name)")
-        .eq("completed", false)
-        .lte("reminder_date", new Date().toISOString())
-        .order("reminder_date", { ascending: true });
-
-      if (error) throw error;
-      return data;
-    },
   });
 
   const { data: tasks } = useQuery({
@@ -147,18 +131,17 @@ const Header = () => {
           <PopoverTrigger asChild>
             <Button variant="outline" size="icon" className="relative">
               <Bell className="h-5 w-5" />
-              {((reminders?.length || 0) + (tasks?.length || 0) + (pendingMeetings?.length || 0)) > 0 && (
+              {((tasks?.length || 0) + (pendingMeetings?.length || 0)) > 0 && (
                 <Badge className="absolute -top-1 -right-1 h-5 w-5 flex items-center justify-center p-0 text-xs">
-                  {(reminders?.length || 0) + (tasks?.length || 0) + (pendingMeetings?.length || 0)}
+                  {(tasks?.length || 0) + (pendingMeetings?.length || 0)}
                 </Badge>
               )}
             </Button>
           </PopoverTrigger>
           <PopoverContent className="w-96 z-50 bg-popover" align="end">
             <Tabs defaultValue="tasks" className="w-full">
-              <TabsList className="grid w-full grid-cols-3">
+              <TabsList className="grid w-full grid-cols-2">
                 <TabsTrigger value="tasks">Tarefas {tasks && tasks.length > 0 && `(${tasks.length})`}</TabsTrigger>
-                <TabsTrigger value="reminders">Lembretes {reminders && reminders.length > 0 && `(${reminders.length})`}</TabsTrigger>
                 <TabsTrigger value="meetings">Reuniões {pendingMeetings && pendingMeetings.length > 0 && `(${pendingMeetings.length})`}</TabsTrigger>
               </TabsList>
               <TabsContent value="tasks" className="space-y-3 mt-4 max-h-96 overflow-y-auto">
@@ -168,14 +151,6 @@ const Header = () => {
                     {task.due_date && <p className="text-xs text-muted-foreground">Prazo: {format(new Date(task.due_date), "dd/MM/yyyy")}</p>}
                   </div>
                 )) : <p className="text-sm text-muted-foreground text-center py-4">Nenhuma tarefa pendente</p>}
-              </TabsContent>
-              <TabsContent value="reminders" className="space-y-3 mt-4 max-h-96 overflow-y-auto">
-                {reminders && reminders.length > 0 ? reminders.map((reminder: any) => (
-                  <div key={reminder.id} className="p-3 bg-muted rounded-lg space-y-1">
-                    <p className="font-medium text-sm">{reminder.leads?.name}</p>
-                    <p className="text-sm text-muted-foreground">{reminder.description}</p>
-                  </div>
-                )) : <p className="text-sm text-muted-foreground text-center py-4">Nenhum lembrete pendente</p>}
               </TabsContent>
               <TabsContent value="meetings" className="space-y-3 mt-4 max-h-96 overflow-y-auto">
                 {pendingMeetings && pendingMeetings.length > 0 ? pendingMeetings.map((meeting: any) => (
