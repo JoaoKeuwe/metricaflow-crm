@@ -4,6 +4,7 @@ import { supabase } from "@/integrations/supabase/client";
 import DashboardFilters from "@/components/dashboard/DashboardFilters";
 import { useDetailedPerformanceData } from "@/hooks/useDetailedPerformanceData";
 import { useRealtimeLeads } from "@/hooks/useRealtimeLeads";
+import OnboardingChecklist from "@/components/onboarding/OnboardingChecklist";
 import { 
   Users, 
   CheckCircle, 
@@ -546,6 +547,11 @@ const Dashboard = () => {
         </div>
       ) : (
         <div className="space-y-6">
+          {/* Onboarding Checklist for Managers */}
+          {(userRole === 'gestor' || userRole === 'gestor_owner') && (
+            <OnboardingChecklist />
+          )}
+          
           {/* HERO SECTION - Goal Gauge + Main KPIs */}
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
             {/* Goal Gauge */}
