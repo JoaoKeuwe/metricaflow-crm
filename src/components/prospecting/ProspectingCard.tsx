@@ -18,7 +18,6 @@ interface ProspectLead {
   telefone?: string;
   cidade?: string;
   estado?: string;
-  avaliacoes?: number;
   rating?: number;
   endereco?: string;
   website?: string;
@@ -143,19 +142,6 @@ export const ProspectingCard = ({ lead, className }: ProspectingCardProps) => {
             </div>
           )}
         </div>
-
-        {/* Avaliações */}
-        {lead.avaliacoes !== undefined && (
-          <div className="flex items-center gap-1.5 sm:gap-2 pt-2 border-t border-border">
-            <Star className="h-3 w-3 sm:h-4 sm:w-4 text-amber-400 fill-amber-400" />
-            <span className="text-xs sm:text-sm text-muted-foreground">
-              <span className="font-medium text-foreground">
-                {lead.avaliacoes}
-              </span>{" "}
-              avaliações
-            </span>
-          </div>
-        )}
 
         {/* Ações */}
         <div className="flex gap-2 pt-2">

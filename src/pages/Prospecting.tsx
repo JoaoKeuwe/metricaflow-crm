@@ -35,12 +35,11 @@ const WEBHOOK_URL =
 
 // Interface para resposta do webhook
 interface WebhookResult {
-  nome: string;
-  telefone?: string;
-  endereco?: string;
-  cidade?: string;
-  quantidade_avaliacoes?: number;
-  site?: string;
+  Nome: string;
+  Telefone?: string;
+  Endereco?: string;
+  Cidade?: string;
+  Site?: string;
 }
 
 interface WebhookResponse {
@@ -56,7 +55,6 @@ interface ProspectLead {
   telefone?: string;
   cidade?: string;
   estado?: string;
-  avaliacoes?: number;
   rating?: number;
   endereco?: string;
   website?: string;
@@ -91,12 +89,22 @@ const Prospecting = () => {
 
       const raw = await response.json();
 
+      // Se vier diretamente um array de leads (sem wrapper)
+      if (Array.isArray(raw) && raw.length > 0 && raw[0]?.Nome) {
+        return {
+          ok: true,
+          termo: message,
+          count: raw.length,
+          results: raw
+        };
+      }
+
       // Verificar se é erro do n8n
       if (raw?.code !== undefined && raw?.message) {
         throw new Error(raw.message || "Erro no workflow do n8n");
       }
 
-      // Se vier array, pega o primeiro elemento
+      // Se vier array com wrapper, pega o primeiro elemento
       const data: WebhookResponse = Array.isArray(raw) ? raw[0] : raw;
 
       // Verificar novamente se é erro após extrair do array
@@ -116,18 +124,18 @@ const Prospecting = () => {
         const mappedLeads: ProspectLead[] = data.results.map(
           (result, index) => ({
             id: `lead-${Date.now()}-${index}`,
-            nome: result.nome,
-            telefone: result.telefone,
-            cidade: result.cidade,
-            endereco: result.endereco,
-            avaliacoes: result.quantidade_avaliacoes,
-            website: result.site,
+            nome: result.Nome,
+            telefone: result.Telefone,
+            cidade: result.Cidade,
+            endereco: result.Endereco,
+            website: result.Site,
           })
         );
+        
         setLeads(mappedLeads);
 
         toast.success("🎯 Prospecção finalizada!", {
-          description: `${data.count} leads encontrados para "${data.termo}"`,
+          description: `${mappedLeads.length} leads encontrados`,
           duration: 5000,
         });
       } else {
@@ -138,6 +146,7 @@ const Prospecting = () => {
       }
       setIsProspecting(false);
       setProspectingComplete(true);
+      setSearchTerm("");
     },
     onError: (error) => {
       setIsProspecting(false);

@@ -14,6 +14,8 @@ import {
   Shield,
   BarChart3,
   Search,
+  Menu,
+  X,
 } from "lucide-react";
 import { NavLink, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
@@ -21,6 +23,8 @@ import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { useQuery } from "@tanstack/react-query";
 import { useState, useEffect } from "react";
+import { motion, AnimatePresence } from "framer-motion";
+import { cn } from "@/lib/utils";
 
 const Sidebar = () => {
   const navigate = useNavigate();
@@ -29,6 +33,7 @@ const Sidebar = () => {
     const saved = localStorage.getItem("sidebar-collapsed");
     return saved === "true";
   });
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   const { data: session } = useQuery({
     queryKey: ["session"],
@@ -197,48 +202,140 @@ const Sidebar = () => {
     if (item.requiresOwnerOrGestor) return isOwnerOrGestor;
     return true;
   });
+
+  // Fechar menu mobile ao navegar
+  const handleMobileNavClick = () => {
+    setMobileMenuOpen(false);
+  };
+
   return (
-    <nav className="fixed top-0 left-0 right-0 h-16 bg-card border-b border-border flex items-center justify-between px-6 z-50">
-      <div className="flex items-center gap-6">
-        <div className="flex items-center gap-3">
-          {profile?.company?.logo_url ? (
-            <img
-              src={profile.company.logo_url}
-              alt={profile.company.name || "Logo"}
-              className="h-8 w-auto object-contain"
+    <>
+      {/* Header Desktop e Mobile */}
+      <nav className="fixed top-0 left-0 right-0 h-16 bg-card border-b border-border flex items-center justify-between px-4 sm:px-6 z-50">
+        {/* Logo e Menu Hamburguer */}
+        <div className="flex items-center gap-3 sm:gap-6">
+          <div className="flex items-center gap-3">
+            {profile?.company?.logo_url ? (
+              <img
+                src={profile.company.logo_url}
+                alt={profile.company.name || "Logo"}
+                className="h-8 w-auto object-contain"
+              />
+            ) : (
+              <h1 className="text-xl font-bold bg-gradient-to-r from-primary to-purple-600 bg-clip-text text-transparent">
+                {profile?.company?.system_name || "Pro"}
+              </h1>
+            )}
+          </div>
+
+          {/* Menu Desktop - Oculto em mobile */}
+          <div className="hidden lg:flex items-center gap-1">
+            {navItems.map((item) => (
+              <NavLink
+                key={item.to}
+                to={item.to}
+                className={({ isActive }) =>
+                  `flex items-center gap-2 px-4 py-2 rounded-lg transition-all ${
+                    isActive
+                      ? "bg-primary text-primary-foreground shadow-md"
+                      : "text-muted-foreground hover:bg-muted hover:text-foreground"
+                  }`
+                }
+              >
+                <item.icon className="h-4 w-4 flex-shrink-0" />
+                <span className="font-medium text-sm">{item.label}</span>
+              </NavLink>
+            ))}
+          </div>
+        </div>
+
+        {/* Botões de ação */}
+        <div className="flex items-center gap-2">
+          {/* Botão Logout Desktop */}
+          <Button
+            variant="ghost"
+            className="hidden sm:flex gap-2"
+            onClick={handleLogout}
+          >
+            <LogOut className="h-4 w-4" />
+            <span className="hidden md:inline">Sair</span>
+          </Button>
+
+          {/* Botão Menu Hamburguer - Visível apenas em mobile */}
+          <Button
+            variant="ghost"
+            size="icon"
+            className="lg:hidden"
+            onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+          >
+            {mobileMenuOpen ? (
+              <X className="h-5 w-5" />
+            ) : (
+              <Menu className="h-5 w-5" />
+            )}
+          </Button>
+        </div>
+      </nav>
+
+      {/* Menu Mobile - Slide lateral */}
+      <AnimatePresence>
+        {mobileMenuOpen && (
+          <>
+            {/* Overlay */}
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="fixed inset-0 bg-black/50 z-[60] lg:hidden"
+              onClick={() => setMobileMenuOpen(false)}
             />
-          ) : (
-            <h1 className="text-xl font-bold bg-gradient-to-r from-primary to-purple-600 bg-clip-text text-transparent">
-              {profile?.company?.system_name || "Pro"}
-            </h1>
-          )}
-        </div>
 
-        <div className="flex items-center gap-1">
-          {navItems.map((item) => (
-            <NavLink
-              key={item.to}
-              to={item.to}
-              className={({ isActive }) =>
-                `flex items-center gap-2 px-4 py-2 rounded-lg transition-all ${
-                  isActive
-                    ? "bg-primary text-primary-foreground shadow-md"
-                    : "text-muted-foreground hover:bg-muted hover:text-foreground"
-                }`
-              }
+            {/* Menu Lateral */}
+            <motion.div
+              initial={{ x: "100%" }}
+              animate={{ x: 0 }}
+              exit={{ x: "100%" }}
+              transition={{ type: "spring", damping: 25, stiffness: 200 }}
+              className="fixed top-16 right-0 bottom-0 w-[280px] bg-card border-l border-border z-[70] lg:hidden overflow-y-auto"
             >
-              <item.icon className="h-4 w-4 flex-shrink-0" />
-              <span className="font-medium text-sm">{item.label}</span>
-            </NavLink>
-          ))}
-        </div>
-      </div>
+              <div className="p-4 space-y-2">
+                {navItems.map((item) => (
+                  <NavLink
+                    key={item.to}
+                    to={item.to}
+                    onClick={handleMobileNavClick}
+                    className={({ isActive }) =>
+                      cn(
+                        "flex items-center gap-3 px-4 py-3 rounded-lg transition-all",
+                        isActive
+                          ? "bg-primary text-primary-foreground shadow-md"
+                          : "text-muted-foreground hover:bg-muted hover:text-foreground"
+                      )
+                    }
+                  >
+                    <item.icon className="h-5 w-5 flex-shrink-0" />
+                    <span className="font-medium">{item.label}</span>
+                  </NavLink>
+                ))}
 
-      <Button variant="ghost" className="gap-2" onClick={handleLogout}>
-        <LogOut className="h-4 w-4" />
-        Sair
-      </Button>
-    </nav>
+                {/* Botão Logout Mobile */}
+                <Button
+                  variant="ghost"
+                  className="w-full justify-start gap-3 px-4 py-3 h-auto mt-4"
+                  onClick={() => {
+                    handleMobileNavClick();
+                    handleLogout();
+                  }}
+                >
+                  <LogOut className="h-5 w-5" />
+                  <span className="font-medium">Sair</span>
+                </Button>
+              </div>
+            </motion.div>
+          </>
+        )}
+      </AnimatePresence>
+    </>
   );
 };
 

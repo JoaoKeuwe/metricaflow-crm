@@ -1,4 +1,4 @@
-import { Building2, MapPin, Star, Phone } from "lucide-react";
+import { Building2, MapPin, Phone } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 
 interface ProspectLead {
@@ -7,7 +7,6 @@ interface ProspectLead {
   telefone?: string;
   cidade?: string;
   estado?: string;
-  avaliacoes?: number;
   rating?: number;
   endereco?: string;
   website?: string;
@@ -20,22 +19,12 @@ interface ProspectingStatsProps {
 
 export const ProspectingStats = ({ leads }: ProspectingStatsProps) => {
   const totalLeads = leads.length;
-  const totalAvaliacoes = leads.reduce(
-    (sum, lead) => sum + (lead.avaliacoes || 0),
-    0
-  );
-  const avgRating =
-    leads.length > 0
-      ? (
-          leads.reduce((sum, lead) => sum + (lead.rating || 0), 0) /
-          leads.filter((l) => l.rating).length
-        ).toFixed(1)
-      : "0.0";
   const leadsComTelefone = leads.filter((l) => l.telefone).length;
 
-  // Cidades únicas
-  const cidadesUnicas = [...new Set(leads.map((l) => l.cidade).filter(Boolean))]
-    .length;
+  // Cidades únicas - filtra valores undefined/null/vazios
+  const cidadesUnicas = new Set(
+    leads.map((l) => l.cidade).filter((cidade) => cidade && cidade.trim())
+  ).size;
 
   const stats = [
     {
@@ -59,18 +48,10 @@ export const ProspectingStats = ({ leads }: ProspectingStatsProps) => {
       color: "text-blue-500",
       bgColor: "bg-blue-500/10",
     },
-    {
-      label: "Média Avaliação",
-      value: avgRating,
-      icon: Star,
-      color: "text-amber-500",
-      bgColor: "bg-amber-500/10",
-      suffix: "★",
-    },
   ];
 
   return (
-    <div className="grid grid-cols-2 lg:grid-cols-4 gap-2 sm:gap-4">
+    <div className="grid grid-cols-2 lg:grid-cols-3 gap-2 sm:gap-4">
       {stats.map((stat, index) => (
         <Card key={index} className="premium-card">
           <CardContent className="p-3 sm:p-4">
@@ -83,11 +64,6 @@ export const ProspectingStats = ({ leads }: ProspectingStatsProps) => {
               <div className="min-w-0">
                 <p className="text-lg sm:text-2xl font-bold truncate">
                   {stat.value}
-                  {stat.suffix && (
-                    <span className="text-sm sm:text-lg ml-0.5 sm:ml-1">
-                      {stat.suffix}
-                    </span>
-                  )}
                 </p>
                 <p className="text-[10px] sm:text-xs text-muted-foreground truncate">
                   {stat.label}
