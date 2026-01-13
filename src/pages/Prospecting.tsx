@@ -95,7 +95,7 @@ const Prospecting = () => {
           ok: true,
           termo: message,
           count: raw.length,
-          results: raw
+          results: raw,
         };
       }
 
@@ -131,7 +131,7 @@ const Prospecting = () => {
             website: result.Site,
           })
         );
-        
+
         setLeads(mappedLeads);
 
         toast.success("🎯 Prospecção finalizada!", {
