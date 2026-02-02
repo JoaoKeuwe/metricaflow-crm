@@ -31,7 +31,7 @@ import { ProspectingStats } from "@/components/prospecting/ProspectingStats";
 
 // Webhook URL
 const WEBHOOK_URL =
-  "https://n8n-principal-n8n.dczlic.easypanel.host/webhook-test/112bb213-d3a9-442e-8c8a-1f55c890429e";
+  "https://n8n-principal-n8n.dczlic.easypanel.host/webhook/112bb213-d3a9-442e-8c8a-1f55c890429e";
 
 // Interface para resposta do webhook
 interface WebhookResult {
