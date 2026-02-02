@@ -99,7 +99,6 @@ const Prospecting = () => {
         };
       }
 
-      // Verificar se é erro do n8n
       if (raw?.code !== undefined && raw?.message) {
         throw new Error(raw.message || "Erro no workflow do n8n");
       }
