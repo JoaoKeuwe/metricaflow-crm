@@ -89,7 +89,6 @@ const Prospecting = () => {
 
       const raw = await response.json();
 
-      // Se vier diretamente um array de leads (sem wrapper)
       if (Array.isArray(raw) && raw.length > 0 && raw[0]?.Nome) {
         return {
           ok: true,
