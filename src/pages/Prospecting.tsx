@@ -97,6 +97,7 @@ const Prospecting = () => {
           results: raw,
         };
       }
+      
 
       if (raw?.code !== undefined && raw?.message) {
         throw new Error(raw.message || "Erro no workflow do n8n");
